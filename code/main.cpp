@@ -1,10 +1,12 @@
 #include <SDL.h>
+#include <SDL_image.h>
 #include <stdio.h>
 
 #define global_variable static
 
 global_variable const int Screen_Width = 640;
 global_variable const int Screen_Height = 480;
+global_variable const int Sdl_Image_Flags = IMG_INIT_PNG;
 
 int
 main(int argc, char *argv[])
@@ -26,6 +28,9 @@ main(int argc, char *argv[])
 		window = SDL_CreateWindow("Prototype Alpha 0.1", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Screen_Width, Screen_Height, SDL_WINDOW_SHOWN);
 		if (window)
 		{
+			// initialize sdl image
+			int sdlImageInit = IMG_Init(Sdl_Image_Flags);
+
 			// get window surface
 			screenSurface = SDL_GetWindowSurface(window);
 
