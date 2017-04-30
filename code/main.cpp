@@ -1,5 +1,11 @@
+/*
+ *	Created By: Nick Kane
+ */
+
 #include <SDL.h>
 #include <SDL_image.h>
+#include "window_state.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,6 +15,8 @@ global_variable const int Screen_Width = 640;
 global_variable const int Screen_Height = 480;
 global_variable const int Sdl_Image_Flags = IMG_INIT_PNG;
 
+// TODO(nick): rename this ...
+global_variable WindowState *Window; 
 global_variable bool GameRunning = true;
 global_variable SDL_RWops *ReadWriteOperations;
 
@@ -20,43 +28,42 @@ struct Entity
 	SDL_Surface *CurrentImage;
 };
 
-struct GameState
-{
-
-};
-
 global_variable Entity *PlayerEntity;
 
 SDL_Window *
+InitializeGameWindow();
+
+bool
+InitializeAssetPipeline();
+
+WindowState *
 InitializeGame();
+
+SDL_Surface *
+LoadAsset(SDL_RWops *, SDL_Surface *);
 
 int
 main(int argc, char *argv[])
 {
-	// window to be rendered to
-	SDL_Window *Window = NULL;
-
-	// surface contained by window
-	SDL_Surface *ScreenSurface = NULL; 
-
+	// TODO(nick): add this maybe to gamestate / windowstate?
 	SDL_Event CurrentEvent;
 
-	if((Window = InitializeGame()) != NULL)
+	Window = InitializeGame();
+
+	if(Window->GameWindow != NULL)
 	{
 		// game initialized successfully
-		ScreenSurface = (SDL_Surface *)malloc(sizeof(SDL_Surface));
-		ScreenSurface = SDL_GetWindowSurface(Window);
 
 		while (GameRunning)
 		{
-			while (SDL_PollEvent(&CurrentEvent) != NULL)
+			while (SDL_PollEvent(&CurrentEvent))
 			{
 				switch (CurrentEvent.type)
 				{
 					case SDL_QUIT:
 					{
 						GameRunning = false;
-      					} break;
+					} break;
 
 					// TODO(nick): figure out a better way to handle up / release
 					// key presses
@@ -115,7 +122,7 @@ main(int argc, char *argv[])
 								// TODO(nick): not valid key pressed here - just ignore?
 							} break;
 						}
-					}
+					} break;
 
 					case SDL_KEYUP:
 					{
@@ -171,7 +178,7 @@ main(int argc, char *argv[])
 								// TODO(nick): not valid key pressed here - just ignore?
 							} break;
 						}
-					} 
+					} break;
 
 					default:
 					{
@@ -181,9 +188,9 @@ main(int argc, char *argv[])
 				}
 			}
 
-			SDL_BlitSurface(PlayerEntity->CurrentImage, NULL, ScreenSurface, NULL);
+			SDL_BlitSurface(PlayerEntity->CurrentImage, NULL, Window->GameSurface, NULL);
 
-			SDL_UpdateWindowSurface(Window);
+			SDL_UpdateWindowSurface(Window->GameWindow);
 		}
 	}
 	else
@@ -194,7 +201,7 @@ main(int argc, char *argv[])
 
 	// TODO(nick): stream line some clean up process that is going to unload assest / clean up memory
 	// Destroy window
-	SDL_DestroyWindow(Window);
+	SDL_DestroyWindow(Window->GameWindow);
 
 	// quit SDL image
 	IMG_Quit();
@@ -206,7 +213,7 @@ main(int argc, char *argv[])
 }
 
 SDL_Window *
-InitializeGame()
+InitializeGameWindow()
 {
 	SDL_Window *Window = NULL;
 
@@ -216,37 +223,89 @@ InitializeGame()
 		// TODO(nick): proper logging / clean exit
 		printf("ERROR - SDL could not init - SDL_Error: %s\n", SDL_GetError());
 	}
-	else 
+	else
 	{
-		// create window
-		Window = SDL_CreateWindow("Prototype Alpha 0.1", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, Screen_Width, Screen_Height, SDL_WINDOW_SHOWN);
-		if (Window)
+		Window = SDL_CreateWindow("Prototype Alpha 0.1",
+					  SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+					  Screen_Width, Screen_Height,
+					  SDL_WINDOW_SHOWN);
+	}
+
+	return Window;
+}
+
+bool
+InitializeAssetPipeline()
+{
+	int sdlImageInit = IMG_Init(Sdl_Image_Flags);
+
+	if ((sdlImageInit & Sdl_Image_Flags) != Sdl_Image_Flags)
+	{
+		// TODO(nick): proper logging / clean exit
+		printf("ERROR - SDL_image did not initialize properly - IMG_Error: %s\n", IMG_GetError());
+		return false;
+	}
+
+	return true;
+}
+
+WindowState *
+InitializeGame()
+{
+	WindowState *CurrentWindowState = (WindowState *)malloc(sizeof(WindowState));
+
+	CurrentWindowState->GameWindow = InitializeGameWindow();
+
+	if (CurrentWindowState->GameWindow)
+	{
+		CurrentWindowState->GameSurface = (SDL_Surface *)malloc(sizeof(SDL_Surface));
+		CurrentWindowState->GameSurface = SDL_GetWindowSurface(CurrentWindowState->GameWindow);
+
+		if (SDL_SetSurfaceBlendMode(CurrentWindowState->GameSurface, SDL_BLENDMODE_BLEND) == 0)
 		{
-			// initialize sdl image
-			int sdlImageInit = IMG_Init(Sdl_Image_Flags);
-
-			if ((sdlImageInit & Sdl_Image_Flags) != Sdl_Image_Flags)
+			if (InitializeAssetPipeline())
 			{
-				// TODO(nick): proper logging / clean exit
-				printf("ERROR - SDL_image did not initialize properly - IMG_Error: %s\n", IMG_GetError());
+				// TODO(nick): need a better approach to loading game assets
+
+				// TODO(nick): instead of single malloc - do a large malloc (or lower level call and control the memory / clean up
+				// start loading game assets
+				PlayerEntity = (Entity *)malloc(sizeof(Entity));
+
+				// TODO(nick): add checking to make sure assets load properly - else log some failure message
+				ReadWriteOperations = SDL_RWFromFile("./assets/test_asset.png", "rb");
+				//PlayerEntity->CurrentImage = IMG_LoadPNG_RW(ReadWriteOperations);
+				PlayerEntity->CurrentImage = LoadAsset(ReadWriteOperations, CurrentWindowState->GameSurface);
 			}
-
-			// TODO(nick): instead of single malloc - do a large malloc (or lower level call and control the memory / clean up
-			// start loading game assets
-			PlayerEntity = (Entity *)malloc(sizeof(Entity));
-			// TODO(nick): add checking to make sure assets load properly - else log some failure message
-			ReadWriteOperations = SDL_RWFromFile("./assets/test_asset.png", "rb");
-		 	PlayerEntity->CurrentImage = IMG_LoadPNG_RW(ReadWriteOperations);
-
-			// get window surface
+			else
+			{
+				printf("ERROR - Asset pipeline failed - SDL_ERROR: %s - SDL_Img_ERROR: %s\n", SDL_GetError(), IMG_GetError());
+			}
 		}
 		else
 		{
-			// TODO(nick): proper logging / clean exit
-			printf("ERROR - SDL could not create window - SDL_Error: %s\n", SDL_GetError());
+			printf("ERROR!\n");
 		}
 	}
+	else
+	{
+		// TODO(nick): proper logging / clean exit
+		printf("ERROR - SDL could not create window - SDL_Error: %s\n", SDL_GetError());
+	}
 	
-	return Window;
+	return CurrentWindowState;
+}
+
+SDL_Surface *
+LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface)
+{
+	SDL_Surface *Asset = IMG_LoadPNG_RW(RWOperations);
+
+	if (!Asset)
+	{
+		// TODO(nick): proper logging / clean exit
+		printf("ERROR - SDL_image could not load image properly - IMG_Error: %s\n", IMG_GetError());
+	}
+
+	return Asset;
 }
 
