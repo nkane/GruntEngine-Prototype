@@ -9,13 +9,20 @@ global_variable const int Screen_Width = 640;
 global_variable const int Screen_Height = 480;
 global_variable const int Sdl_Image_Flags = IMG_INIT_PNG;
 
+global_variable bool GameRunning = true;
 global_variable SDL_RWops *ReadWriteOperations;
 
-// TODO(nick): move in to a .h file
+// TODO(nick): move structs in to a .h file
+
 struct Entity
 {
 	// TODO(nick): think about how to store entity assets
 	SDL_Surface *CurrentImage;
+};
+
+struct GameState
+{
+
 };
 
 global_variable Entity *PlayerEntity;
@@ -32,20 +39,39 @@ main(int argc, char *argv[])
 	// surface contained by window
 	SDL_Surface *ScreenSurface = NULL; 
 
+	SDL_Event CurrentEvent;
+
 	if((Window = InitializeGame()) != NULL)
 	{
 		// game initialized successfully
 		ScreenSurface = (SDL_Surface *)malloc(sizeof(SDL_Surface));
 		ScreenSurface = SDL_GetWindowSurface(Window);
 
-		// blit test asset
-		SDL_BlitSurface(PlayerEntity->CurrentImage, NULL, ScreenSurface, NULL);
-
-		SDL_UpdateWindowSurface(Window);
-		
-		SDL_Delay(10000);
+		// blit test asse
 
 		// TODO(nick): enter game loop
+		while (GameRunning)
+		{
+			while (SDL_PollEvent(&CurrentEvent) != NULL)
+			{
+				switch (CurrentEvent.type)
+				{
+					case SDL_QUIT:
+					{
+						GameRunning = false;
+      					} break;
+
+					default:
+					{
+
+					} break;
+				}
+			}
+
+			SDL_BlitSurface(PlayerEntity->CurrentImage, NULL, ScreenSurface, NULL);
+
+			SDL_UpdateWindowSurface(Window);
+		}
 	}
 	else
 	{
