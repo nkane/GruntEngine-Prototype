@@ -47,9 +47,6 @@ main(int argc, char *argv[])
 		ScreenSurface = (SDL_Surface *)malloc(sizeof(SDL_Surface));
 		ScreenSurface = SDL_GetWindowSurface(Window);
 
-		// blit test asse
-
-		// TODO(nick): enter game loop
 		while (GameRunning)
 		{
 			while (SDL_PollEvent(&CurrentEvent) != NULL)
@@ -61,9 +58,125 @@ main(int argc, char *argv[])
 						GameRunning = false;
       					} break;
 
+					// TODO(nick): figure out a better way to handle up / release
+					// key presses
+					// TODO(nick): debug this - key press / release is broken
+					case SDL_KEYDOWN:
+					{
+						switch (CurrentEvent.key.keysym.sym)
+						{
+							case SDLK_UP: 
+							{
+								printf("arrow up pressed\n");
+							} break;
+
+							case SDLK_DOWN:
+							{
+								printf("arrow down pressed\n");
+							} break;
+
+							case SDLK_LEFT:
+							{
+								printf("arrow left pressed\n");
+							} break;
+
+							case SDLK_RIGHT:
+							{
+								printf("arrow right pressed\n");
+							} break;
+
+							case SDLK_w: 
+							{
+								printf("w key pressed\n");
+							} break;
+
+							case SDLK_a:
+							{
+								printf("a key pressed\n");
+							} break;
+
+							case SDLK_s:
+							{
+								printf("s key pressed\n");
+							} break;
+
+							case SDLK_d:
+							{
+								printf("d key pressed\n");
+							} break;
+
+							case SDLK_SPACE: 
+							{
+								printf("space pressed\n");
+							} break;
+
+							default: 
+							{
+								// TODO(nick): not valid key pressed here - just ignore?
+							} break;
+						}
+					}
+
+					case SDL_KEYUP:
+					{
+						switch (CurrentEvent.key.keysym.sym)
+						{
+							case SDLK_UP: 
+							{
+								printf("arrow up released\n");
+							} break;
+
+							case SDLK_DOWN:
+							{
+								printf("arrow down released\n");
+							} break;
+
+							case SDLK_LEFT:
+							{
+								printf("arrow left released\n");
+							} break;
+
+							case SDLK_RIGHT:
+							{
+								printf("arrow right released\n");
+							} break;
+
+							case SDLK_w: 
+							{
+								printf("w key released\n");
+							} break;
+
+							case SDLK_a:
+							{
+								printf("a key released\n");
+							} break;
+
+							case SDLK_s:
+							{
+								printf("s key released\n");
+							} break;
+
+							case SDLK_d:
+							{
+								printf("d key released\n");
+							} break;
+
+							case SDLK_SPACE: 
+							{
+								printf("space released\n");
+							} break;
+
+							default: 
+							{
+								// TODO(nick): not valid key pressed here - just ignore?
+							} break;
+						}
+					} 
+
 					default:
 					{
-
+						// TODO(nick): not valid code path here ... 
+						// figure out what to do .. 
 					} break;
 				}
 			}

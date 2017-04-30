@@ -21,5 +21,3 @@ copy ..\assets\* .\assets\
 
 popd
 
-pushd .\code
-
