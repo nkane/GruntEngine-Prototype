@@ -5,7 +5,7 @@ IF NOT EXIST .\build mkdir .\build
 
 pushd ..\build
 
-IF NOT EXIST .\assests mkdir .\assets
+IF NOT EXIST .\assets mkdir .\assets
 
 :: TODO(nick): link SDL libs
 :: TODO(nick): create a SDL x86 / x64 build
