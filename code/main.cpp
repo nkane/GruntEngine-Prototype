@@ -27,6 +27,8 @@ struct Entity
 {
 	// TODO(nick): think about how to store entity assets
 	SDL_Texture *CurrentTexture;
+	int MeterHeight;
+	int MeterWidth;
 };
 
 global_variable Entity *PlayerEntity;
@@ -41,7 +43,7 @@ WindowState *
 InitializeGame();
 
 SDL_Texture *
-LoadAsset(SDL_RWops *, SDL_Surface *, SDL_Renderer *);
+LoadAsset(SDL_RWops *, SDL_Surface *, SDL_Renderer *, Entity *);
 
 int
 main(int argc, char *argv[])
@@ -282,12 +284,15 @@ InitializeGame()
 				
 				// start loading game assets
 				PlayerEntity = (Entity *)malloc(sizeof(Entity));
-
 				// TODO(nick): add checking to make sure assets load properly - else log some failure message
 				ReadWriteOperations = SDL_RWFromFile("./assets/test_asset.png", "rb");
+
+				// TODO(nick): split entity / texture? Current texture could be another struct
+				// something like texture info?
 				PlayerEntity->CurrentTexture = LoadAsset(ReadWriteOperations,
 								       CurrentWindowState->GameSurface,
-								       CurrentWindowState->GameRenderer);
+								       CurrentWindowState->GameRenderer,
+								       PlayerEntity);
 			}
 			else
 			{
@@ -310,7 +315,7 @@ InitializeGame()
 }
 
 SDL_Texture *
-LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
+LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, Entity *CurrentEntity)
 {
 	SDL_Texture *AssetTexture = NULL;
 	SDL_Surface *AssetRaw = IMG_LoadPNG_RW(RWOperations);
@@ -328,6 +333,11 @@ LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *Game
 			// TODO(nick): debug / logging support
 			printf("ERROR - SDL could not create texture - SDL_Error: %s\n", SDL_GetError());
 		}
+
+		// NOTE(nick): average heigh for asset should be 1.6 meters
+		// need to figure out how to determine scaling for assets
+		CurrentEntity->MeterHeight = AssetRaw->w;
+		CurrentEntity->MeterWidth = AssetRaw->h;
 		 
 		SDL_FreeSurface(AssetRaw);
 	}
