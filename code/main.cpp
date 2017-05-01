@@ -4,6 +4,7 @@
 
 #include <SDL.h>
 #include <SDL_image.h>
+
 #include "window_state.h"
 
 #include <stdio.h>
@@ -25,7 +26,7 @@ global_variable SDL_RWops *ReadWriteOperations;
 struct Entity
 {
 	// TODO(nick): think about how to store entity assets
-	SDL_Surface *CurrentImage;
+	SDL_Texture *CurrentTexture;
 };
 
 global_variable Entity *PlayerEntity;
@@ -39,8 +40,8 @@ InitializeAssetPipeline();
 WindowState *
 InitializeGame();
 
-SDL_Surface *
-LoadAsset(SDL_RWops *, SDL_Surface *);
+SDL_Texture *
+LoadAsset(SDL_RWops *, SDL_Surface *, SDL_Renderer *);
 
 int
 main(int argc, char *argv[])
@@ -188,9 +189,14 @@ main(int argc, char *argv[])
 				}
 			}
 
-			SDL_BlitSurface(PlayerEntity->CurrentImage, NULL, Window->GameSurface, NULL);
+			// clear the screen
+			SDL_RenderClear(Window->GameRenderer);
+	
+			// render texture(s) to screen
+			SDL_RenderCopy(Window->GameRenderer, PlayerEntity->CurrentTexture, NULL, NULL);
 
-			SDL_UpdateWindowSurface(Window->GameWindow);
+			// update screen
+			SDL_RenderPresent(Window->GameRenderer);
 		}
 	}
 	else
@@ -252,33 +258,41 @@ InitializeAssetPipeline()
 WindowState *
 InitializeGame()
 {
+	// TODO(nick): clean up of windowstate memory is needed 
 	WindowState *CurrentWindowState = (WindowState *)malloc(sizeof(WindowState));
-
 	CurrentWindowState->GameWindow = InitializeGameWindow();
 
 	if (CurrentWindowState->GameWindow)
 	{
-		CurrentWindowState->GameSurface = (SDL_Surface *)malloc(sizeof(SDL_Surface));
 		CurrentWindowState->GameSurface = SDL_GetWindowSurface(CurrentWindowState->GameWindow);
 
+		// TODO(nick): toggle between software / hardware renderering
+		CurrentWindowState->GameRenderer = SDL_CreateRenderer(CurrentWindowState->GameWindow, 
+								      -1, SDL_RENDERER_ACCELERATED);
+		SDL_SetRenderDrawColor(CurrentWindowState->GameRenderer, 0x00, 0x00, 0x00, 0x00);
+
+		// NOTE(nick): this might not be necessary?
 		if (SDL_SetSurfaceBlendMode(CurrentWindowState->GameSurface, SDL_BLENDMODE_BLEND) == 0)
 		{
 			if (InitializeAssetPipeline())
 			{
 				// TODO(nick): need a better approach to loading game assets
-
-				// TODO(nick): instead of single malloc - do a large malloc (or lower level call and control the memory / clean up
+				// TODO(nick): instead of single malloc - do a large malloc
+				// (or lower level call and control the memory / clean up)
+				
 				// start loading game assets
 				PlayerEntity = (Entity *)malloc(sizeof(Entity));
 
 				// TODO(nick): add checking to make sure assets load properly - else log some failure message
 				ReadWriteOperations = SDL_RWFromFile("./assets/test_asset.png", "rb");
-				//PlayerEntity->CurrentImage = IMG_LoadPNG_RW(ReadWriteOperations);
-				PlayerEntity->CurrentImage = LoadAsset(ReadWriteOperations, CurrentWindowState->GameSurface);
+				PlayerEntity->CurrentTexture = LoadAsset(ReadWriteOperations,
+								       CurrentWindowState->GameSurface,
+								       CurrentWindowState->GameRenderer);
 			}
 			else
 			{
-				printf("ERROR - Asset pipeline failed - SDL_ERROR: %s - SDL_Img_ERROR: %s\n", SDL_GetError(), IMG_GetError());
+				printf("ERROR - Asset pipeline failed - SDL_ERROR: %s - SDL_Img_ERROR: %s\n",
+				SDL_GetError(), IMG_GetError());
 			}
 		}
 		else
@@ -295,17 +309,29 @@ InitializeGame()
 	return CurrentWindowState;
 }
 
-SDL_Surface *
-LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface)
+SDL_Texture *
+LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
 {
-	SDL_Surface *Asset = IMG_LoadPNG_RW(RWOperations);
+	SDL_Texture *AssetTexture = NULL;
+	SDL_Surface *AssetRaw = IMG_LoadPNG_RW(RWOperations);
 
-	if (!Asset)
+	if (!AssetRaw)
 	{
 		// TODO(nick): proper logging / clean exit
 		printf("ERROR - SDL_image could not load image properly - IMG_Error: %s\n", IMG_GetError());
 	}
+	else
+	{
+		AssetTexture = SDL_CreateTextureFromSurface(GameRenderer, AssetRaw);
+		if (AssetTexture == NULL)
+		{
+			// TODO(nick): debug / logging support
+			printf("ERROR - SDL could not create texture - SDL_Error: %s\n", SDL_GetError());
+		}
+		 
+		SDL_FreeSurface(AssetRaw);
+	}
 
-	return Asset;
+	return AssetTexture;
 }
 
