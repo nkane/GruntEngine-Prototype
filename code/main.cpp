@@ -23,12 +23,16 @@ global_variable SDL_RWops *ReadWriteOperations;
 
 // TODO(nick): move structs in to a .h file
 
-struct Entity
+struct AssetTexture
 {
-	// TODO(nick): think about how to store entity assets
-	SDL_Texture *CurrentTexture;
+	SDL_Texture *Texture;
 	int MeterHeight;
 	int MeterWidth;
+};
+
+struct Entity
+{
+	AssetTexture *CurrentTexture;
 };
 
 global_variable Entity *PlayerEntity;
@@ -42,8 +46,8 @@ InitializeAssetPipeline();
 WindowState *
 InitializeGame();
 
-SDL_Texture *
-LoadAsset(SDL_RWops *, SDL_Surface *, SDL_Renderer *, Entity *);
+AssetTexture *
+LoadAsset(SDL_RWops *, SDL_Surface *, SDL_Renderer *);
 
 int
 main(int argc, char *argv[])
@@ -195,7 +199,7 @@ main(int argc, char *argv[])
 			SDL_RenderClear(Window->GameRenderer);
 	
 			// render texture(s) to screen
-			SDL_RenderCopy(Window->GameRenderer, PlayerEntity->CurrentTexture, NULL, NULL);
+			SDL_RenderCopy(Window->GameRenderer, PlayerEntity->CurrentTexture->Texture, NULL, NULL);
 
 			// update screen
 			SDL_RenderPresent(Window->GameRenderer);
@@ -290,9 +294,8 @@ InitializeGame()
 				// TODO(nick): split entity / texture? Current texture could be another struct
 				// something like texture info?
 				PlayerEntity->CurrentTexture = LoadAsset(ReadWriteOperations,
-								       CurrentWindowState->GameSurface,
-								       CurrentWindowState->GameRenderer,
-								       PlayerEntity);
+								       	 CurrentWindowState->GameSurface,
+								         CurrentWindowState->GameRenderer);
 			}
 			else
 			{
@@ -314,21 +317,22 @@ InitializeGame()
 	return CurrentWindowState;
 }
 
-SDL_Texture *
-LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, Entity *CurrentEntity)
+AssetTexture *
+LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
 {
-	SDL_Texture *AssetTexture = NULL;
-	SDL_Surface *AssetRaw = IMG_LoadPNG_RW(RWOperations);
+	AssetTexture *Result = NULL;
+	SDL_Texture *Texture = NULL;
+	SDL_Surface *Raw = IMG_LoadPNG_RW(RWOperations);
 
-	if (!AssetRaw)
+	if (!Raw)
 	{
 		// TODO(nick): proper logging / clean exit
 		printf("ERROR - SDL_image could not load image properly - IMG_Error: %s\n", IMG_GetError());
 	}
 	else
 	{
-		AssetTexture = SDL_CreateTextureFromSurface(GameRenderer, AssetRaw);
-		if (AssetTexture == NULL)
+		Texture = SDL_CreateTextureFromSurface(GameRenderer, Raw);
+		if (Texture == NULL)
 		{
 			// TODO(nick): debug / logging support
 			printf("ERROR - SDL could not create texture - SDL_Error: %s\n", SDL_GetError());
@@ -336,12 +340,14 @@ LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *Game
 
 		// NOTE(nick): average heigh for asset should be 1.6 meters
 		// need to figure out how to determine scaling for assets
-		CurrentEntity->MeterHeight = AssetRaw->w;
-		CurrentEntity->MeterWidth = AssetRaw->h;
+		
+		Result = (AssetTexture *)malloc(sizeof(AssetTexture));
+		Result->MeterHeight = Raw->w;
+		Result->MeterWidth = Raw->h;
 		 
-		SDL_FreeSurface(AssetRaw);
+		SDL_FreeSurface(Raw);
 	}
 
-	return AssetTexture;
+	return Result;
 }
 
