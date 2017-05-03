@@ -22,7 +22,6 @@ global_variable bool GameRunning = true;
 global_variable SDL_RWops *ReadWriteOperations;
 
 // TODO(nick): move structs in to a .h file
-
 struct AssetTexture
 {
 	SDL_Rect RenderBox;
@@ -61,11 +60,11 @@ main(int argc, char *argv[])
 	if(Window->GameWindow != NULL)
 	{
 		// game initialized successfully
-
 		while (GameRunning)
 		{
 			while (SDL_PollEvent(&CurrentEvent))
 			{
+				// TODO(nick): handle input function
 				switch (CurrentEvent.type)
 				{
 					case SDL_QUIT:
