@@ -25,6 +25,7 @@ global_variable SDL_RWops *ReadWriteOperations;
 
 struct AssetTexture
 {
+	SDL_Rect RenderBox;
 	SDL_Texture *Texture;
 	int MeterHeight;
 	int MeterWidth;
@@ -199,7 +200,8 @@ main(int argc, char *argv[])
 			SDL_RenderClear(Window->GameRenderer);
 	
 			// render texture(s) to screen
-			SDL_RenderCopy(Window->GameRenderer, PlayerEntity->CurrentTexture->Texture, NULL, NULL);
+			SDL_RenderCopy(Window->GameRenderer, PlayerEntity->CurrentTexture->Texture,
+				       NULL, &PlayerEntity->CurrentTexture->RenderBox);
 
 			// update screen
 			SDL_RenderPresent(Window->GameRenderer);
@@ -289,7 +291,7 @@ InitializeGame()
 				// start loading game assets
 				PlayerEntity = (Entity *)malloc(sizeof(Entity));
 				// TODO(nick): add checking to make sure assets load properly - else log some failure message
-				ReadWriteOperations = SDL_RWFromFile("./assets/test_asset.png", "rb");
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0014_Idle-.png", "rb");
 
 				// TODO(nick): split entity / texture? Current texture could be another struct
 				// something like texture info?
@@ -340,10 +342,20 @@ LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *Game
 
 		// NOTE(nick): average heigh for asset should be 1.6 meters
 		// need to figure out how to determine scaling for assets
-		
 		Result = (AssetTexture *)malloc(sizeof(AssetTexture));
+
+		// TODO(nick): clean this up - a bit repetitive
 		Result->MeterHeight = Raw->w;
 		Result->MeterWidth = Raw->h;
+		Result->Texture = Texture;
+		Result->RenderBox =
+		{
+			// TODO(nick): change to non-static values
+			240,
+			190,
+			Raw->w,
+			Raw->h,
+		};
 		 
 		SDL_FreeSurface(Raw);
 	}

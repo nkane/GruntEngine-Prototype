@@ -17,7 +17,7 @@ copy ..\code\sdl2_x86\lib\libpng16-16.dll .\
 
 copy ..\code\sdl2_x86\lib\zlib1.dll .\
 
-copy ..\assets\* .\assets\
+xcopy ..\assets .\assets /S /K /F /I /Y
 
 popd
 
