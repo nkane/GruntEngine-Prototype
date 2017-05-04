@@ -21,12 +21,29 @@ global_variable WindowState *Window;
 global_variable bool GameRunning = true;
 global_variable SDL_RWops *ReadWriteOperations;
 
+// TODO(nick): bit mask may not be needed, think about it some more ...
+enum EntityState
+{
+	Idle      = (1u << 0),
+	FaceLeft  = (1u << 1),
+	FaceRight = (1u << 2),
+};
+
 // TODO(nick): move structs in to a .h file
+struct AssetTexture
+{
+	double Rotation;
+	SDL_RendererFlip Flip;
+	SDL_Rect RenderBox;
+	SDL_Texture *Texture;
+};
 
 struct Entity
 {
-	// TODO(nick): think about how to store entity assets
-	SDL_Texture *CurrentTexture;
+	AssetTexture *CurrentTexture;
+	AssetTexture *IdleTexture;
+	AssetTexture *WalkTexture;
+	EntityState CurrentState;
 };
 
 global_variable Entity *PlayerEntity;
@@ -40,7 +57,7 @@ InitializeAssetPipeline();
 WindowState *
 InitializeGame();
 
-SDL_Texture *
+AssetTexture *
 LoadAsset(SDL_RWops *, SDL_Surface *, SDL_Renderer *);
 
 int
@@ -54,11 +71,11 @@ main(int argc, char *argv[])
 	if(Window->GameWindow != NULL)
 	{
 		// game initialized successfully
-
 		while (GameRunning)
 		{
 			while (SDL_PollEvent(&CurrentEvent))
 			{
+				// TODO(nick): handle input function
 				switch (CurrentEvent.type)
 				{
 					case SDL_QUIT:
@@ -85,11 +102,33 @@ main(int argc, char *argv[])
 
 							case SDLK_LEFT:
 							{
+								// TODO(nick):
+								// 1) flip texture before 
+								// 2) set a flag for state of entity facing direction?
+								if (PlayerEntity->CurrentState & (FaceRight))
+								{
+									PlayerEntity->IdleTexture->Flip = SDL_FLIP_HORIZONTAL;
+									PlayerEntity->WalkTexture->Flip = SDL_FLIP_HORIZONTAL;
+									PlayerEntity->CurrentState = FaceLeft;
+								}
+
+								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
+
 								printf("arrow left pressed\n");
 							} break;
 
 							case SDLK_RIGHT:
 							{
+								// NOTE(nick): current state is left
+								if (PlayerEntity->CurrentState & (FaceLeft))
+								{
+									PlayerEntity->IdleTexture->Flip = SDL_FLIP_NONE;
+									PlayerEntity->WalkTexture->Flip = SDL_FLIP_NONE;
+									PlayerEntity->CurrentState = FaceRight;
+								}
+
+								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
+
 								printf("arrow right pressed\n");
 							} break;
 
@@ -141,11 +180,15 @@ main(int argc, char *argv[])
 
 							case SDLK_LEFT:
 							{
+								PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
+								PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 								printf("arrow left released\n");
 							} break;
 
 							case SDLK_RIGHT:
 							{
+								PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
+								PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 								printf("arrow right released\n");
 							} break;
 
@@ -193,7 +236,18 @@ main(int argc, char *argv[])
 			SDL_RenderClear(Window->GameRenderer);
 	
 			// render texture(s) to screen
-			SDL_RenderCopy(Window->GameRenderer, PlayerEntity->CurrentTexture, NULL, NULL);
+			// TODO(nick):
+			// 1) 1st NULL value is clip box 
+			//    - srcrect 
+			// 2) 2nd NULL value is center point
+			//    - center, used for point to determine rotation
+			SDL_RenderCopyEx(Window->GameRenderer,
+					 PlayerEntity->CurrentTexture->Texture,
+				         NULL,
+					 &PlayerEntity->CurrentTexture->RenderBox,
+					 PlayerEntity->CurrentTexture->Rotation,
+					 NULL,
+					 PlayerEntity->CurrentTexture->Flip);
 
 			// update screen
 			SDL_RenderPresent(Window->GameRenderer);
@@ -276,18 +330,27 @@ InitializeGame()
 		{
 			if (InitializeAssetPipeline())
 			{
-				// TODO(nick): need a better approach to loading game assets
-				// TODO(nick): instead of single malloc - do a large malloc
-				// (or lower level call and control the memory / clean up)
-				
+				// TODO(nick): 
+				// 1) need a better approach to loading game assets
+				// 2) instead of single malloc - do a large malloc (or lower level call and control the memory / clean up)
+				// 3) add checking to make sure assets load properly - else log some failure message
+				// 4) split entity / texture? Current texture could be another struct something like texture info?
+
 				// start loading game assets
 				PlayerEntity = (Entity *)malloc(sizeof(Entity));
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0014_Idle-.png", "rb");
+				PlayerEntity->IdleTexture = LoadAsset(ReadWriteOperations,
+								      CurrentWindowState->GameSurface,
+								      CurrentWindowState->GameRenderer);
 
-				// TODO(nick): add checking to make sure assets load properly - else log some failure message
-				ReadWriteOperations = SDL_RWFromFile("./assets/test_asset.png", "rb");
-				PlayerEntity->CurrentTexture = LoadAsset(ReadWriteOperations,
-								       CurrentWindowState->GameSurface,
-								       CurrentWindowState->GameRenderer);
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0013_Walk.png", "rb");
+				PlayerEntity->WalkTexture = LoadAsset(ReadWriteOperations,
+								     CurrentWindowState->GameSurface,
+								     CurrentWindowState->GameRenderer);
+
+				// NOTE(nick): set default texture on game init
+				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
+				PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 			}
 			else
 			{
@@ -305,33 +368,52 @@ InitializeGame()
 		// TODO(nick): proper logging / clean exit
 		printf("ERROR - SDL could not create window - SDL_Error: %s\n", SDL_GetError());
 	}
-	
+
 	return CurrentWindowState;
 }
 
-SDL_Texture *
+AssetTexture *
 LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
 {
-	SDL_Texture *AssetTexture = NULL;
-	SDL_Surface *AssetRaw = IMG_LoadPNG_RW(RWOperations);
+	AssetTexture *Result = NULL;
+	SDL_Texture *Texture = NULL;
+	SDL_Surface *Raw = IMG_LoadPNG_RW(RWOperations);
 
-	if (!AssetRaw)
+	if (!Raw)
 	{
 		// TODO(nick): proper logging / clean exit
 		printf("ERROR - SDL_image could not load image properly - IMG_Error: %s\n", IMG_GetError());
 	}
 	else
 	{
-		AssetTexture = SDL_CreateTextureFromSurface(GameRenderer, AssetRaw);
-		if (AssetTexture == NULL)
+		Texture = SDL_CreateTextureFromSurface(GameRenderer, Raw);
+		if (Texture == NULL)
 		{
 			// TODO(nick): debug / logging support
 			printf("ERROR - SDL could not create texture - SDL_Error: %s\n", SDL_GetError());
 		}
+
+		// NOTE(nick): average heigh for asset should be 1.6 meters
+		// need to figure out how to determine scaling for assets
+		Result = (AssetTexture *)malloc(sizeof(AssetTexture));
+
+		// TODO(nick): clean this up - a bit repetitive
+		Result->Texture = Texture;
+		Result->RenderBox =
+		{
+			// TODO(nick): change to non-static values
+			240,
+			190,
+			Raw->w,
+			Raw->h,
+		};
 		 
-		SDL_FreeSurface(AssetRaw);
+		SDL_FreeSurface(Raw);
 	}
 
-	return AssetTexture;
+	Result->Rotation = 0.0;
+	Result->Flip = SDL_FLIP_NONE; 
+	
+	return Result;
 }
 
