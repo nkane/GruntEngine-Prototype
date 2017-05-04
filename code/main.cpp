@@ -21,18 +21,29 @@ global_variable WindowState *Window;
 global_variable bool GameRunning = true;
 global_variable SDL_RWops *ReadWriteOperations;
 
+// TODO(nick): bit mask may not be needed, think about it some more ...
+enum EntityState
+{
+	Idle      = (1u << 0),
+	FaceLeft  = (1u << 1),
+	FaceRight = (1u << 2),
+};
+
 // TODO(nick): move structs in to a .h file
 struct AssetTexture
 {
+	double Rotation;
+	SDL_RendererFlip Flip;
 	SDL_Rect RenderBox;
 	SDL_Texture *Texture;
-	int MeterHeight;
-	int MeterWidth;
 };
 
 struct Entity
 {
 	AssetTexture *CurrentTexture;
+	AssetTexture *IdleTexture;
+	AssetTexture *WalkTexture;
+	EntityState CurrentState;
 };
 
 global_variable Entity *PlayerEntity;
@@ -91,11 +102,33 @@ main(int argc, char *argv[])
 
 							case SDLK_LEFT:
 							{
+								// TODO(nick):
+								// 1) flip texture before 
+								// 2) set a flag for state of entity facing direction?
+								if (PlayerEntity->CurrentState & (FaceRight))
+								{
+									PlayerEntity->IdleTexture->Flip = SDL_FLIP_HORIZONTAL;
+									PlayerEntity->WalkTexture->Flip = SDL_FLIP_HORIZONTAL;
+									PlayerEntity->CurrentState = FaceLeft;
+								}
+
+								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
+
 								printf("arrow left pressed\n");
 							} break;
 
 							case SDLK_RIGHT:
 							{
+								// NOTE(nick): current state is left
+								if (PlayerEntity->CurrentState & (FaceLeft))
+								{
+									PlayerEntity->IdleTexture->Flip = SDL_FLIP_NONE;
+									PlayerEntity->WalkTexture->Flip = SDL_FLIP_NONE;
+									PlayerEntity->CurrentState = FaceRight;
+								}
+
+								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
+
 								printf("arrow right pressed\n");
 							} break;
 
@@ -147,11 +180,15 @@ main(int argc, char *argv[])
 
 							case SDLK_LEFT:
 							{
+								PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
+								PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 								printf("arrow left released\n");
 							} break;
 
 							case SDLK_RIGHT:
 							{
+								PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
+								PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 								printf("arrow right released\n");
 							} break;
 
@@ -199,8 +236,18 @@ main(int argc, char *argv[])
 			SDL_RenderClear(Window->GameRenderer);
 	
 			// render texture(s) to screen
-			SDL_RenderCopy(Window->GameRenderer, PlayerEntity->CurrentTexture->Texture,
-				       NULL, &PlayerEntity->CurrentTexture->RenderBox);
+			// TODO(nick):
+			// 1) 1st NULL value is clip box 
+			//    - srcrect 
+			// 2) 2nd NULL value is center point
+			//    - center, used for point to determine rotation
+			SDL_RenderCopyEx(Window->GameRenderer,
+					 PlayerEntity->CurrentTexture->Texture,
+				         NULL,
+					 &PlayerEntity->CurrentTexture->RenderBox,
+					 PlayerEntity->CurrentTexture->Rotation,
+					 NULL,
+					 PlayerEntity->CurrentTexture->Flip);
 
 			// update screen
 			SDL_RenderPresent(Window->GameRenderer);
@@ -283,20 +330,27 @@ InitializeGame()
 		{
 			if (InitializeAssetPipeline())
 			{
-				// TODO(nick): need a better approach to loading game assets
-				// TODO(nick): instead of single malloc - do a large malloc
-				// (or lower level call and control the memory / clean up)
-				
+				// TODO(nick): 
+				// 1) need a better approach to loading game assets
+				// 2) instead of single malloc - do a large malloc (or lower level call and control the memory / clean up)
+				// 3) add checking to make sure assets load properly - else log some failure message
+				// 4) split entity / texture? Current texture could be another struct something like texture info?
+
 				// start loading game assets
 				PlayerEntity = (Entity *)malloc(sizeof(Entity));
-				// TODO(nick): add checking to make sure assets load properly - else log some failure message
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0014_Idle-.png", "rb");
+				PlayerEntity->IdleTexture = LoadAsset(ReadWriteOperations,
+								      CurrentWindowState->GameSurface,
+								      CurrentWindowState->GameRenderer);
 
-				// TODO(nick): split entity / texture? Current texture could be another struct
-				// something like texture info?
-				PlayerEntity->CurrentTexture = LoadAsset(ReadWriteOperations,
-								       	 CurrentWindowState->GameSurface,
-								         CurrentWindowState->GameRenderer);
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0013_Walk.png", "rb");
+				PlayerEntity->WalkTexture = LoadAsset(ReadWriteOperations,
+								     CurrentWindowState->GameSurface,
+								     CurrentWindowState->GameRenderer);
+
+				// NOTE(nick): set default texture on game init
+				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
+				PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 			}
 			else
 			{
@@ -314,7 +368,7 @@ InitializeGame()
 		// TODO(nick): proper logging / clean exit
 		printf("ERROR - SDL could not create window - SDL_Error: %s\n", SDL_GetError());
 	}
-	
+
 	return CurrentWindowState;
 }
 
@@ -344,8 +398,6 @@ LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *Game
 		Result = (AssetTexture *)malloc(sizeof(AssetTexture));
 
 		// TODO(nick): clean this up - a bit repetitive
-		Result->MeterHeight = Raw->w;
-		Result->MeterWidth = Raw->h;
 		Result->Texture = Texture;
 		Result->RenderBox =
 		{
@@ -359,6 +411,9 @@ LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *Game
 		SDL_FreeSurface(Raw);
 	}
 
+	Result->Rotation = 0.0;
+	Result->Flip = SDL_FLIP_NONE; 
+	
 	return Result;
 }
 
