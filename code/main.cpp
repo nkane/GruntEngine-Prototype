@@ -36,6 +36,8 @@ struct AssetTexture
 	SDL_RendererFlip Flip;
 	SDL_Rect RenderBox;
 	SDL_Texture *Texture;
+	int Width;
+	int Height;
 };
 
 struct Entity
@@ -59,6 +61,11 @@ InitializeGame();
 
 AssetTexture *
 LoadAsset(SDL_RWops *, SDL_Surface *, SDL_Renderer *);
+
+// TODO(nick): need to create this function to be proper movement
+// working
+void
+RenderEntity(Entity *);
 
 int
 main(int argc, char *argv[])
@@ -114,6 +121,8 @@ main(int argc, char *argv[])
 
 								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
 
+								*(&PlayerEntity->CurrentTexture->RenderBox.x) -= 10;
+
 								printf("arrow left pressed\n");
 							} break;
 
@@ -128,6 +137,7 @@ main(int argc, char *argv[])
 								}
 
 								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
+								PlayerEntity->CurrentTexture += 10;
 
 								printf("arrow right pressed\n");
 							} break;
@@ -241,6 +251,8 @@ main(int argc, char *argv[])
 			//    - srcrect 
 			// 2) 2nd NULL value is center point
 			//    - center, used for point to determine rotation
+			// 3) Make a more generic function that handles rendering of game
+			//    objects
 			SDL_RenderCopyEx(Window->GameRenderer,
 					 PlayerEntity->CurrentTexture->Texture,
 				         NULL,
@@ -397,11 +409,15 @@ LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *Game
 		// need to figure out how to determine scaling for assets
 		Result = (AssetTexture *)malloc(sizeof(AssetTexture));
 
+		Result->Width = Raw->w;
+		Result->Height = Raw->h;
+
 		// TODO(nick): clean this up - a bit repetitive
 		Result->Texture = Texture;
 		Result->RenderBox =
 		{
 			// TODO(nick): change to non-static values
+			// these are the  x / y coordinates on screen
 			240,
 			190,
 			Raw->w,
