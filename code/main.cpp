@@ -40,7 +40,6 @@ struct AssetTexture
 {
 	double Rotation;
 	SDL_RendererFlip Flip;
-	//SDL_Rect RenderBox;
 	SDL_Texture *Texture;
 	int Width;
 	int Height;
@@ -99,7 +98,6 @@ main(int argc, char *argv[])
 
 					// TODO(nick): figure out a better way to handle up / release
 					// key presses
-					// TODO(nick): debug this - key press / release is broken
 					case SDL_KEYDOWN:
 					{
 						switch (CurrentEvent.key.keysym.sym)
@@ -405,28 +403,14 @@ LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *Game
 			printf("ERROR - SDL could not create texture - SDL_Error: %s\n", SDL_GetError());
 		}
 
-		// NOTE(nick): average heigh for asset should be 1.6 meters
+		// TODO(nick): average heigh for asset should be 1.6 meters
 		// need to figure out how to determine scaling for assets
 		Result = (AssetTexture *)malloc(sizeof(AssetTexture));
 
 		Result->Width = Raw->w;
 		Result->Height = Raw->h;
 
-		// TODO(nick): clean this up - a bit repetitive
 		Result->Texture = Texture;
-
-		// TODO(nick): this might not be needed ...
-		/*
-		Result->RenderBox =
-		{
-			// TODO(nick): change to non-static values
-			// these are the  x / y coordinates on screen
-			0,
-			0,
-			Raw->w,
-			Raw->h,
-		};
-		*/
 		 
 		SDL_FreeSurface(Raw);
 	}
@@ -463,3 +447,4 @@ GameUpdateAndRender(WindowState *Window, Entity *CurrentEntity)
 			 NULL,
 			 CurrentEntity->CurrentTexture->Flip);
 }
+
