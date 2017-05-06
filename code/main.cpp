@@ -29,13 +29,20 @@ enum EntityState
 	FaceRight = (1u << 2),
 };
 
+struct Vector2
+{
+	int X;
+	int Y;
+};
+
 // TODO(nick): move structs in to a .h file
 struct AssetTexture
 {
 	double Rotation;
 	SDL_RendererFlip Flip;
-	SDL_Rect RenderBox;
 	SDL_Texture *Texture;
+	int Width;
+	int Height;
 };
 
 struct Entity
@@ -44,6 +51,7 @@ struct Entity
 	AssetTexture *IdleTexture;
 	AssetTexture *WalkTexture;
 	EntityState CurrentState;
+	Vector2 *PositionV2;
 };
 
 global_variable Entity *PlayerEntity;
@@ -59,6 +67,11 @@ InitializeGame();
 
 AssetTexture *
 LoadAsset(SDL_RWops *, SDL_Surface *, SDL_Renderer *);
+
+// TODO(nick): need to create this function to be proper movement
+// working
+void
+GameUpdateAndRender(WindowState *, Entity *);
 
 int
 main(int argc, char *argv[])
@@ -85,7 +98,6 @@ main(int argc, char *argv[])
 
 					// TODO(nick): figure out a better way to handle up / release
 					// key presses
-					// TODO(nick): debug this - key press / release is broken
 					case SDL_KEYDOWN:
 					{
 						switch (CurrentEvent.key.keysym.sym)
@@ -114,6 +126,8 @@ main(int argc, char *argv[])
 
 								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
 
+								PlayerEntity->PositionV2->X -= 10;
+
 								printf("arrow left pressed\n");
 							} break;
 
@@ -128,6 +142,8 @@ main(int argc, char *argv[])
 								}
 
 								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
+
+								PlayerEntity->PositionV2->X += 10;
 
 								printf("arrow right pressed\n");
 							} break;
@@ -235,19 +251,8 @@ main(int argc, char *argv[])
 			// clear the screen
 			SDL_RenderClear(Window->GameRenderer);
 	
-			// render texture(s) to screen
-			// TODO(nick):
-			// 1) 1st NULL value is clip box 
-			//    - srcrect 
-			// 2) 2nd NULL value is center point
-			//    - center, used for point to determine rotation
-			SDL_RenderCopyEx(Window->GameRenderer,
-					 PlayerEntity->CurrentTexture->Texture,
-				         NULL,
-					 &PlayerEntity->CurrentTexture->RenderBox,
-					 PlayerEntity->CurrentTexture->Rotation,
-					 NULL,
-					 PlayerEntity->CurrentTexture->Flip);
+			// Update and render game
+			GameUpdateAndRender(Window, PlayerEntity);
 
 			// update screen
 			SDL_RenderPresent(Window->GameRenderer);
@@ -351,6 +356,11 @@ InitializeGame()
 				// NOTE(nick): set default texture on game init
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
 				PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
+
+				// TODO(nick): remove static position - figure out starting location
+				PlayerEntity->PositionV2 = (Vector2 *)malloc(sizeof(Vector2));
+				PlayerEntity->PositionV2->X = 460;
+				PlayerEntity->PositionV2->Y = 400;
 			}
 			else
 			{
@@ -393,20 +403,14 @@ LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *Game
 			printf("ERROR - SDL could not create texture - SDL_Error: %s\n", SDL_GetError());
 		}
 
-		// NOTE(nick): average heigh for asset should be 1.6 meters
+		// TODO(nick): average heigh for asset should be 1.6 meters
 		// need to figure out how to determine scaling for assets
 		Result = (AssetTexture *)malloc(sizeof(AssetTexture));
 
-		// TODO(nick): clean this up - a bit repetitive
+		Result->Width = Raw->w;
+		Result->Height = Raw->h;
+
 		Result->Texture = Texture;
-		Result->RenderBox =
-		{
-			// TODO(nick): change to non-static values
-			240,
-			190,
-			Raw->w,
-			Raw->h,
-		};
 		 
 		SDL_FreeSurface(Raw);
 	}
@@ -415,5 +419,32 @@ LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *Game
 	Result->Flip = SDL_FLIP_NONE; 
 	
 	return Result;
+}
+
+void
+GameUpdateAndRender(WindowState *Window, Entity *CurrentEntity)
+{
+	// render texture(s) to screen
+	// TODO(nick):
+	// 1) 1st NULL value is clip box 
+	//    - srcrect 
+	// 2) 2nd NULL value is center point
+	//    - center, used for point to determine rotation
+	
+	SDL_Rect RenderBox = 
+	{
+		CurrentEntity->PositionV2->X,
+		CurrentEntity->PositionV2->Y,
+		CurrentEntity->CurrentTexture->Width,
+		CurrentEntity->CurrentTexture->Height,
+	};
+
+	SDL_RenderCopyEx(Window->GameRenderer,
+			 CurrentEntity->CurrentTexture->Texture,
+			 NULL,
+			 &RenderBox,
+			 CurrentEntity->CurrentTexture->Rotation,
+			 NULL,
+			 CurrentEntity->CurrentTexture->Flip);
 }
 
