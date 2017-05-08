@@ -5,7 +5,7 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
-#include "window_state.h"
+#include "windowstate.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,6 +86,8 @@ main(int argc, char *argv[])
 		// game initialized successfully
 		while (GameRunning)
 		{
+			// query for time
+
 			while (SDL_PollEvent(&CurrentEvent))
 			{
 				// TODO(nick): handle input function
@@ -124,8 +126,9 @@ main(int argc, char *argv[])
 									PlayerEntity->CurrentState = FaceLeft;
 								}
 
-								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
 
+								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
+								// TODO(nick): possible change to velocity?
 								PlayerEntity->PositionV2->X -= 10;
 
 								printf("arrow left pressed\n");
