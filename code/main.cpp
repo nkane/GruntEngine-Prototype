@@ -5,11 +5,14 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
+#include "gamestate.h"
 #include "windowstate.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
+#define local_persist 	static
+#define internal 	static
 #define global_variable static
 
 global_variable const int Screen_Width = 640;
@@ -18,7 +21,10 @@ global_variable const int Sdl_Image_Flags = IMG_INIT_PNG;
 
 // TODO(nick): rename this ...
 global_variable WindowState *Window; 
+global_variable GameState *Game;
 global_variable bool GameRunning = true;
+
+// TODO(nick): this could be moved elsewhere?
 global_variable SDL_RWops *ReadWriteOperations;
 
 // TODO(nick): bit mask may not be needed, think about it some more ...
@@ -56,14 +62,19 @@ struct Entity
 
 global_variable Entity *PlayerEntity;
 
-SDL_Window *
+// TODO(nick): clean this up and initializegame
+inline SDL_Window *
 InitializeGameWindow();
 
-bool
+inline bool
 InitializeAssetPipeline();
 
-WindowState *
+// TODO(nick): clean this up and initializegamewindow up
+internal WindowState *
 InitializeGame();
+
+inline GameState *
+InitializeGameState();
 
 AssetTexture *
 LoadAsset(SDL_RWops *, SDL_Surface *, SDL_Renderer *);
@@ -80,6 +91,7 @@ main(int argc, char *argv[])
 	SDL_Event CurrentEvent;
 
 	Window = InitializeGame();
+	Game = InitializeGameState();
 
 	if(Window->GameWindow != NULL)
 	{
@@ -280,7 +292,7 @@ main(int argc, char *argv[])
 	return 0;
 }
 
-SDL_Window *
+inline SDL_Window *
 InitializeGameWindow()
 {
 	SDL_Window *Window = NULL;
@@ -302,7 +314,7 @@ InitializeGameWindow()
 	return Window;
 }
 
-bool
+inline bool
 InitializeAssetPipeline()
 {
 	int sdlImageInit = IMG_Init(Sdl_Image_Flags);
@@ -317,7 +329,7 @@ InitializeAssetPipeline()
 	return true;
 }
 
-WindowState *
+internal WindowState *
 InitializeGame()
 {
 	// TODO(nick): clean up of windowstate memory is needed 
@@ -384,6 +396,17 @@ InitializeGame()
 
 	return CurrentWindowState;
 }
+
+inline GameState *
+InitializeGameState()
+{
+	GameState *CurrentGameState = (GameState *)malloc(sizeof(GameState));
+	CurrentGameState->StartMS = SDL_GetTicks();
+	CurrentGameState->CurrentMS = 0;
+	CurrentGameState->DeltaMS = 0;
+	return CurrentGameState;
+}
+
 
 AssetTexture *
 LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)

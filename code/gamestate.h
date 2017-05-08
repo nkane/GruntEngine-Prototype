@@ -4,7 +4,8 @@
 
 struct GameState
 {
-	unsigned int StartTime;
-	unsigned int CurrentTime;
-	unsigned int DeltaTime;
+	unsigned int StartMS;
+	unsigned int CurrentMS;
+	unsigned int DeltaMS;
 };
+
