@@ -19,6 +19,8 @@ global_variable const int Screen_Width = 640;
 global_variable const int Screen_Height = 480;
 global_variable const int Sdl_Image_Flags = IMG_INIT_PNG;
 
+global_variable const float Frame_Rate_Lock = (1000.0f / 60.0f);
+
 // TODO(nick): rename this ...
 global_variable WindowState *Window; 
 global_variable GameState *Game;
@@ -99,6 +101,9 @@ main(int argc, char *argv[])
 		while (GameRunning)
 		{
 			// query for time
+			Game->CurrentMS = SDL_GetTicks();
+			// TODO(nick): remove - debug only
+			printf("Current MS: %d\n", Game->CurrentMS);
 
 			while (SDL_PollEvent(&CurrentEvent))
 			{
@@ -141,7 +146,7 @@ main(int argc, char *argv[])
 
 								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
 								// TODO(nick): possible change to velocity?
-								PlayerEntity->PositionV2->X -= 10;
+								PlayerEntity->PositionV2->X -= 5;
 
 								printf("arrow left pressed\n");
 							} break;
@@ -158,7 +163,7 @@ main(int argc, char *argv[])
 
 								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
 
-								PlayerEntity->PositionV2->X += 10;
+								PlayerEntity->PositionV2->X += 5;
 
 								printf("arrow right pressed\n");
 							} break;
@@ -271,6 +276,23 @@ main(int argc, char *argv[])
 
 			// update screen
 			SDL_RenderPresent(Window->GameRenderer);
+
+			// TODO(nick): for debugging
+			Game->CycleEndMS = SDL_GetTicks();
+
+			// TODO(nick: for debugging
+			Game->DeltaMS = (Game->CycleEndMS - Game->CurrentMS);
+
+			if (Game->DeltaMS < Frame_Rate_Lock) 
+			{
+				// TODO(nick): remove variable - debug only or keep in game state
+				unsigned int delay = (Framerate_Lock - Game->DeltaMS);
+				SDL_Delay(delay);
+				printf("Delay: %d\n", delay);
+			}
+
+			// TODO(nick): remove - debug only
+			printf("Delta MS: %d\n\n\n", Game->DeltaMS);
 		}
 	}
 	else
@@ -406,7 +428,6 @@ InitializeGameState()
 	CurrentGameState->DeltaMS = 0;
 	return CurrentGameState;
 }
-
 
 AssetTexture *
 LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
