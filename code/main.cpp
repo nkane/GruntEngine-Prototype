@@ -5,20 +5,28 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
-#include "window_state.h"
+#include "gamestate.h"
+#include "windowstate.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
+#define local_persist 	static
+#define internal 	static
 #define global_variable static
 
 global_variable const int Screen_Width = 640;
 global_variable const int Screen_Height = 480;
 global_variable const int Sdl_Image_Flags = IMG_INIT_PNG;
 
+global_variable const float Frame_Rate_Lock = (1000.0f / 60.0f);
+
 // TODO(nick): rename this ...
 global_variable WindowState *Window; 
+global_variable GameState *Game;
 global_variable bool GameRunning = true;
+
+// TODO(nick): this could be moved elsewhere?
 global_variable SDL_RWops *ReadWriteOperations;
 
 // TODO(nick): bit mask may not be needed, think about it some more ...
@@ -56,14 +64,19 @@ struct Entity
 
 global_variable Entity *PlayerEntity;
 
-SDL_Window *
+// TODO(nick): clean this up and initializegame
+inline SDL_Window *
 InitializeGameWindow();
 
-bool
+inline bool
 InitializeAssetPipeline();
 
-WindowState *
+// TODO(nick): clean this up and initializegamewindow up
+internal WindowState *
 InitializeGame();
+
+inline GameState *
+InitializeGameState();
 
 AssetTexture *
 LoadAsset(SDL_RWops *, SDL_Surface *, SDL_Renderer *);
@@ -80,12 +93,18 @@ main(int argc, char *argv[])
 	SDL_Event CurrentEvent;
 
 	Window = InitializeGame();
+	Game = InitializeGameState();
 
 	if(Window->GameWindow != NULL)
 	{
 		// game initialized successfully
 		while (GameRunning)
 		{
+			// query for time
+			Game->CurrentMS = SDL_GetTicks();
+			// TODO(nick): remove - debug only
+			printf("Current MS: %d\n", Game->CurrentMS);
+
 			while (SDL_PollEvent(&CurrentEvent))
 			{
 				// TODO(nick): handle input function
@@ -124,9 +143,10 @@ main(int argc, char *argv[])
 									PlayerEntity->CurrentState = FaceLeft;
 								}
 
-								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
 
-								PlayerEntity->PositionV2->X -= 10;
+								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
+								// TODO(nick): possible change to velocity?
+								PlayerEntity->PositionV2->X -= 5;
 
 								printf("arrow left pressed\n");
 							} break;
@@ -143,7 +163,7 @@ main(int argc, char *argv[])
 
 								PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
 
-								PlayerEntity->PositionV2->X += 10;
+								PlayerEntity->PositionV2->X += 5;
 
 								printf("arrow right pressed\n");
 							} break;
@@ -256,6 +276,23 @@ main(int argc, char *argv[])
 
 			// update screen
 			SDL_RenderPresent(Window->GameRenderer);
+
+			// TODO(nick): for debugging
+			Game->CycleEndMS = SDL_GetTicks();
+
+			// TODO(nick: for debugging
+			Game->DeltaMS = (Game->CycleEndMS - Game->CurrentMS);
+
+			if (Game->DeltaMS < Frame_Rate_Lock) 
+			{
+				// TODO(nick): remove variable - debug only or keep in game state
+				unsigned int delay = (Framerate_Lock - Game->DeltaMS);
+				SDL_Delay(delay);
+				printf("Delay: %d\n", delay);
+			}
+
+			// TODO(nick): remove - debug only
+			printf("Delta MS: %d\n\n\n", Game->DeltaMS);
 		}
 	}
 	else
@@ -277,7 +314,7 @@ main(int argc, char *argv[])
 	return 0;
 }
 
-SDL_Window *
+inline SDL_Window *
 InitializeGameWindow()
 {
 	SDL_Window *Window = NULL;
@@ -299,7 +336,7 @@ InitializeGameWindow()
 	return Window;
 }
 
-bool
+inline bool
 InitializeAssetPipeline()
 {
 	int sdlImageInit = IMG_Init(Sdl_Image_Flags);
@@ -314,7 +351,7 @@ InitializeAssetPipeline()
 	return true;
 }
 
-WindowState *
+internal WindowState *
 InitializeGame()
 {
 	// TODO(nick): clean up of windowstate memory is needed 
@@ -380,6 +417,16 @@ InitializeGame()
 	}
 
 	return CurrentWindowState;
+}
+
+inline GameState *
+InitializeGameState()
+{
+	GameState *CurrentGameState = (GameState *)malloc(sizeof(GameState));
+	CurrentGameState->StartMS = SDL_GetTicks();
+	CurrentGameState->CurrentMS = 0;
+	CurrentGameState->DeltaMS = 0;
+	return CurrentGameState;
 }
 
 AssetTexture *
