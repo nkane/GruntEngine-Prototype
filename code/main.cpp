@@ -5,6 +5,8 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
+#include "gameplatform.h"
+#include "gamememory.h"
 #include "gamestate.h"
 #include "windowstate.h"
 
@@ -14,6 +16,8 @@
 #define local_persist 	static
 #define internal 	static
 #define global_variable static
+
+#define Assert(Expression) if(!(Expression)) {*(int *)0=0;}
 
 global_variable const int Screen_Width = 640;
 global_variable const int Screen_Height = 480;
@@ -286,7 +290,7 @@ main(int argc, char *argv[])
 			if (Game->DeltaMS < Frame_Rate_Lock) 
 			{
 				// TODO(nick): remove variable - debug only or keep in game state
-				unsigned int delay = (Framerate_Lock - Game->DeltaMS);
+				unsigned int delay = (Frame_Rate_Lock - Game->DeltaMS);
 				SDL_Delay(delay);
 				printf("Delay: %d\n", delay);
 			}
