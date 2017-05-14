@@ -1,4 +1,5 @@
-/*
+/*	main.cpp
+ *
  *	Created By: Nick Kane
  */
 
@@ -6,7 +7,6 @@
 #include <SDL_image.h>
 
 #include "gameplatform.h"
-#include "gamememory.h"
 #include "gamestate.h"
 #include "windowstate.h"
 
@@ -81,6 +81,9 @@ InitializeGame();
 
 inline GameState *
 InitializeGameState();
+
+inline void
+ReleaseGameState();
 
 AssetTexture *
 LoadAsset(SDL_RWops *, SDL_Surface *, SDL_Renderer *);
@@ -430,6 +433,17 @@ InitializeGameState()
 	CurrentGameState->StartMS = SDL_GetTicks();
 	CurrentGameState->CurrentMS = 0;
 	CurrentGameState->DeltaMS = 0;
+
+	CurrentGameState->Memory = (GameMemory *)malloc(sizeof(GameMemory));
+
+	Assert(CurrentGameState->Memory);
+	
+	CurrentGameState->Memory->PermanentStorage = (MemoryBlock *)malloc(Megabytes(200));
+	CurrentGameState->Memory->TransientStorage = (MemoryBlock *)malloc(Megabytes(200));
+
+	Assert(CurrentGameState->Memory->PermanentStorage);
+	Assert(CurrentGameState->Memory->TransientStorage);
+
 	return CurrentGameState;
 }
 
@@ -497,5 +511,13 @@ GameUpdateAndRender(WindowState *Window, Entity *CurrentEntity)
 			 CurrentEntity->CurrentTexture->Rotation,
 			 NULL,
 			 CurrentEntity->CurrentTexture->Flip);
+}
+
+inline void
+ReleaseGameState(GameState *CurrentGameState)
+{
+	// TODO(nick): free calls here!
+	free(CurrentGameState->Memory->PermanentStorage);
+	free(CurrentGameState->Memory->TransientStorage);
 }
 
