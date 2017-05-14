@@ -13,6 +13,7 @@ struct MemoryBlock
 	MemoryBlock *Next;
 	MemoryBlock *Previous;
 	uint64 Size;
+	// TODO(nick): Add remaining size?
 };
 
 struct GameMemory
@@ -20,4 +21,20 @@ struct GameMemory
 	MemoryBlock *PermanentStorage;
 	MemoryBlock *TransientStorage;
 };
+
+inline void *
+PushMemoryChunk(MemoryBlock *Block, int chunkSize)
+{
+	void *MemoryChunk;
+	MemoryChunk = (void *)Block->Next;
+	Block->Previous = Block->Next;
+	Block->Next += chunkSize;
+	return MemoryChunk;
+}
+
+inline void
+PopMemoryChunk()
+{
+	// TODO(nick)
+}
 

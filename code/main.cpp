@@ -101,11 +101,11 @@ main(int argc, char *argv[])
 	// TODO(nick): add this maybe to gamestate / windowstate?
 	SDL_Event CurrentEvent;
 	
-	InitializeGame();
-
-	// TODO(nick): move this to initializegame
-	GlobalGameState = InitializeGameState();
-	Assert(GlobalGameState);
+	if (!InitializeGame())
+	{
+		// TODO(nick): logging / other stuff
+		return -1;
+	}
 
 	// game initialized successfully
 	while (GameRunning)
@@ -389,17 +389,27 @@ InitializeGame()
 			{
 				// TODO(nick): 
 				// 1) need a better approach to loading game assets
-				// 2) instead of single malloc - do a large malloc (or lower level call and control the memory / clean up)
-				// 3) add checking to make sure assets load properly - else log some failure message
-				// 4) split entity / texture? Current texture could be another struct something like texture info?
+				// 2) instead of single malloc -
+				//    do a large malloc (or lower level call and control the memory / clean up)
+				// 3) add checking to make sure assets load properly -
+				//    else log some failure message
+				// 4) split entity / texture? Current texture could be another struct
+				//    something like texture info?
 
+				GlobalGameState = InitializeGameState();
+				Assert(GlobalGameState);
+				
 				// start loading game assets
-				// TODO(nick): move allocation to game memory
-				PlayerEntity = (Entity *)malloc(sizeof(Entity));
+				PlayerEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+							                 sizeof(Entity));
+
+				//PlayerEntity = (Entity *)malloc(sizeof(Entity));
+
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0014_Idle-.png", "rb");
 				PlayerEntity->IdleTexture = LoadAsset(ReadWriteOperations,
 								      GlobalWindowState->GameSurface,
 								      GlobalWindowState->GameRenderer);
+
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0013_Walk.png", "rb");
 				PlayerEntity->WalkTexture = LoadAsset(ReadWriteOperations,
@@ -452,11 +462,16 @@ InitializeGameState()
 
 	Assert(CurrentGameState->Memory);
 	
-	CurrentGameState->Memory->PermanentStorage = (MemoryBlock *)malloc(Megabytes(200));
-	CurrentGameState->Memory->PermanentStorage->Size = Megabytes(200);
+	// TODO(nick): change to inline function
+	CurrentGameState->Memory->PermanentStorage = (MemoryBlock *)malloc(Megabytes(20));
+	CurrentGameState->Memory->PermanentStorage->Size = Megabytes(20);
+	CurrentGameState->Memory->PermanentStorage->Next = CurrentGameState->Memory->PermanentStorage;
+	CurrentGameState->Memory->PermanentStorage->Previous = CurrentGameState->Memory->PermanentStorage;
 
-	CurrentGameState->Memory->TransientStorage = (MemoryBlock *)malloc(Megabytes(200));
-	CurrentGameState->Memory->TransientStorage->Size = Megabytes(200);
+	CurrentGameState->Memory->TransientStorage = (MemoryBlock *)malloc(Megabytes(20));
+	CurrentGameState->Memory->TransientStorage->Size = Megabytes(20);
+	CurrentGameState->Memory->TransientStorage->Next = CurrentGameState->Memory->TransientStorage;
+	CurrentGameState->Memory->TransientStorage->Previous = CurrentGameState->Memory->TransientStorage;
 
 	Assert(CurrentGameState->Memory->PermanentStorage);
 	Assert(CurrentGameState->Memory->TransientStorage);
