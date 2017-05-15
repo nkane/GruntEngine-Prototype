@@ -89,7 +89,7 @@ internal void
 ReleaseGameState(GameState *);
 
 AssetTexture *
-LoadAsset(SDL_RWops *, SDL_Surface *, SDL_Renderer *);
+LoadAsset(MemoryBlock *, SDL_RWops *, SDL_Surface *, SDL_Renderer *);
 
 // TODO(nick): need to create this function to be proper movement working
 void
@@ -403,26 +403,29 @@ InitializeGame()
 				PlayerEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 							                 sizeof(Entity));
 
-				//PlayerEntity = (Entity *)malloc(sizeof(Entity));
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0014_Idle-.png", "rb");
-				PlayerEntity->IdleTexture = LoadAsset(ReadWriteOperations,
+				PlayerEntity->IdleTexture = LoadAsset(GlobalGameState->Memory->PermanentStorage,
+								      ReadWriteOperations,
 								      GlobalWindowState->GameSurface,
 								      GlobalWindowState->GameRenderer);
 
-
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0013_Walk.png", "rb");
-				PlayerEntity->WalkTexture = LoadAsset(ReadWriteOperations,
-								     GlobalWindowState->GameSurface,
-								     GlobalWindowState->GameRenderer);
+				PlayerEntity->WalkTexture = LoadAsset(GlobalGameState->Memory->PermanentStorage,
+							              ReadWriteOperations,
+								      GlobalWindowState->GameSurface,
+								      GlobalWindowState->GameRenderer);
 
 				// NOTE(nick): set default texture on game init
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
 				PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 
 				// TODO(nick): 
-				// 1) Move allocation to game memory
-				// 2) remove static position - figure out starting location
+				// 1) remove static position - figure out starting location
+				
+				// TODO(nick): debug this - access violation occuring
+				//PlayerEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+										      //sizeof(Vector2));
 				PlayerEntity->PositionV2 = (Vector2 *)malloc(sizeof(Vector2));
 				PlayerEntity->PositionV2->X = 460;
 				PlayerEntity->PositionV2->Y = 400;
@@ -466,12 +469,12 @@ InitializeGameState()
 	CurrentGameState->Memory->PermanentStorage = (MemoryBlock *)malloc(Megabytes(20));
 	CurrentGameState->Memory->PermanentStorage->Size = Megabytes(20);
 	CurrentGameState->Memory->PermanentStorage->Next = CurrentGameState->Memory->PermanentStorage;
-	CurrentGameState->Memory->PermanentStorage->Previous = CurrentGameState->Memory->PermanentStorage;
+	CurrentGameState->Memory->PermanentStorage->Previous = NULL; 
 
 	CurrentGameState->Memory->TransientStorage = (MemoryBlock *)malloc(Megabytes(20));
 	CurrentGameState->Memory->TransientStorage->Size = Megabytes(20);
 	CurrentGameState->Memory->TransientStorage->Next = CurrentGameState->Memory->TransientStorage;
-	CurrentGameState->Memory->TransientStorage->Previous = CurrentGameState->Memory->TransientStorage;
+	CurrentGameState->Memory->TransientStorage->Previous = NULL;
 
 	Assert(CurrentGameState->Memory->PermanentStorage);
 	Assert(CurrentGameState->Memory->TransientStorage);
@@ -488,7 +491,7 @@ ReleaseGameState(GameState *CurrentGameState)
 }
 
 AssetTexture *
-LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
+LoadAsset(MemoryBlock *Memory, SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
 {
 	AssetTexture *Result = NULL;
 	SDL_Texture *Texture = NULL;
@@ -509,21 +512,19 @@ LoadAsset (SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *Game
 		}
 
 		// TODO(nick): 
-		// 1) move allocation to game memory
-		// 2) average heigh for asset should be 1.6 meters
+		// 1) average heigh for asset should be 1.6 meters
 		// need to figure out how to determine scaling for assets
-		Result = (AssetTexture *)malloc(sizeof(AssetTexture));
+		Result = (AssetTexture *)PushMemoryChunk(Memory, sizeof(AssetTexture));
 
 		Result->Width = Raw->w;
 		Result->Height = Raw->h;
-
+		Result->Rotation = 0.0;
+		Result->Flip = SDL_FLIP_NONE; 
 		Result->Texture = Texture;
 		 
 		SDL_FreeSurface(Raw);
 	}
 
-	Result->Rotation = 0.0;
-	Result->Flip = SDL_FLIP_NONE; 
 	
 	return Result;
 }

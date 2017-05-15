@@ -25,10 +25,11 @@ struct GameMemory
 inline void *
 PushMemoryChunk(MemoryBlock *Block, int chunkSize)
 {
+	// TODO(nick): iron this process out ...
 	void *MemoryChunk;
 	MemoryChunk = (void *)Block->Next;
-	Block->Previous = Block->Next;
 	Block->Next += chunkSize;
+	Block->Next->Previous = Block;
 	return MemoryChunk;
 }
 
