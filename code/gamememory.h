@@ -11,7 +11,6 @@
 struct MemoryBlock
 {
 	MemoryBlock *Next;
-	MemoryBlock *Previous;
 	uint64 Size;
 	// TODO(nick): Add remaining size?
 };
@@ -29,7 +28,6 @@ PushMemoryChunk(MemoryBlock *Block, int chunkSize)
 	void *MemoryChunk;
 	MemoryChunk = (void *)Block->Next;
 	Block->Next += chunkSize;
-	Block->Next->Previous = Block;
 	return MemoryChunk;
 }
 

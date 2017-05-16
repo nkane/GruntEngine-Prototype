@@ -403,7 +403,6 @@ InitializeGame()
 				PlayerEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 							                 sizeof(Entity));
 
-
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0014_Idle-.png", "rb");
 				PlayerEntity->IdleTexture = LoadAsset(GlobalGameState->Memory->PermanentStorage,
 								      ReadWriteOperations,
@@ -418,15 +417,19 @@ InitializeGame()
 
 				// NOTE(nick): set default texture on game init
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
+
+				// TODO(nick): resolve this issue ... current texture pointer is changing positions 
+				// when structs allocated on the memory stack
+				// IMPORTANT(nick): this is causing an error right now ...
 				PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 
 				// TODO(nick): 
 				// 1) remove static position - figure out starting location
 				
 				// TODO(nick): debug this - access violation occuring
-				//PlayerEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-										      //sizeof(Vector2));
-				PlayerEntity->PositionV2 = (Vector2 *)malloc(sizeof(Vector2));
+				PlayerEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+										      sizeof(Vector2));
+				//PlayerEntity->PositionV2 = (Vector2 *)malloc(sizeof(Vector2));
 				PlayerEntity->PositionV2->X = 460;
 				PlayerEntity->PositionV2->Y = 400;
 			}
@@ -466,15 +469,13 @@ InitializeGameState()
 	Assert(CurrentGameState->Memory);
 	
 	// TODO(nick): change to inline function
-	CurrentGameState->Memory->PermanentStorage = (MemoryBlock *)malloc(Megabytes(20));
-	CurrentGameState->Memory->PermanentStorage->Size = Megabytes(20);
+	CurrentGameState->Memory->PermanentStorage = (MemoryBlock *)malloc(Megabytes(250));
+	CurrentGameState->Memory->PermanentStorage->Size = Megabytes(250);
 	CurrentGameState->Memory->PermanentStorage->Next = CurrentGameState->Memory->PermanentStorage;
-	CurrentGameState->Memory->PermanentStorage->Previous = NULL; 
 
 	CurrentGameState->Memory->TransientStorage = (MemoryBlock *)malloc(Megabytes(20));
 	CurrentGameState->Memory->TransientStorage->Size = Megabytes(20);
 	CurrentGameState->Memory->TransientStorage->Next = CurrentGameState->Memory->TransientStorage;
-	CurrentGameState->Memory->TransientStorage->Previous = NULL;
 
 	Assert(CurrentGameState->Memory->PermanentStorage);
 	Assert(CurrentGameState->Memory->TransientStorage);
@@ -518,14 +519,13 @@ LoadAsset(MemoryBlock *Memory, SDL_RWops *RWOperations, SDL_Surface *GameSurface
 
 		Result->Width = Raw->w;
 		Result->Height = Raw->h;
-		Result->Rotation = 0.0;
+		Result->Rotation = 0.0f;
 		Result->Flip = SDL_FLIP_NONE; 
 		Result->Texture = Texture;
 		 
 		SDL_FreeSurface(Raw);
 	}
 
-	
 	return Result;
 }
 
