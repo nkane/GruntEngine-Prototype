@@ -445,6 +445,7 @@ InitializeGameState()
 	// TODO(nick): change to inline function
 	CurrentGameState->Memory->PermanentStorage = (MemoryBlock *)malloc(Megabytes(64));
 	CurrentGameState->Memory->PermanentStorage->Size = Megabytes(64);
+	CurrentGameState->Memory->PermanentStorage->CurrentBytes = sizeof(MemoryBlock);
 	CurrentGameState->Memory->PermanentStorage->Next = CurrentGameState->Memory->PermanentStorage + sizeof(MemoryBlock);
 
 	/*
