@@ -26,8 +26,18 @@ PushMemoryChunk(MemoryBlock *Block, int chunkSize)
 {
 	// TODO(nick): iron this process out ...
 	void *MemoryChunk;
-	MemoryChunk = (void *)Block->Next;
-	Block->Next += chunkSize;
+
+	if (Block->Next)
+	{
+		MemoryChunk = (void *)Block->Next;
+		Block->Next += chunkSize;
+	}
+	else 
+	{
+		MemoryChunk = (void *)Block;
+		Block->Next = (Block + chunkSize);
+	}
+
 	return MemoryChunk;
 }
 

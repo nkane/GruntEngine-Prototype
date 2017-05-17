@@ -469,13 +469,13 @@ InitializeGameState()
 	Assert(CurrentGameState->Memory);
 	
 	// TODO(nick): change to inline function
-	CurrentGameState->Memory->PermanentStorage = (MemoryBlock *)malloc(Megabytes(250));
-	CurrentGameState->Memory->PermanentStorage->Size = Megabytes(250);
-	CurrentGameState->Memory->PermanentStorage->Next = CurrentGameState->Memory->PermanentStorage;
+	CurrentGameState->Memory->PermanentStorage = (MemoryBlock *)malloc(Megabytes(64));
+	CurrentGameState->Memory->PermanentStorage->Size = Megabytes(64);
+	CurrentGameState->Memory->PermanentStorage->Next = NULL;
 
 	CurrentGameState->Memory->TransientStorage = (MemoryBlock *)malloc(Megabytes(20));
 	CurrentGameState->Memory->TransientStorage->Size = Megabytes(20);
-	CurrentGameState->Memory->TransientStorage->Next = CurrentGameState->Memory->TransientStorage;
+	CurrentGameState->Memory->TransientStorage->Next = NULL;
 
 	Assert(CurrentGameState->Memory->PermanentStorage);
 	Assert(CurrentGameState->Memory->TransientStorage);
