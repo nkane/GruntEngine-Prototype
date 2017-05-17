@@ -5,7 +5,6 @@
 
 #include "gamememory.h"
 
-
 struct GameState
 {
 	unsigned int StartMS;
@@ -16,5 +15,6 @@ struct GameState
 	// TODO(nick): do better research for how to create a better
 	// engine api / memory allocation
 	GameMemory *Memory;
+	AssetTexture *CurrentTexture;
 };
 

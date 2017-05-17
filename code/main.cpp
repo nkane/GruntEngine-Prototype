@@ -7,6 +7,8 @@
 #include <SDL_image.h>
 
 #include "gameplatform.h"
+#include "assets.h"
+#include "entity.h"
 #include "gamestate.h"
 #include "windowstate.h"
 
@@ -32,39 +34,6 @@ global_variable bool GameRunning = true;
 // TODO(nick): this could be moved elsewhere?
 global_variable SDL_RWops *ReadWriteOperations;
 
-// TODO(nick): bit mask may not be needed, think about it some more ...
-enum EntityState
-{
-	Idle      = (1u << 0),
-	FaceLeft  = (1u << 1),
-	FaceRight = (1u << 2),
-};
-
-struct Vector2
-{
-	int X;
-	int Y;
-};
-
-// TODO(nick): move structs in to a .h file
-struct AssetTexture
-{
-	double Rotation;
-	SDL_RendererFlip Flip;
-	SDL_Texture *Texture;
-	int Width;
-	int Height;
-};
-
-struct Entity
-{
-	AssetTexture *CurrentTexture;
-	AssetTexture *IdleTexture;
-	AssetTexture *WalkTexture;
-	EntityState CurrentState;
-	Vector2 *PositionV2;
-};
-
 global_variable Entity *PlayerEntity;
 
 // TODO(nick): clean this up and initializegame
@@ -89,11 +58,11 @@ internal void
 ReleaseGameState(GameState *);
 
 AssetTexture *
-LoadAsset(MemoryBlock *, SDL_RWops *, SDL_Surface *, SDL_Renderer *);
+LoadAsset(GameState *, SDL_RWops *, SDL_Surface *, SDL_Renderer *);
 
 // TODO(nick): need to create this function to be proper movement working
 void
-GameUpdateAndRender(WindowState *, Entity *);
+GameUpdateAndRender(WindowState *, GameState *, Entity *);
 
 int
 main(int argc, char *argv[])
@@ -154,7 +123,8 @@ main(int argc, char *argv[])
 							}
 
 
-							PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
+							// TODO(nick): figure out wtf I am doing with these
+							//PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
 							// TODO(nick): possible change to velocity?
 							PlayerEntity->PositionV2->X -= 5;
 
@@ -171,7 +141,8 @@ main(int argc, char *argv[])
 								PlayerEntity->CurrentState = FaceRight;
 							}
 
-							PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
+							// TODO(nick): figure out wtf I am doing with these
+							//PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
 
 							PlayerEntity->PositionV2->X += 5;
 
@@ -227,14 +198,16 @@ main(int argc, char *argv[])
 						case SDLK_LEFT:
 						{
 							PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
-							PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
+							// TODO(nick): figure out wtf I am doing with these
+							//PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 							printf("arrow left released\n");
 						} break;
 
 						case SDLK_RIGHT:
 						{
 							PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
-							PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
+							// TODO(nick): figure out wtf I am doing with thes
+							///PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 							printf("arrow right released\n");
 						} break;
 
@@ -282,7 +255,7 @@ main(int argc, char *argv[])
 		SDL_RenderClear(GlobalWindowState->GameRenderer);
 
 		// Update and render game
-		GameUpdateAndRender(GlobalWindowState, PlayerEntity);
+		GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity);
 
 		// update screen
 		SDL_RenderPresent(GlobalWindowState->GameRenderer);
@@ -404,13 +377,13 @@ InitializeGame()
 							                 sizeof(Entity));
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0014_Idle-.png", "rb");
-				PlayerEntity->IdleTexture = LoadAsset(GlobalGameState->Memory->PermanentStorage,
+				PlayerEntity->IdleTexture = LoadAsset(GlobalGameState,
 								      ReadWriteOperations,
 								      GlobalWindowState->GameSurface,
 								      GlobalWindowState->GameRenderer);
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0013_Walk.png", "rb");
-				PlayerEntity->WalkTexture = LoadAsset(GlobalGameState->Memory->PermanentStorage,
+				PlayerEntity->WalkTexture = LoadAsset(GlobalGameState,
 							              ReadWriteOperations,
 								      GlobalWindowState->GameSurface,
 								      GlobalWindowState->GameRenderer);
@@ -421,7 +394,7 @@ InitializeGame()
 				// TODO(nick): resolve this issue ... current texture pointer is changing positions 
 				// when structs allocated on the memory stack
 				// IMPORTANT(nick): this is causing an error right now ...
-				PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
+				GlobalGameState->CurrentTexture = PlayerEntity->IdleTexture;
 
 				// TODO(nick): 
 				// 1) remove static position - figure out starting location
@@ -465,17 +438,20 @@ InitializeGameState()
 	CurrentGameState->DeltaMS = 0;
 
 	CurrentGameState->Memory = (GameMemory *)malloc(sizeof(GameMemory));
+	CurrentGameState->CurrentTexture = NULL;
 
 	Assert(CurrentGameState->Memory);
 	
 	// TODO(nick): change to inline function
 	CurrentGameState->Memory->PermanentStorage = (MemoryBlock *)malloc(Megabytes(64));
 	CurrentGameState->Memory->PermanentStorage->Size = Megabytes(64);
-	CurrentGameState->Memory->PermanentStorage->Next = NULL;
+	CurrentGameState->Memory->PermanentStorage->Next = CurrentGameState->Memory->PermanentStorage + sizeof(MemoryBlock);
 
+	/*
 	CurrentGameState->Memory->TransientStorage = (MemoryBlock *)malloc(Megabytes(20));
 	CurrentGameState->Memory->TransientStorage->Size = Megabytes(20);
 	CurrentGameState->Memory->TransientStorage->Next = NULL;
+	*/
 
 	Assert(CurrentGameState->Memory->PermanentStorage);
 	Assert(CurrentGameState->Memory->TransientStorage);
@@ -492,7 +468,7 @@ ReleaseGameState(GameState *CurrentGameState)
 }
 
 AssetTexture *
-LoadAsset(MemoryBlock *Memory, SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
+LoadAsset(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
 {
 	AssetTexture *Result = NULL;
 	SDL_Texture *Texture = NULL;
@@ -515,7 +491,7 @@ LoadAsset(MemoryBlock *Memory, SDL_RWops *RWOperations, SDL_Surface *GameSurface
 		// TODO(nick): 
 		// 1) average heigh for asset should be 1.6 meters
 		// need to figure out how to determine scaling for assets
-		Result = (AssetTexture *)PushMemoryChunk(Memory, sizeof(AssetTexture));
+		Result = (AssetTexture *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage, sizeof(AssetTexture));
 
 		Result->Width = Raw->w;
 		Result->Height = Raw->h;
@@ -530,7 +506,7 @@ LoadAsset(MemoryBlock *Memory, SDL_RWops *RWOperations, SDL_Surface *GameSurface
 }
 
 void
-GameUpdateAndRender(WindowState *Window, Entity *CurrentEntity)
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Entity *CurrentEntity)
 {
 	// render texture(s) to screen
 	// TODO(nick):
@@ -541,18 +517,19 @@ GameUpdateAndRender(WindowState *Window, Entity *CurrentEntity)
 	
 	SDL_Rect RenderBox = 
 	{
+		// TODO(nick): figure out a better way to handle all of this ....
 		CurrentEntity->PositionV2->X,
 		CurrentEntity->PositionV2->Y,
-		CurrentEntity->CurrentTexture->Width,
-		CurrentEntity->CurrentTexture->Height,
+		CurrentGameState->CurrentTexture->Width,
+		CurrentGameState->CurrentTexture->Height,
 	};
 
-	SDL_RenderCopyEx(Window->GameRenderer,
-			 CurrentEntity->CurrentTexture->Texture,
+	SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
+			 CurrentGameState->CurrentTexture->Texture,
 			 NULL,
 			 &RenderBox,
-			 CurrentEntity->CurrentTexture->Rotation,
+			 CurrentGameState->CurrentTexture->Rotation,
 			 NULL,
-			 CurrentEntity->CurrentTexture->Flip);
+			 CurrentGameState->CurrentTexture->Flip);
 }
 

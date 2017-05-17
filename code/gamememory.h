@@ -12,7 +12,7 @@ struct MemoryBlock
 {
 	MemoryBlock *Next;
 	uint64 Size;
-	// TODO(nick): Add remaining size?
+	uint64 CurrentBytes;
 };
 
 struct GameMemory
@@ -21,24 +21,16 @@ struct GameMemory
 	MemoryBlock *TransientStorage;
 };
 
+// TODO(nick): iron this process out ...
 inline void *
 PushMemoryChunk(MemoryBlock *Block, int chunkSize)
 {
-	// TODO(nick): iron this process out ...
-	void *MemoryChunk;
+	Assert(Block->CurrentBytes + chunkSize <= Block->Size);
 
-	if (Block->Next)
-	{
-		MemoryChunk = (void *)Block->Next;
-		Block->Next += chunkSize;
-	}
-	else 
-	{
-		MemoryChunk = (void *)Block;
-		Block->Next = (Block + chunkSize);
-	}
+	uint8 *MemoryChunk = ((uint8 *)Block->Next) + Block->CurrentBytes;
+	Block->CurrentBytes += chunkSize;
 
-	return MemoryChunk;
+	return (void *)MemoryChunk;
 }
 
 inline void
