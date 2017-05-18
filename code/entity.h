@@ -15,7 +15,7 @@ enum EntityState
 
 struct Entity
 {
-	//AssetTexture *CurrentTexture;
+	AssetTexture *CurrentTexture;
 	AssetTexture *IdleTexture;
 	AssetTexture *WalkTexture;
 	EntityState CurrentState;

@@ -122,9 +122,8 @@ main(int argc, char *argv[])
 								PlayerEntity->CurrentState = FaceLeft;
 							}
 
-
 							// TODO(nick): figure out wtf I am doing with these
-							//PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
+							PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
 							// TODO(nick): possible change to velocity?
 							PlayerEntity->PositionV2->X -= 5;
 
@@ -140,9 +139,8 @@ main(int argc, char *argv[])
 								PlayerEntity->WalkTexture->Flip = SDL_FLIP_NONE;
 								PlayerEntity->CurrentState = FaceRight;
 							}
-
-							// TODO(nick): figure out wtf I am doing with these
-							//PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
+							
+							PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
 
 							PlayerEntity->PositionV2->X += 5;
 
@@ -198,16 +196,14 @@ main(int argc, char *argv[])
 						case SDLK_LEFT:
 						{
 							PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
-							// TODO(nick): figure out wtf I am doing with these
-							//PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
+							PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 							printf("arrow left released\n");
 						} break;
 
 						case SDLK_RIGHT:
 						{
 							PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
-							// TODO(nick): figure out wtf I am doing with thes
-							///PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
+							PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 							printf("arrow right released\n");
 						} break;
 
@@ -391,10 +387,7 @@ InitializeGame()
 				// NOTE(nick): set default texture on game init
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
 
-				// TODO(nick): resolve this issue ... current texture pointer is changing positions 
-				// when structs allocated on the memory stack
-				// IMPORTANT(nick): this is causing an error right now ...
-				GlobalGameState->CurrentTexture = PlayerEntity->IdleTexture;
+				PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 
 				// TODO(nick): 
 				// 1) remove static position - figure out starting location
@@ -521,16 +514,16 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 		// TODO(nick): figure out a better way to handle all of this ....
 		CurrentEntity->PositionV2->X,
 		CurrentEntity->PositionV2->Y,
-		CurrentGameState->CurrentTexture->Width,
-		CurrentGameState->CurrentTexture->Height,
+		CurrentEntity->CurrentTexture->Width,
+		CurrentEntity->CurrentTexture->Height,
 	};
 
 	SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
-			 CurrentGameState->CurrentTexture->Texture,
+			 CurrentEntity->CurrentTexture->Texture,
 			 NULL,
 			 &RenderBox,
-			 CurrentGameState->CurrentTexture->Rotation,
+			 CurrentEntity->CurrentTexture->Rotation,
 			 NULL,
-			 CurrentGameState->CurrentTexture->Flip);
+			 CurrentEntity->CurrentTexture->Flip);
 }
 
