@@ -441,11 +441,9 @@ InitializeGameState()
 	CurrentGameState->Memory->PermanentStorage->CurrentBytes = sizeof(MemoryBlock);
 	CurrentGameState->Memory->PermanentStorage->Next = CurrentGameState->Memory->PermanentStorage + sizeof(MemoryBlock);
 
-	/*
 	CurrentGameState->Memory->TransientStorage = (MemoryBlock *)malloc(Megabytes(20));
 	CurrentGameState->Memory->TransientStorage->Size = Megabytes(20);
 	CurrentGameState->Memory->TransientStorage->Next = NULL;
-	*/
 
 	Assert(CurrentGameState->Memory->PermanentStorage);
 	Assert(CurrentGameState->Memory->TransientStorage);
@@ -453,12 +451,28 @@ InitializeGameState()
 	return CurrentGameState;
 }
 
-inline void
+internal void
 ReleaseGameState(GameState *CurrentGameState)
 {
-	// TODO(nick): free calls here!
-	free(CurrentGameState->Memory->PermanentStorage);
-	free(CurrentGameState->Memory->TransientStorage);
+	if (CurrentGameState->Memory->PermanentStorage)
+	{
+		free(CurrentGameState->Memory->PermanentStorage);
+	}
+
+	if (CurrentGameState->Memory->TransientStorage)
+	{
+		free(CurrentGameState->Memory->TransientStorage);
+	}
+
+	if (CurrentGameState->Memory)
+	{
+		free(CurrentGameState->Memory);
+	}
+
+	if (CurrentGameState) 
+	{
+		free(CurrentGameState);
+	}
 }
 
 AssetTexture *
