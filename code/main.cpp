@@ -11,6 +11,7 @@
 #include "assets.h"
 #include "entity.h"
 #include "gamestate.h"
+#include "screen.h"
 #include "windowstate.h"
 
 #include <stdio.h>
@@ -34,7 +35,7 @@ global_variable bool GameRunning = true;
 
 // TODO(nick): this could be moved elsewhere?
 global_variable SDL_RWops *ReadWriteOperations;
-
+global_variable Screen *GameScreen;
 global_variable Entity *PlayerEntity;
 
 // TODO(nick): clean this up and initializegame
@@ -59,7 +60,10 @@ internal void
 ReleaseGameState(GameState *);
 
 AssetTexture *
-LoadAsset(GameState *, SDL_RWops *, SDL_Surface *, SDL_Renderer *);
+LoadAssetPNG(GameState *, SDL_RWops *, SDL_Surface *, SDL_Renderer *);
+
+AssetTexture *
+LoadAssetTTF(GameState *, SDL_Surface *, SDL_Renderer *);
 
 // TODO(nick): need to create this function to be proper movement working
 void
@@ -333,6 +337,12 @@ InitializeAssetPipeline()
 		return false;
 	}
 
+	if (TTF_Init() == -1)
+	{
+		printf("Error - SDL_ttf did not initialize properly - SDL_ttf Error: %s\n", TTF_GetError());
+		return false;
+	}
+
 	return true;
 }
 
@@ -368,22 +378,23 @@ InitializeGame()
 
 				GlobalGameState = InitializeGameState();
 				Assert(GlobalGameState);
-				
-				// start loading game assets
+
 				PlayerEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 							                 sizeof(Entity));
+				GameScreen = (Screen *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+									sizeof(Screen));
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0014_Idle-.png", "rb");
-				PlayerEntity->IdleTexture = LoadAsset(GlobalGameState,
-								      ReadWriteOperations,
-								      GlobalWindowState->GameSurface,
-								      GlobalWindowState->GameRenderer);
+				PlayerEntity->IdleTexture = LoadAssetPNG(GlobalGameState,
+								      	 ReadWriteOperations,
+								      	 GlobalWindowState->GameSurface,
+								      	 GlobalWindowState->GameRenderer);
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0013_Walk.png", "rb");
-				PlayerEntity->WalkTexture = LoadAsset(GlobalGameState,
-							              ReadWriteOperations,
-								      GlobalWindowState->GameSurface,
-								      GlobalWindowState->GameRenderer);
+				PlayerEntity->WalkTexture = LoadAssetPNG(GlobalGameState,
+							              	 ReadWriteOperations,
+								      	 GlobalWindowState->GameSurface,
+								      	 GlobalWindowState->GameRenderer);
 
 				// NOTE(nick): set default texture on game init
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
@@ -396,7 +407,6 @@ InitializeGame()
 				// TODO(nick): debug this - access violation occuring
 				PlayerEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 										      sizeof(Vector2));
-				//PlayerEntity->PositionV2 = (Vector2 *)malloc(sizeof(Vector2));
 				PlayerEntity->PositionV2->X = 460;
 				PlayerEntity->PositionV2->Y = 400;
 			}
@@ -477,7 +487,7 @@ ReleaseGameState(GameState *CurrentGameState)
 }
 
 AssetTexture *
-LoadAsset(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
+LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
 {
 	AssetTexture *Result = NULL;
 	SDL_Texture *Texture = NULL;
@@ -514,6 +524,16 @@ LoadAsset(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *Gam
 	return Result;
 }
 
+// TODO(nick): could probably replace this and LoadAssetPNG with a single call that does the same thing?
+/*
+AssetTexture *
+LoadAssetTTF(GameState *, SDL_Surface *, SDL_Renderer *)
+{
+
+}
+*/
+
+// TODO(nick): think about how to render game objects 
 void
 GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Entity *CurrentEntity)
 {
