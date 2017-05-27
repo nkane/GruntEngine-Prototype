@@ -11,7 +11,7 @@
 #include "assets.h"
 #include "entity.h"
 #include "gamestate.h"
-#include "screen.h"
+#include "text.h"
 #include "windowstate.h"
 
 #include <stdio.h>
@@ -33,11 +33,16 @@ global_variable WindowState *GlobalWindowState;
 global_variable GameState *GlobalGameState;
 global_variable bool GameRunning = true;
 
+// global entities
 // TODO(nick): this could be moved elsewhere?
 global_variable SDL_RWops *ReadWriteOperations;
-global_variable Screen *GameScreen;
+global_variable Text *GameText;
 global_variable Entity *PlayerEntity;
+
+// global fonts
 global_variable TTF_Font *ArcadeFont;
+global_variable TTF_Font *PokeFont;
+
 
 // TODO(nick): clean this up and initializegame
 internal SDL_Window *
@@ -68,7 +73,7 @@ LoadAssetTTF(GameState *, TTF_Font *, SDL_Surface *, SDL_Renderer *);
 
 // TODO(nick): need to create this function to be proper movement working
 void
-GameUpdateAndRender(WindowState *, GameState *, Entity *, Screen *);
+GameUpdateAndRender(WindowState *, GameState *, Entity *, Text *);
 
 int
 main(int argc, char *argv[])
@@ -87,8 +92,6 @@ main(int argc, char *argv[])
 	{
 		// query for time
 		GlobalGameState->CurrentMS = SDL_GetTicks();
-		// TODO(nick): remove - debug only
-		printf("Current MS: %d\n", GlobalGameState->CurrentMS);
 
 		while (SDL_PollEvent(&CurrentEvent))
 		{
@@ -257,7 +260,7 @@ main(int argc, char *argv[])
 		SDL_RenderClear(GlobalWindowState->GameRenderer);
 
 		// Update and render game
-		GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GameScreen);
+		GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GameText);
 
 		// update screen
 		SDL_RenderPresent(GlobalWindowState->GameRenderer);
@@ -275,9 +278,20 @@ main(int argc, char *argv[])
 			SDL_Delay(delay);
 			printf("Delay: %d\n", delay);
 		}
+	}
 
-		// TODO(nick): remove - debug only
-		printf("Delta MS: %d\n\n\n", GlobalGameState->DeltaMS);
+	// destory textures
+	// TODO(nick):
+	// 1) put in a function
+	{
+		SDL_DestroyTexture(PlayerEntity->IdleTexture->Texture);
+		SDL_DestroyTexture(PlayerEntity->WalkTexture->Texture);
+	}
+
+	// release fonts
+	{
+		TTF_CloseFont(ArcadeFont);
+		TTF_CloseFont(PokeFont);
 	}
 
 	// TODO(nick): stream line some clean up process that is going to unload assest / clean up memory
@@ -287,6 +301,7 @@ main(int argc, char *argv[])
 	// destroy window
 	SDL_DestroyWindow(GlobalWindowState->GameWindow);
 
+	// release game state memory blocks
 	ReleaseGameState(GlobalGameState);
 
 	// quit SDL ttf
@@ -411,22 +426,36 @@ InitializeGame()
 				PlayerEntity->PositionV2->X = 460;
 				PlayerEntity->PositionV2->Y = 400;
 
-				GameScreen = (Screen *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-								       sizeof(Screen));
-				ArcadeFont = TTF_OpenFont("./assets/Fonts/arcade_classic_pizz/ARCADECLASSIC.TTF", 24);
-				if (!ArcadeFont)
+				GameText = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+								       sizeof(Text));
+
+				GameText->PrimaryFont = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 24);
+				if (!GameText->PrimaryFont)
 				{
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
 				}
-				GameScreen->CurrentTexture = LoadAssetTTF(GlobalGameState,
-									  ArcadeFont,
-									  GlobalWindowState->GameSurface,
-									  GlobalWindowState->GameRenderer);
-
-				GameScreen->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-										    sizeof(Vector2));
-				GameScreen->PositionV2->X = 75;
-				GameScreen->PositionV2->Y = 100;
+				GameText->PrimaryText = LoadAssetTTF(GlobalGameState,
+								     GameText->PrimaryFont,
+								     GlobalWindowState->GameSurface,
+								     GlobalWindowState->GameRenderer);
+				GameText->PrimaryPositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+										         sizeof(Vector2));
+				GameText->PrimaryPositionV2->X = 75;
+				GameText->PrimaryPositionV2->Y = 100;
+				
+				GameText->SecondaryFont = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 24);
+				if (GameText->SecondaryFont)
+				{
+					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
+				}
+				GameText->SecondaryText = LoadAssetTTF(GlobalGameState,
+								       GameText->SecondaryFont,
+								       GlobalWindowState->GameSurface,
+								       GlobalWindowState->GameRenderer);
+				GameText->SecondaryPositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+										          sizeof(Vector2));
+				GameText->SecondaryPositionV2->X = 0;
+				GameText->SecondaryPositionV2->Y = 0;
 			}
 			else
 			{
@@ -543,16 +572,16 @@ LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *
 	return Result;
 }
 
-// TODO(nick): could probably replace this and LoadAssetPNG with a single call that does the same thing?
+// TODO(nick): 
+// 1) could probably replace this and LoadAssetPNG with a single call that does the same thing?
+// 2) pass in color?
 AssetTexture *
 LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
 {
 	AssetTexture *Result = NULL;
 	SDL_Texture *Texture = NULL;
 	
-	// NOTE(nick): black - should make colors.h file
-	//SDL_Color DefaultColor = { 0, 0, 0, 0 };
-
+	// TODO(nick): make colors.h file
 	SDL_Color DefaultColor = { 255, 255, 255, 0 };
 
 	SDL_Surface *Raw = TTF_RenderText_Solid(Font, "DEFAULT TEXT WITH A LOT OF EXTRA TEXT TO TEST RENDERERING", DefaultColor);
@@ -586,7 +615,7 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 
 // TODO(nick): think about how to render game objects 
 void
-GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Entity *CurrentEntity, Screen *CurrentScreen)
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Entity *CurrentEntity, Text *GameText)
 {
 	// render texture(s) to screen
 	// TODO(nick):
@@ -614,18 +643,18 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 
 	SDL_Rect TextRenderBox = 
 	{
-		CurrentScreen->PositionV2->X,
-		CurrentScreen->PositionV2->Y,
-		CurrentScreen->CurrentTexture->Width,
-		CurrentScreen->CurrentTexture->Height,
+		GameText->PrimaryPositionV2->X,
+		GameText->PrimaryPositionV2->Y,
+		GameText->PrimaryText->Width,
+		GameText->PrimaryText->Height,
 	};
 
 	SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
-			 CurrentScreen->CurrentTexture->Texture,
+			 GameText->PrimaryText->Texture,
 			 NULL,
 			 &TextRenderBox,
-			 CurrentScreen->CurrentTexture->Rotation,
+			 GameText->PrimaryText->Rotation,
 			 NULL,
-			 CurrentScreen->CurrentTexture->Flip);
+			 GameText->PrimaryText->Flip);
 }
 
