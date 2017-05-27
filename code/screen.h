@@ -8,5 +8,6 @@ struct Screen
 	AssetTexture *CurrentTexture;
 	AssetTexture *PrimaryText;
 	AssetTexture *SecondaryText;
+	Vector2 *PositionV2;
 };
 

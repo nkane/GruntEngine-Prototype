@@ -257,7 +257,6 @@ main(int argc, char *argv[])
 		SDL_RenderClear(GlobalWindowState->GameRenderer);
 
 		// Update and render game
-		//GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity);
 		GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GameScreen);
 
 		// update screen
@@ -266,7 +265,7 @@ main(int argc, char *argv[])
 		// TODO(nick): for debugging
 		GlobalGameState->CycleEndMS = SDL_GetTicks();
 
-		// TODO(nick: for debugging
+		// TODO(nick): for debugging
 		GlobalGameState->DeltaMS = (GlobalGameState->CycleEndMS - GlobalGameState->CurrentMS);
 
 		if (GlobalGameState->DeltaMS < Frame_Rate_Lock) 
@@ -280,14 +279,19 @@ main(int argc, char *argv[])
 		// TODO(nick): remove - debug only
 		printf("Delta MS: %d\n\n\n", GlobalGameState->DeltaMS);
 	}
-	
 
 	// TODO(nick): stream line some clean up process that is going to unload assest / clean up memory
-	// Destroy window
+	// destory renderer
+	SDL_DestroyRenderer(GlobalWindowState->GameRenderer);
+
+	// destroy window
 	SDL_DestroyWindow(GlobalWindowState->GameWindow);
 
 	ReleaseGameState(GlobalGameState);
 
+	// quit SDL ttf
+	TTF_Quit();
+	
 	// quit SDL image
 	IMG_Quit();
 
@@ -362,6 +366,11 @@ InitializeGame()
 		// TODO(nick): toggle between software / hardware renderering
 		GlobalWindowState->GameRenderer = SDL_CreateRenderer(GlobalWindowState->GameWindow, 
 								      -1, SDL_RENDERER_ACCELERATED);
+		
+		// NOTE(nick): sets clear to white
+		//SDL_SetRenderDrawColor(GlobalWindowState->GameRenderer, 0xFF, 0xFF, 0xFF, 0x00);
+		
+		// NOTE(nick); sets clear to black
 		SDL_SetRenderDrawColor(GlobalWindowState->GameRenderer, 0x00, 0x00, 0x00, 0x00);
 
 		// NOTE(nick): this might not be necessary?
@@ -404,7 +413,7 @@ InitializeGame()
 
 				GameScreen = (Screen *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 								       sizeof(Screen));
-				ArcadeFont = TTF_OpenFont("./assets/Fonts/arcade_classic_pizz/ARCADECLASSIC.TTF", 28);
+				ArcadeFont = TTF_OpenFont("./assets/Fonts/arcade_classic_pizz/ARCADECLASSIC.TTF", 24);
 				if (!ArcadeFont)
 				{
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
@@ -413,6 +422,11 @@ InitializeGame()
 									  ArcadeFont,
 									  GlobalWindowState->GameSurface,
 									  GlobalWindowState->GameRenderer);
+
+				GameScreen->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+										    sizeof(Vector2));
+				GameScreen->PositionV2->X = 75;
+				GameScreen->PositionV2->Y = 100;
 			}
 			else
 			{
@@ -536,9 +550,12 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 	AssetTexture *Result = NULL;
 	SDL_Texture *Texture = NULL;
 	
-	SDL_Color DefaultColor = { 1, 1, 1, 1 };
+	// NOTE(nick): black - should make colors.h file
+	//SDL_Color DefaultColor = { 0, 0, 0, 0 };
 
-	SDL_Surface *Raw = TTF_RenderText_Solid(Font, "DEFAULT TEXT", DefaultColor);
+	SDL_Color DefaultColor = { 255, 255, 255, 0 };
+
+	SDL_Surface *Raw = TTF_RenderText_Solid(Font, "DEFAULT TEXT WITH A LOT OF EXTRA TEXT TO TEST RENDERERING", DefaultColor);
 
 	if (!Raw)
 	{
@@ -546,7 +563,6 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 	}
 	else 
 	{
-		SDL_SetColorKey(Raw, SDL_TRUE, SDL_MapRGB(Raw->format, 0, 0xFF, 0xFF));
 		// TODO(nick): a free texture might need to be called on this?
 		Texture = SDL_CreateTextureFromSurface(GameRenderer, Raw);
 		if (!Texture)
@@ -579,7 +595,6 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	// 2) 2nd NULL value is center point
 	//    - center, used for point to determine rotation
 	
-	/*
 	SDL_Rect RenderBox = 
 	{
 		// TODO(nick): figure out a better way to handle all of this ....
@@ -596,13 +611,13 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 			 CurrentEntity->CurrentTexture->Rotation,
 			 NULL,
 			 CurrentEntity->CurrentTexture->Flip);
-	*/
+
 	SDL_Rect TextRenderBox = 
 	{
-		460,
-		400,
-		500,
-		500,
+		CurrentScreen->PositionV2->X,
+		CurrentScreen->PositionV2->Y,
+		CurrentScreen->CurrentTexture->Width,
+		CurrentScreen->CurrentTexture->Height,
 	};
 
 	SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
