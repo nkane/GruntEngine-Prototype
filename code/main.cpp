@@ -384,8 +384,7 @@ InitializeGame()
 				PlayerEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 							                 sizeof(Entity));
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0014_Idle-.png", "rb");
-				PlayerEntity->IdleTexture = LoadAssetPNG(GlobalGameState,
-								      	 ReadWriteOperations,
+				PlayerEntity->IdleTexture = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
 								      	 GlobalWindowState->GameSurface,
 								      	 GlobalWindowState->GameRenderer);
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0013_Walk.png", "rb");
@@ -537,7 +536,7 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 	AssetTexture *Result = NULL;
 	SDL_Texture *Texture = NULL;
 	
-	SDL_Color DefaultColor = { 0, 0, 0, 0 };
+	SDL_Color DefaultColor = { 1, 1, 1, 1 };
 
 	SDL_Surface *Raw = TTF_RenderText_Solid(Font, "DEFAULT TEXT", DefaultColor);
 
@@ -547,6 +546,7 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 	}
 	else 
 	{
+		SDL_SetColorKey(Raw, SDL_TRUE, SDL_MapRGB(Raw->format, 0, 0xFF, 0xFF));
 		// TODO(nick): a free texture might need to be called on this?
 		Texture = SDL_CreateTextureFromSurface(GameRenderer, Raw);
 		if (!Texture)
@@ -601,8 +601,8 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	{
 		460,
 		400,
-		CurrentScreen->CurrentTexture->Width,
-		CurrentScreen->CurrentTexture->Height,
+		500,
+		500,
 	};
 
 	SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
