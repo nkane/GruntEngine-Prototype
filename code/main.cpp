@@ -5,11 +5,13 @@
 
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_ttf.h>
 
 #include "gameplatform.h"
 #include "assets.h"
 #include "entity.h"
 #include "gamestate.h"
+#include "text.h"
 #include "windowstate.h"
 
 #include <stdio.h>
@@ -31,10 +33,16 @@ global_variable WindowState *GlobalWindowState;
 global_variable GameState *GlobalGameState;
 global_variable bool GameRunning = true;
 
+// global entities
 // TODO(nick): this could be moved elsewhere?
 global_variable SDL_RWops *ReadWriteOperations;
-
+global_variable Text *GameText;
 global_variable Entity *PlayerEntity;
+
+// global fonts
+global_variable TTF_Font *ArcadeFont;
+global_variable TTF_Font *PokeFont;
+
 
 // TODO(nick): clean this up and initializegame
 internal SDL_Window *
@@ -58,11 +66,14 @@ internal void
 ReleaseGameState(GameState *);
 
 AssetTexture *
-LoadAsset(GameState *, SDL_RWops *, SDL_Surface *, SDL_Renderer *);
+LoadAssetPNG(GameState *, SDL_RWops *, SDL_Surface *, SDL_Renderer *);
+
+AssetTexture *
+LoadAssetTTF(GameState *, TTF_Font *, SDL_Surface *, SDL_Renderer *);
 
 // TODO(nick): need to create this function to be proper movement working
 void
-GameUpdateAndRender(WindowState *, GameState *, Entity *);
+GameUpdateAndRender(WindowState *, GameState *, Entity *, Text *);
 
 int
 main(int argc, char *argv[])
@@ -81,8 +92,6 @@ main(int argc, char *argv[])
 	{
 		// query for time
 		GlobalGameState->CurrentMS = SDL_GetTicks();
-		// TODO(nick): remove - debug only
-		printf("Current MS: %d\n", GlobalGameState->CurrentMS);
 
 		while (SDL_PollEvent(&CurrentEvent))
 		{
@@ -251,7 +260,7 @@ main(int argc, char *argv[])
 		SDL_RenderClear(GlobalWindowState->GameRenderer);
 
 		// Update and render game
-		GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity);
+		GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GameText);
 
 		// update screen
 		SDL_RenderPresent(GlobalWindowState->GameRenderer);
@@ -259,7 +268,7 @@ main(int argc, char *argv[])
 		// TODO(nick): for debugging
 		GlobalGameState->CycleEndMS = SDL_GetTicks();
 
-		// TODO(nick: for debugging
+		// TODO(nick): for debugging
 		GlobalGameState->DeltaMS = (GlobalGameState->CycleEndMS - GlobalGameState->CurrentMS);
 
 		if (GlobalGameState->DeltaMS < Frame_Rate_Lock) 
@@ -269,18 +278,35 @@ main(int argc, char *argv[])
 			SDL_Delay(delay);
 			printf("Delay: %d\n", delay);
 		}
-
-		// TODO(nick): remove - debug only
-		printf("Delta MS: %d\n\n\n", GlobalGameState->DeltaMS);
 	}
-	
+
+	// destory textures
+	// TODO(nick):
+	// 1) put in a function
+	{
+		SDL_DestroyTexture(PlayerEntity->IdleTexture->Texture);
+		SDL_DestroyTexture(PlayerEntity->WalkTexture->Texture);
+	}
+
+	// release fonts
+	{
+		TTF_CloseFont(ArcadeFont);
+		TTF_CloseFont(PokeFont);
+	}
 
 	// TODO(nick): stream line some clean up process that is going to unload assest / clean up memory
-	// Destroy window
+	// destory renderer
+	SDL_DestroyRenderer(GlobalWindowState->GameRenderer);
+
+	// destroy window
 	SDL_DestroyWindow(GlobalWindowState->GameWindow);
 
+	// release game state memory blocks
 	ReleaseGameState(GlobalGameState);
 
+	// quit SDL ttf
+	TTF_Quit();
+	
 	// quit SDL image
 	IMG_Quit();
 
@@ -332,6 +358,12 @@ InitializeAssetPipeline()
 		return false;
 	}
 
+	if (TTF_Init() == -1)
+	{
+		printf("Error - SDL_ttf did not initialize properly - SDL_ttf Error: %s\n", TTF_GetError());
+		return false;
+	}
+
 	return true;
 }
 
@@ -349,6 +381,11 @@ InitializeGame()
 		// TODO(nick): toggle between software / hardware renderering
 		GlobalWindowState->GameRenderer = SDL_CreateRenderer(GlobalWindowState->GameWindow, 
 								      -1, SDL_RENDERER_ACCELERATED);
+		
+		// NOTE(nick): sets clear to white
+		//SDL_SetRenderDrawColor(GlobalWindowState->GameRenderer, 0xFF, 0xFF, 0xFF, 0x00);
+		
+		// NOTE(nick); sets clear to black
 		SDL_SetRenderDrawColor(GlobalWindowState->GameRenderer, 0x00, 0x00, 0x00, 0x00);
 
 		// NOTE(nick): this might not be necessary?
@@ -367,37 +404,58 @@ InitializeGame()
 
 				GlobalGameState = InitializeGameState();
 				Assert(GlobalGameState);
-				
-				// start loading game assets
+
 				PlayerEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 							                 sizeof(Entity));
-
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0014_Idle-.png", "rb");
-				PlayerEntity->IdleTexture = LoadAsset(GlobalGameState,
-								      ReadWriteOperations,
-								      GlobalWindowState->GameSurface,
-								      GlobalWindowState->GameRenderer);
-
+				PlayerEntity->IdleTexture = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
+								      	 GlobalWindowState->GameSurface,
+								      	 GlobalWindowState->GameRenderer);
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0013_Walk.png", "rb");
-				PlayerEntity->WalkTexture = LoadAsset(GlobalGameState,
-							              ReadWriteOperations,
-								      GlobalWindowState->GameSurface,
-								      GlobalWindowState->GameRenderer);
-
+				PlayerEntity->WalkTexture = LoadAssetPNG(GlobalGameState,
+							              	 ReadWriteOperations,
+								      	 GlobalWindowState->GameSurface,
+								      	 GlobalWindowState->GameRenderer);
 				// NOTE(nick): set default texture on game init
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
-
 				PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
-
 				// TODO(nick): 
 				// 1) remove static position - figure out starting location
-				
-				// TODO(nick): debug this - access violation occuring
 				PlayerEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 										      sizeof(Vector2));
-				//PlayerEntity->PositionV2 = (Vector2 *)malloc(sizeof(Vector2));
 				PlayerEntity->PositionV2->X = 460;
 				PlayerEntity->PositionV2->Y = 400;
+
+				GameText = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+								       sizeof(Text));
+
+				GameText->PrimaryFont = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 24);
+				if (!GameText->PrimaryFont)
+				{
+					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
+				}
+				GameText->PrimaryText = LoadAssetTTF(GlobalGameState,
+								     GameText->PrimaryFont,
+								     GlobalWindowState->GameSurface,
+								     GlobalWindowState->GameRenderer);
+				GameText->PrimaryPositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+										         sizeof(Vector2));
+				GameText->PrimaryPositionV2->X = 75;
+				GameText->PrimaryPositionV2->Y = 100;
+				
+				GameText->SecondaryFont = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 24);
+				if (GameText->SecondaryFont)
+				{
+					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
+				}
+				GameText->SecondaryText = LoadAssetTTF(GlobalGameState,
+								       GameText->SecondaryFont,
+								       GlobalWindowState->GameSurface,
+								       GlobalWindowState->GameRenderer);
+				GameText->SecondaryPositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+										          sizeof(Vector2));
+				GameText->SecondaryPositionV2->X = 0;
+				GameText->SecondaryPositionV2->Y = 0;
 			}
 			else
 			{
@@ -476,7 +534,7 @@ ReleaseGameState(GameState *CurrentGameState)
 }
 
 AssetTexture *
-LoadAsset(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
+LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
 {
 	AssetTexture *Result = NULL;
 	SDL_Texture *Texture = NULL;
@@ -489,8 +547,9 @@ LoadAsset(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *Gam
 	}
 	else
 	{
+		// TODO(nick): a free texture might need to be called on this?
 		Texture = SDL_CreateTextureFromSurface(GameRenderer, Raw);
-		if (Texture == NULL)
+		if (!Texture)
 		{
 			// TODO(nick): debug / logging support
 			printf("ERROR - SDL could not create texture - SDL_Error: %s\n", SDL_GetError());
@@ -513,8 +572,50 @@ LoadAsset(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *Gam
 	return Result;
 }
 
+// TODO(nick): 
+// 1) could probably replace this and LoadAssetPNG with a single call that does the same thing?
+// 2) pass in color?
+AssetTexture *
+LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
+{
+	AssetTexture *Result = NULL;
+	SDL_Texture *Texture = NULL;
+	
+	// TODO(nick): make colors.h file
+	SDL_Color DefaultColor = { 255, 255, 255, 0 };
+
+	SDL_Surface *Raw = TTF_RenderText_Solid(Font, "DEFAULT TEXT WITH A LOT OF EXTRA TEXT TO TEST RENDERERING", DefaultColor);
+
+	if (!Raw)
+	{
+		printf("ERROR - SDL_ttf could not load text properly - SDL_ttf: %s\n", TTF_GetError());
+	}
+	else 
+	{
+		// TODO(nick): a free texture might need to be called on this?
+		Texture = SDL_CreateTextureFromSurface(GameRenderer, Raw);
+		if (!Texture)
+		{
+			printf("ERROR - SDL could not create texture - SDL_Error: %s\n", SDL_GetError());
+		}
+
+		Result = (AssetTexture *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage, sizeof(AssetTexture));
+
+		Result->Width = Raw->w;
+		Result->Height = Raw->h;
+		Result->Rotation = 0.0f;
+		Result->Flip = SDL_FLIP_NONE;
+		Result->Texture = Texture;
+
+		SDL_FreeSurface(Raw);
+	}
+
+	return Result;
+}
+
+// TODO(nick): think about how to render game objects 
 void
-GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Entity *CurrentEntity)
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Entity *CurrentEntity, Text *GameText)
 {
 	// render texture(s) to screen
 	// TODO(nick):
@@ -539,5 +640,21 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 			 CurrentEntity->CurrentTexture->Rotation,
 			 NULL,
 			 CurrentEntity->CurrentTexture->Flip);
+
+	SDL_Rect TextRenderBox = 
+	{
+		GameText->PrimaryPositionV2->X,
+		GameText->PrimaryPositionV2->Y,
+		GameText->PrimaryText->Width,
+		GameText->PrimaryText->Height,
+	};
+
+	SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
+			 GameText->PrimaryText->Texture,
+			 NULL,
+			 &TextRenderBox,
+			 GameText->PrimaryText->Rotation,
+			 NULL,
+			 GameText->PrimaryText->Flip);
 }
 
