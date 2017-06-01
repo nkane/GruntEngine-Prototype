@@ -38,6 +38,7 @@ global_variable bool GameRunning = true;
 global_variable SDL_RWops *ReadWriteOperations;
 global_variable Text *GameText;
 global_variable Entity *PlayerEntity;
+global_variable Entity *GronkEntity;
 
 // global fonts
 global_variable TTF_Font *ArcadeFont;
@@ -71,9 +72,11 @@ LoadAssetPNG(GameState *, SDL_RWops *, SDL_Surface *, SDL_Renderer *);
 AssetTexture *
 LoadAssetTTF(GameState *, TTF_Font *, SDL_Surface *, SDL_Renderer *);
 
-// TODO(nick): need to create this function to be proper movement working
+// TODO(nick): 
+// 1) need to create this function to be proper movement working
+// 2) pass in a collection of entities to update and cycle through?
 void
-GameUpdateAndRender(WindowState *, GameState *, Entity *, Text *);
+GameUpdateAndRender(WindowState *, GameState *, Entity *, Entity *, Text *);
 
 int
 main(int argc, char *argv[])
@@ -260,7 +263,7 @@ main(int argc, char *argv[])
 		SDL_RenderClear(GlobalWindowState->GameRenderer);
 
 		// Update and render game
-		GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GameText);
+		GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GronkEntity, GameText);
 
 		// update screen
 		SDL_RenderPresent(GlobalWindowState->GameRenderer);
@@ -286,6 +289,7 @@ main(int argc, char *argv[])
 	{
 		SDL_DestroyTexture(PlayerEntity->IdleTexture->Texture);
 		SDL_DestroyTexture(PlayerEntity->WalkTexture->Texture);
+		SDL_DestroyTexture(GronkEntity->IdleTexture->Texture);
 	}
 
 	// release fonts
@@ -382,9 +386,6 @@ InitializeGame()
 		GlobalWindowState->GameRenderer = SDL_CreateRenderer(GlobalWindowState->GameWindow, 
 								      -1, SDL_RENDERER_ACCELERATED);
 		
-		// NOTE(nick): sets clear to white
-		//SDL_SetRenderDrawColor(GlobalWindowState->GameRenderer, 0xFF, 0xFF, 0xFF, 0x00);
-		
 		// NOTE(nick); sets clear to black
 		SDL_SetRenderDrawColor(GlobalWindowState->GameRenderer, 0x00, 0x00, 0x00, 0x00);
 
@@ -405,13 +406,14 @@ InitializeGame()
 				GlobalGameState = InitializeGameState();
 				Assert(GlobalGameState);
 
+				// NOTE(nick): player intitialization
 				PlayerEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 							                 sizeof(Entity));
-				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0014_Idle-.png", "rb");
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Idle.png", "rb");
 				PlayerEntity->IdleTexture = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
 								      	 GlobalWindowState->GameSurface,
 								      	 GlobalWindowState->GameRenderer);
-				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0013_Walk.png", "rb");
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Walk-1.png", "rb");
 				PlayerEntity->WalkTexture = LoadAssetPNG(GlobalGameState,
 							              	 ReadWriteOperations,
 								      	 GlobalWindowState->GameSurface,
@@ -426,9 +428,25 @@ InitializeGame()
 				PlayerEntity->PositionV2->X = 460;
 				PlayerEntity->PositionV2->Y = 400;
 
-				GameText = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-								       sizeof(Text));
+				// NOTE(nick): gronk initialization
+				GronkEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+									sizeof(Entity));
+				ReadWriteOperations = SDL_RWFromFile("./assets/Gronk/Gronk_0011_Gronk-Idle-2.png", "rb");
+				GronkEntity->IdleTexture = LoadAssetPNG(GlobalGameState,
+									ReadWriteOperations,
+									GlobalWindowState->GameSurface,
+									GlobalWindowState->GameRenderer);
+				GronkEntity->CurrentState = (EntityState)(Idle);
+				GronkEntity->CurrentTexture = GronkEntity->IdleTexture;
 
+				GronkEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+									             sizeof(Vector2));
+				GronkEntity->PositionV2->X = 260;
+				GronkEntity->PositionV2->Y = 250;
+
+				// NOTE(nick): game font initialization
+				GameText = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+								   sizeof(Text));
 				GameText->PrimaryFont = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 24);
 				if (!GameText->PrimaryFont)
 				{
@@ -442,6 +460,7 @@ InitializeGame()
 										         sizeof(Vector2));
 				GameText->PrimaryPositionV2->X = 75;
 				GameText->PrimaryPositionV2->Y = 100;
+
 				
 				GameText->SecondaryFont = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 24);
 				if (GameText->SecondaryFont)
@@ -615,7 +634,7 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 
 // TODO(nick): think about how to render game objects 
 void
-GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Entity *CurrentEntity, Text *GameText)
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Entity *CurrentEntity, Entity *CurrentGronk, Text *GameText)
 {
 	// render texture(s) to screen
 	// TODO(nick):
@@ -624,7 +643,7 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	// 2) 2nd NULL value is center point
 	//    - center, used for point to determine rotation
 	
-	SDL_Rect RenderBox = 
+	SDL_Rect PlayerRenderBox = 
 	{
 		// TODO(nick): figure out a better way to handle all of this ....
 		CurrentEntity->PositionV2->X,
@@ -636,10 +655,27 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
 			 CurrentEntity->CurrentTexture->Texture,
 			 NULL,
-			 &RenderBox,
+			 &PlayerRenderBox,
 			 CurrentEntity->CurrentTexture->Rotation,
 			 NULL,
 			 CurrentEntity->CurrentTexture->Flip);
+
+	SDL_Rect GronkRenderBox = 
+	{
+		CurrentGronk->PositionV2->X,
+		CurrentGronk->PositionV2->Y,
+		CurrentGronk->CurrentTexture->Width,
+		CurrentGronk->CurrentTexture->Height,
+	};
+
+	SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
+			 CurrentGronk->CurrentTexture->Texture,
+			 NULL,
+			 &GronkRenderBox,
+			 CurrentGronk->CurrentTexture->Rotation,
+			 NULL,
+			 CurrentGronk->CurrentTexture->Flip);
+
 
 	SDL_Rect TextRenderBox = 
 	{
