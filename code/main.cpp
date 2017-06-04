@@ -44,7 +44,6 @@ global_variable Entity *GronkEntity;
 global_variable TTF_Font *ArcadeFont;
 global_variable TTF_Font *PokeFont;
 
-
 // TODO(nick): clean this up and initializegame
 internal SDL_Window *
 InitializeGameWindow();
@@ -96,8 +95,10 @@ main(int argc, char *argv[])
 		// query for time
 		GlobalGameState->CurrentMS = SDL_GetTicks();
 
-		while (SDL_PollEvent(&CurrentEvent))
+		if (GlobalGameState->IsPlaying)
 		{
+			while (SDL_PollEvent(&CurrentEvent))
+			{
 			// TODO(nick): handle input function
 			switch (CurrentEvent.type)
 			{
@@ -257,13 +258,29 @@ main(int argc, char *argv[])
 					// figure out what to do .. 
 				} break;
 			}
+			// clear the screen
+			SDL_RenderClear(GlobalWindowState->GameRenderer);
+
+			// Update and render game
+			GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GronkEntity, GameText);
+			}
 		}
+		else
+		{
+			// NOTE(nick): player is at title screen
+			// TODO(nick):
+			// 1) only draw title screen
+			// 2) only handle UI commands
 
-		// clear the screen
-		SDL_RenderClear(GlobalWindowState->GameRenderer);
+			// clear the screen
+			SDL_RenderClear(GlobalWindowState->GameRenderer);
 
-		// Update and render game
-		GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GronkEntity, GameText);
+			// TODO(nick): Rework GameUpdateAndRender
+
+
+			// Update and render game
+			GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GronkEntity, GameText);
+		}
 
 		// update screen
 		SDL_RenderPresent(GlobalWindowState->GameRenderer);
@@ -506,9 +523,9 @@ InitializeGameState()
 	CurrentGameState->StartMS = SDL_GetTicks();
 	CurrentGameState->CurrentMS = 0;
 	CurrentGameState->DeltaMS = 0;
+	CurrentGameState->IsPlaying = false;
 
 	CurrentGameState->Memory = (GameMemory *)malloc(sizeof(GameMemory));
-	CurrentGameState->CurrentTexture = NULL;
 
 	Assert(CurrentGameState->Memory);
 	
@@ -675,7 +692,6 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 			 CurrentGronk->CurrentTexture->Rotation,
 			 NULL,
 			 CurrentGronk->CurrentTexture->Flip);
-
 
 	SDL_Rect TextRenderBox = 
 	{
