@@ -14,13 +14,6 @@ enum EntityState
 struct Entity
 {
 	AssetTexture *CurrentTexture;
-
-	// TODO(nick): replace with hashset
-	/*
-	AssetTexture *IdleTexture;
-	AssetTexture *WalkTexture;
-	*/
-
 	AssetTexture_Hashset AsssetTextureHashset[32];
 	EntityState CurrentState;
 	Vector2 *PositionV2;

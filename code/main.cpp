@@ -405,7 +405,7 @@ InitializeGame()
 		// TODO(nick): toggle between software / hardware renderering
 		GlobalWindowState->GameRenderer = SDL_CreateRenderer(GlobalWindowState->GameWindow, 
 								      -1, SDL_RENDERER_ACCELERATED);
-		
+
 		// NOTE(nick); sets clear to black
 		SDL_SetRenderDrawColor(GlobalWindowState->GameRenderer, 0x00, 0x00, 0x00, 0x00);
 
@@ -416,35 +416,36 @@ InitializeGame()
 			{
 				// TODO(nick): 
 				// 1) need a better approach to loading game assets
-				// 2) instead of single malloc -
-				//    do a large malloc (or lower level call and control the memory / clean up)
-				// 3) add checking to make sure assets load properly -
+				// 2) add checking to make sure assets load properly -
 				//    else log some failure message
-				// 4) split entity / texture? Current texture could be another struct
+				// 3) split entity / texture? Current texture could be another struct
 				//    something like texture info?
 
 				GlobalGameState = InitializeGameState();
 				Assert(GlobalGameState);
 
+				unsigned int HashKey = 0;
 				// NOTE(nick): player intitialization
 				PlayerEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 							                 sizeof(Entity));
 
-				/*
-				 * TODO(nick): hash set!!
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Idle.png", "rb");
-				PlayerEntity->IdleTexture = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
-								      	 GlobalWindowState->GameSurface,
-								      	 GlobalWindowState->GameRenderer);
+				HashKey = SimpleHash("Grunt-Idle");
+				PlayerEntity->AsssetTextureHashset[HashKey].Value = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
+								      	 		   	 GlobalWindowState->GameSurface,
+								      	 		   	 GlobalWindowState->GameRenderer);
+
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Walk-1.png", "rb");
-				PlayerEntity->WalkTexture = LoadAssetPNG(GlobalGameState,
-							              	 ReadWriteOperations,
-								      	 GlobalWindowState->GameSurface,
-								      	 GlobalWindowState->GameRenderer);
-				*/
+				HashKey = SimpleHash("Grunt-Walk");
+				PlayerEntity->AsssetTextureHashset[HashKey].Key = HashKey;
+				PlayerEntity->AsssetTextureHashset[HashKey].Value = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
+								      	 		   	 GlobalWindowState->GameSurface,
+								      	 		   	 GlobalWindowState->GameRenderer);
+
 				// NOTE(nick): set default texture on game init
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
-				//PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
+				PlayerEntity->CurrentTexture = PlayerEntity->AsssetTextureHashset[SimpleHash("Grunt-Idle")].Value;
+
 				// TODO(nick): 
 				// 1) remove static position - figure out starting location
 				PlayerEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
@@ -456,15 +457,13 @@ InitializeGame()
 				GronkEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 									sizeof(Entity));
 				ReadWriteOperations = SDL_RWFromFile("./assets/Gronk/Gronk_0011_Gronk-Idle-2.png", "rb");
-				/*
-				 * TODO(nick): hash set!!
-				 * GronkEntity->IdleTexture = LoadAssetPNG(GlobalGameState,
-									ReadWriteOperations,
-									GlobalWindowState->GameSurface,
-									GlobalWindowState->GameRenderer);
-				*/
+				HashKey = SimpleHash("Gronk-Idle");
+				GronkEntity->AsssetTextureHashset[HashKey].Key = HashKey;
+				GronkEntity->AsssetTextureHashset[HashKey].Value = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
+												GlobalWindowState->GameSurface,
+												GlobalWindowState->GameRenderer);
 				GronkEntity->CurrentState = (EntityState)(Idle);
-				//GronkEntity->CurrentTexture = GronkEntity->IdleTexture;
+				GronkEntity->CurrentTexture = GronkEntity->AsssetTextureHashset[SimpleHash("Gronk-Idle")].Value;
 
 				GronkEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 									             sizeof(Vector2));

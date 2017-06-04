@@ -3,6 +3,9 @@
  *	Created By: Nick Kane
  */
 
+// TODO(nick):
+// 1) Handle collisions
+
 struct AssetTexture_Hashset
 {
 	unsigned int Key;
