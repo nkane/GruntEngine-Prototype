@@ -1,4 +1,4 @@
-/*	assets.cpp
+/*	assets.h
  *
  *	Created By: Nick Kane
  */

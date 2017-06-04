@@ -9,6 +9,7 @@
 
 #include "gameplatform.h"
 #include "assets.h"
+#include "hashset.h"
 #include "entity.h"
 #include "gamestate.h"
 #include "text.h"
@@ -126,37 +127,37 @@ main(int argc, char *argv[])
 						case SDLK_LEFT:
 						{
 							// TODO(nick):
-							// 1) flip texture before 
-							// 2) set a flag for state of entity facing direction?
+							// 1) rework with new hash set
+							// 2) flip texture before 
+							// 3) set a flag for state of entity facing direction?
 							if (PlayerEntity->CurrentState & (FaceRight))
 							{
-								PlayerEntity->IdleTexture->Flip = SDL_FLIP_HORIZONTAL;
-								PlayerEntity->WalkTexture->Flip = SDL_FLIP_HORIZONTAL;
+								//PlayerEntity->IdleTexture->Flip = SDL_FLIP_HORIZONTAL;
+								//PlayerEntity->WalkTexture->Flip = SDL_FLIP_HORIZONTAL;
 								PlayerEntity->CurrentState = FaceLeft;
 							}
 
 							// TODO(nick): figure out wtf I am doing with these
-							PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
+							//PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
 							// TODO(nick): possible change to velocity?
 							PlayerEntity->PositionV2->X -= 5;
-
 							printf("arrow left pressed\n");
 						} break;
 
 						case SDLK_RIGHT:
 						{
+							// TODO(nick): 
+							// 1) rework with new hash set
 							// NOTE(nick): current state is left
 							if (PlayerEntity->CurrentState & (FaceLeft))
 							{
-								PlayerEntity->IdleTexture->Flip = SDL_FLIP_NONE;
-								PlayerEntity->WalkTexture->Flip = SDL_FLIP_NONE;
+								//PlayerEntity->IdleTexture->Flip = SDL_FLIP_NONE;
+								//PlayerEntity->WalkTexture->Flip = SDL_FLIP_NONE;
 								PlayerEntity->CurrentState = FaceRight;
 							}
 							
-							PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
-
+							//PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
 							PlayerEntity->PositionV2->X += 5;
-
 							printf("arrow right pressed\n");
 						} break;
 
@@ -208,15 +209,17 @@ main(int argc, char *argv[])
 
 						case SDLK_LEFT:
 						{
+							// TODO(nick): hash set fix!!
 							PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
-							PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
+							//PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 							printf("arrow left released\n");
 						} break;
 
 						case SDLK_RIGHT:
 						{
+							// TODO(nick): hash set fix!!
 							PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
-							PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
+							//PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 							printf("arrow right released\n");
 						} break;
 
@@ -277,7 +280,6 @@ main(int argc, char *argv[])
 
 			// TODO(nick): Rework GameUpdateAndRender
 
-
 			// Update and render game
 			GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GronkEntity, GameText);
 		}
@@ -302,11 +304,12 @@ main(int argc, char *argv[])
 
 	// destory textures
 	// TODO(nick):
-	// 1) put in a function
+	// 1) hash sets delete function calls!
+	// 2) put in a function
 	{
-		SDL_DestroyTexture(PlayerEntity->IdleTexture->Texture);
-		SDL_DestroyTexture(PlayerEntity->WalkTexture->Texture);
-		SDL_DestroyTexture(GronkEntity->IdleTexture->Texture);
+		//SDL_DestroyTexture(PlayerEntity->IdleTexture->Texture);
+		//SDL_DestroyTexture(PlayerEntity->WalkTexture->Texture);
+		//SDL_DestroyTexture(GronkEntity->IdleTexture->Texture);
 	}
 
 	// release fonts
@@ -426,6 +429,9 @@ InitializeGame()
 				// NOTE(nick): player intitialization
 				PlayerEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 							                 sizeof(Entity));
+
+				/*
+				 * TODO(nick): hash set!!
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Idle.png", "rb");
 				PlayerEntity->IdleTexture = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
 								      	 GlobalWindowState->GameSurface,
@@ -435,9 +441,10 @@ InitializeGame()
 							              	 ReadWriteOperations,
 								      	 GlobalWindowState->GameSurface,
 								      	 GlobalWindowState->GameRenderer);
+				*/
 				// NOTE(nick): set default texture on game init
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
-				PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
+				//PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
 				// TODO(nick): 
 				// 1) remove static position - figure out starting location
 				PlayerEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
@@ -449,12 +456,15 @@ InitializeGame()
 				GronkEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 									sizeof(Entity));
 				ReadWriteOperations = SDL_RWFromFile("./assets/Gronk/Gronk_0011_Gronk-Idle-2.png", "rb");
-				GronkEntity->IdleTexture = LoadAssetPNG(GlobalGameState,
+				/*
+				 * TODO(nick): hash set!!
+				 * GronkEntity->IdleTexture = LoadAssetPNG(GlobalGameState,
 									ReadWriteOperations,
 									GlobalWindowState->GameSurface,
 									GlobalWindowState->GameRenderer);
+				*/
 				GronkEntity->CurrentState = (EntityState)(Idle);
-				GronkEntity->CurrentTexture = GronkEntity->IdleTexture;
+				//GronkEntity->CurrentTexture = GronkEntity->IdleTexture;
 
 				GronkEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 									             sizeof(Vector2));
@@ -523,7 +533,8 @@ InitializeGameState()
 	CurrentGameState->StartMS = SDL_GetTicks();
 	CurrentGameState->CurrentMS = 0;
 	CurrentGameState->DeltaMS = 0;
-	CurrentGameState->IsPlaying = false;
+	// TODO(nick): reset this to false !!!
+	CurrentGameState->IsPlaying = true;
 
 	CurrentGameState->Memory = (GameMemory *)malloc(sizeof(GameMemory));
 
