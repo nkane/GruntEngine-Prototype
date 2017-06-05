@@ -11,6 +11,7 @@
 #include "assets.h"
 #include "hashset.h"
 #include "entity.h"
+#include "list.h"
 #include "gamestate.h"
 #include "text.h"
 #include "windowstate.h"
@@ -35,12 +36,18 @@ global_variable GameState *GlobalGameState;
 global_variable bool GameRunning = true;
 
 // global entities
-// TODO(nick): this could be moved elsewhere?
 global_variable SDL_RWops *ReadWriteOperations;
 global_variable Text *GameText;
 global_variable Entity *PlayerEntity;
 global_variable Entity *GronkEntity;
 
+// global lists
+// TODO(nick): add all game entities to this list
+global_variable Entity_List *GlobalEntityList;
+
+// TODO(nick): create a global entity queue
+
+// TODO(nick): create global list for fonts
 // global fonts
 global_variable TTF_Font *ArcadeFont;
 global_variable TTF_Font *PokeFont;
@@ -100,172 +107,169 @@ main(int argc, char *argv[])
 		{
 			while (SDL_PollEvent(&CurrentEvent))
 			{
-			// TODO(nick): handle input function
-			switch (CurrentEvent.type)
-			{
-				case SDL_QUIT:
+				// TODO(nick): handle input function
+				switch (CurrentEvent.type)
 				{
-					GameRunning = false;
-				} break;
-
-				// TODO(nick): figure out a better way to handle up / release
-				// key presses
-				case SDL_KEYDOWN:
-				{
-					switch (CurrentEvent.key.keysym.sym)
+					case SDL_QUIT:
 					{
-						case SDLK_UP: 
-						{
-							printf("arrow up pressed\n");
-						} break;
+						GameRunning = false;
+					} break;
 
-						case SDLK_DOWN:
-						{
-							printf("arrow down pressed\n");
-						} break;
-
-						case SDLK_LEFT:
-						{
-							// TODO(nick):
-							// 1) rework with new hash set
-							// 2) flip texture before 
-							// 3) set a flag for state of entity facing direction?
-							if (PlayerEntity->CurrentState & (FaceRight))
-							{
-								//PlayerEntity->IdleTexture->Flip = SDL_FLIP_HORIZONTAL;
-								//PlayerEntity->WalkTexture->Flip = SDL_FLIP_HORIZONTAL;
-								PlayerEntity->CurrentState = FaceLeft;
-							}
-
-							// TODO(nick): figure out wtf I am doing with these
-							//PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
-							// TODO(nick): possible change to velocity?
-							PlayerEntity->PositionV2->X -= 5;
-							printf("arrow left pressed\n");
-						} break;
-
-						case SDLK_RIGHT:
-						{
-							// TODO(nick): 
-							// 1) rework with new hash set
-							// NOTE(nick): current state is left
-							if (PlayerEntity->CurrentState & (FaceLeft))
-							{
-								//PlayerEntity->IdleTexture->Flip = SDL_FLIP_NONE;
-								//PlayerEntity->WalkTexture->Flip = SDL_FLIP_NONE;
-								PlayerEntity->CurrentState = FaceRight;
-							}
-							
-							//PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
-							PlayerEntity->PositionV2->X += 5;
-							printf("arrow right pressed\n");
-						} break;
-
-						case SDLK_w: 
-						{
-							printf("w key pressed\n");
-						} break;
-
-						case SDLK_a:
-						{
-							printf("a key pressed\n");
-						} break;
-
-						case SDLK_s:
-						{
-							printf("s key pressed\n");
-						} break;
-
-						case SDLK_d:
-						{
-							printf("d key pressed\n");
-						} break;
-
-						case SDLK_SPACE: 
-						{
-							printf("space pressed\n");
-						} break;
-
-						default: 
-						{
-							// TODO(nick): not valid key pressed here - just ignore?
-						} break;
-					}
-				} break;
-
-				case SDL_KEYUP:
-				{
-					switch (CurrentEvent.key.keysym.sym)
+					// TODO(nick): figure out a better way to handle up / release
+					// key presses
+					case SDL_KEYDOWN:
 					{
-						case SDLK_UP: 
+						switch (CurrentEvent.key.keysym.sym)
 						{
-							printf("arrow up released\n");
-						} break;
+							case SDLK_UP: 
+							{
+								printf("arrow up pressed\n");
+							} break;
 
-						case SDLK_DOWN:
+							case SDLK_DOWN:
+							{
+								printf("arrow down pressed\n");
+							} break;
+
+							case SDLK_LEFT:
+							{
+								// TODO(nick):
+								// 1) rework with new hash set
+								// 2) flip texture before 
+								// 3) set a flag for state of entity facing direction?
+								if (PlayerEntity->CurrentState & (FaceRight))
+								{
+									PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value->Flip = SDL_FLIP_HORIZONTAL;
+									PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value->Flip = SDL_FLIP_HORIZONTAL;
+									PlayerEntity->CurrentState = FaceLeft;
+								}
+
+								PlayerEntity->CurrentTexture = PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value;
+								// TODO(nick): possible change to velocity?
+								PlayerEntity->PositionV2->X -= 5;
+								printf("arrow left pressed\n");
+							} break;
+
+							case SDLK_RIGHT:
+							{
+								// TODO(nick): 
+								// 1) rework with new hash set
+								// NOTE(nick): current state is left
+								if (PlayerEntity->CurrentState & (FaceLeft))
+								{
+									PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value->Flip = SDL_FLIP_NONE;
+									PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value->Flip = SDL_FLIP_NONE;
+									PlayerEntity->CurrentState = FaceRight;
+								}
+								
+								PlayerEntity->CurrentTexture = PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value;
+								PlayerEntity->PositionV2->X += 5;
+								printf("arrow right pressed\n");
+							} break;
+
+							case SDLK_w: 
+							{
+								printf("w key pressed\n");
+							} break;
+
+							case SDLK_a:
+							{
+								printf("a key pressed\n");
+							} break;
+
+							case SDLK_s:
+							{
+								printf("s key pressed\n");
+							} break;
+
+							case SDLK_d:
+							{
+								printf("d key pressed\n");
+							} break;
+
+							case SDLK_SPACE: 
+							{
+								printf("space pressed\n");
+							} break;
+
+							default: 
+							{
+								// TODO(nick): not valid key pressed here - just ignore?
+							} break;
+						}
+					} break;
+
+					case SDL_KEYUP:
+					{
+						switch (CurrentEvent.key.keysym.sym)
 						{
-							printf("arrow down released\n");
-						} break;
+							case SDLK_UP: 
+							{
+								printf("arrow up released\n");
+							} break;
 
-						case SDLK_LEFT:
-						{
-							// TODO(nick): hash set fix!!
-							PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
-							//PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
-							printf("arrow left released\n");
-						} break;
+							case SDLK_DOWN:
+							{
+								printf("arrow down released\n");
+							} break;
 
-						case SDLK_RIGHT:
-						{
-							// TODO(nick): hash set fix!!
-							PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
-							//PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
-							printf("arrow right released\n");
-						} break;
+							case SDLK_LEFT:
+							{
+								PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
+								PlayerEntity->CurrentTexture = PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value;
+								printf("arrow left released\n");
+							} break;
 
-						case SDLK_w: 
-						{
-							printf("w key released\n");
-						} break;
+							case SDLK_RIGHT:
+							{
+								PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
+								PlayerEntity->CurrentTexture = PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value;
+								printf("arrow right released\n");
+							} break;
 
-						case SDLK_a:
-						{
-							printf("a key released\n");
-						} break;
+							case SDLK_w: 
+							{
+								printf("w key released\n");
+							} break;
 
-						case SDLK_s:
-						{
-							printf("s key released\n");
-						} break;
+							case SDLK_a:
+							{
+								printf("a key released\n");
+							} break;
 
-						case SDLK_d:
-						{
-							printf("d key released\n");
-						} break;
+							case SDLK_s:
+							{
+								printf("s key released\n");
+							} break;
 
-						case SDLK_SPACE: 
-						{
-							printf("space released\n");
-						} break;
+							case SDLK_d:
+							{
+								printf("d key released\n");
+							} break;
 
-						default: 
-						{
-							// TODO(nick): not valid key pressed here - just ignore?
-						} break;
-					}
-				} break;
+							case SDLK_SPACE: 
+							{
+								printf("space released\n");
+							} break;
 
-				default:
-				{
-					// TODO(nick): not valid code path here ... 
-					// figure out what to do .. 
-				} break;
-			}
-			// clear the screen
-			SDL_RenderClear(GlobalWindowState->GameRenderer);
+							default: 
+							{
+								// TODO(nick): not valid key pressed here - just ignore?
+							} break;
+						}
+					} break;
 
-			// Update and render game
-			GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GronkEntity, GameText);
+					default:
+					{
+						// TODO(nick): not valid code path here ... 
+						// figure out what to do .. 
+					} break;
+				}
+				// clear the screen
+				SDL_RenderClear(GlobalWindowState->GameRenderer);
+				// TODO(nick): Rework GameUpdateAndRender
+				// Update and render game
+				GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GronkEntity, GameText);
 			}
 		}
 		else
@@ -279,7 +283,6 @@ main(int argc, char *argv[])
 			SDL_RenderClear(GlobalWindowState->GameRenderer);
 
 			// TODO(nick): Rework GameUpdateAndRender
-
 			// Update and render game
 			GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GronkEntity, GameText);
 		}
@@ -431,20 +434,20 @@ InitializeGame()
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Idle.png", "rb");
 				HashKey = SimpleHash("Grunt-Idle");
-				PlayerEntity->AsssetTextureHashset[HashKey].Value = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
+				PlayerEntity->Textureset[HashKey].Value = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
 								      	 		   	 GlobalWindowState->GameSurface,
 								      	 		   	 GlobalWindowState->GameRenderer);
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Walk-1.png", "rb");
 				HashKey = SimpleHash("Grunt-Walk");
-				PlayerEntity->AsssetTextureHashset[HashKey].Key = HashKey;
-				PlayerEntity->AsssetTextureHashset[HashKey].Value = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
+				PlayerEntity->Textureset[HashKey].Key = HashKey;
+				PlayerEntity->Textureset[HashKey].Value = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
 								      	 		   	 GlobalWindowState->GameSurface,
 								      	 		   	 GlobalWindowState->GameRenderer);
-
+		
 				// NOTE(nick): set default texture on game init
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
-				PlayerEntity->CurrentTexture = PlayerEntity->AsssetTextureHashset[SimpleHash("Grunt-Idle")].Value;
+				PlayerEntity->CurrentTexture = PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value;
 
 				// TODO(nick): 
 				// 1) remove static position - figure out starting location
@@ -458,12 +461,12 @@ InitializeGame()
 									sizeof(Entity));
 				ReadWriteOperations = SDL_RWFromFile("./assets/Gronk/Gronk_0011_Gronk-Idle-2.png", "rb");
 				HashKey = SimpleHash("Gronk-Idle");
-				GronkEntity->AsssetTextureHashset[HashKey].Key = HashKey;
-				GronkEntity->AsssetTextureHashset[HashKey].Value = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
+				GronkEntity->Textureset[HashKey].Key = HashKey;
+				GronkEntity->Textureset[HashKey].Value = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
 												GlobalWindowState->GameSurface,
 												GlobalWindowState->GameRenderer);
 				GronkEntity->CurrentState = (EntityState)(Idle);
-				GronkEntity->CurrentTexture = GronkEntity->AsssetTextureHashset[SimpleHash("Gronk-Idle")].Value;
+				GronkEntity->CurrentTexture = GronkEntity->Textureset[SimpleHash("Gronk-Idle")].Value;
 
 				GronkEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 									             sizeof(Vector2));
@@ -486,7 +489,6 @@ InitializeGame()
 										         sizeof(Vector2));
 				GameText->PrimaryPositionV2->X = 75;
 				GameText->PrimaryPositionV2->Y = 100;
-
 				
 				GameText->SecondaryFont = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 24);
 				if (GameText->SecondaryFont)
@@ -498,7 +500,7 @@ InitializeGame()
 								       GlobalWindowState->GameSurface,
 								       GlobalWindowState->GameRenderer);
 				GameText->SecondaryPositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-										          sizeof(Vector2));
+										           sizeof(Vector2));
 				GameText->SecondaryPositionV2->X = 0;
 				GameText->SecondaryPositionV2->Y = 0;
 			}
@@ -659,7 +661,6 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 	return Result;
 }
 
-// TODO(nick): think about how to render game objects 
 void
 GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Entity *CurrentEntity, Entity *CurrentGronk, Text *GameText)
 {

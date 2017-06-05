@@ -14,7 +14,7 @@ enum EntityState
 struct Entity
 {
 	AssetTexture *CurrentTexture;
-	AssetTexture_Hashset AsssetTextureHashset[32];
+	AssetTexture_Hashset Textureset[32];
 	EntityState CurrentState;
 	Vector2 *PositionV2;
 };
