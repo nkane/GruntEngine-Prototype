@@ -23,8 +23,6 @@
 #define internal 	static
 #define global_variable static
 
-#define Assert(Expression) if(!(Expression)) {*(int *)0=0;}
-
 global_variable const int Screen_Width = 640;
 global_variable const int Screen_Height = 480;
 global_variable const int Sdl_Image_Flags = IMG_INIT_PNG;
@@ -139,12 +137,12 @@ main(int argc, char *argv[])
 								// 3) set a flag for state of entity facing direction?
 								if (PlayerEntity->CurrentState & (FaceRight))
 								{
-									PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value->Flip = SDL_FLIP_HORIZONTAL;
-									PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value->Flip = SDL_FLIP_HORIZONTAL;
+									((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value))->Flip = SDL_FLIP_HORIZONTAL;
+									((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value))->Flip = SDL_FLIP_HORIZONTAL;
 									PlayerEntity->CurrentState = FaceLeft;
 								}
 
-								PlayerEntity->CurrentTexture = PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value;
+								PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value));
 								// TODO(nick): possible change to velocity?
 								PlayerEntity->PositionV2->X -= 5;
 								printf("arrow left pressed\n");
@@ -157,12 +155,12 @@ main(int argc, char *argv[])
 								// NOTE(nick): current state is left
 								if (PlayerEntity->CurrentState & (FaceLeft))
 								{
-									PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value->Flip = SDL_FLIP_NONE;
-									PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value->Flip = SDL_FLIP_NONE;
+									((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value))->Flip = SDL_FLIP_NONE;
+									((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value))->Flip = SDL_FLIP_NONE;
 									PlayerEntity->CurrentState = FaceRight;
 								}
 								
-								PlayerEntity->CurrentTexture = PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value;
+								PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value));
 								PlayerEntity->PositionV2->X += 5;
 								printf("arrow right pressed\n");
 							} break;
@@ -216,14 +214,14 @@ main(int argc, char *argv[])
 							case SDLK_LEFT:
 							{
 								PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
-								PlayerEntity->CurrentTexture = PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value;
+								PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value));
 								printf("arrow left released\n");
 							} break;
 
 							case SDLK_RIGHT:
 							{
 								PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
-								PlayerEntity->CurrentTexture = PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value;
+								PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value));
 								printf("arrow right released\n");
 							} break;
 
@@ -427,27 +425,22 @@ InitializeGame()
 				GlobalGameState = InitializeGameState();
 				Assert(GlobalGameState);
 
+				// TODO(nick): 
+				// 1) complete hash insert funciton
 				unsigned int HashKey = 0;
 				// NOTE(nick): player intitialization
 				PlayerEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 							                 sizeof(Entity));
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Idle.png", "rb");
-				HashKey = SimpleHash("Grunt-Idle");
-				PlayerEntity->Textureset[HashKey].Value = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
-								      	 		   	 GlobalWindowState->GameSurface,
-								      	 		   	 GlobalWindowState->GameRenderer);
+				HashSetInsertItem(PlayerEntity->Textureset, "Grunt-Idle", (void *)LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Walk-1.png", "rb");
-				HashKey = SimpleHash("Grunt-Walk");
-				PlayerEntity->Textureset[HashKey].Key = HashKey;
-				PlayerEntity->Textureset[HashKey].Value = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
-								      	 		   	 GlobalWindowState->GameSurface,
-								      	 		   	 GlobalWindowState->GameRenderer);
-		
+				HashSetInsertItem(PlayerEntity->Textureset, "Grunt-Walk", (void *)LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
 				// NOTE(nick): set default texture on game init
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
-				PlayerEntity->CurrentTexture = PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value;
+				PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value));
 
 				// TODO(nick): 
 				// 1) remove static position - figure out starting location
@@ -459,14 +452,11 @@ InitializeGame()
 				// NOTE(nick): gronk initialization
 				GronkEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 									sizeof(Entity));
+
 				ReadWriteOperations = SDL_RWFromFile("./assets/Gronk/Gronk_0011_Gronk-Idle-2.png", "rb");
-				HashKey = SimpleHash("Gronk-Idle");
-				GronkEntity->Textureset[HashKey].Key = HashKey;
-				GronkEntity->Textureset[HashKey].Value = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
-												GlobalWindowState->GameSurface,
-												GlobalWindowState->GameRenderer);
+				HashSetInsertItem(GronkEntity->Textureset, "Gronk-Idle", (void *)LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
 				GronkEntity->CurrentState = (EntityState)(Idle);
-				GronkEntity->CurrentTexture = GronkEntity->Textureset[SimpleHash("Gronk-Idle")].Value;
+				GronkEntity->CurrentTexture = ((AssetTexture *)(GronkEntity->Textureset[SimpleHash("Gronk-Idle")].Value));
 
 				GronkEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 									             sizeof(Vector2));

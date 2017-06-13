@@ -25,4 +25,5 @@ typedef size_t memory_index;
 typedef float real32;
 typedef double real64;
 
-#define Assert(Expression) if(!(Expression)) {*(int *)0=0;}
+#define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
+#define NotImplemented Assert(!"NotImplemented")

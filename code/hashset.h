@@ -3,13 +3,10 @@
  *	Created By: Nick Kane
  */
 
-// TODO(nick):
-// 1) Handle collisions
-
-struct AssetTexture_Hashset
+struct HashSet
 {
 	unsigned int Key;
-	AssetTexture *Value;
+	void *Value;
 };
 
 unsigned int
@@ -25,16 +22,22 @@ SimpleHash(char *StringKey)
 	return key;
 }
 
-// NOTE(nick): probably need to pass in permanentstorage here?
+// TODO(nick):
+// 1) Handle collisions
 void
-insert(AssetTexture_Hashset *CurrentHashset[], char *StringKey, AssetTexture *CurrentAssetTexture)
+HashSetInsertItem(HashSet CurrentHashset[], char *StringKey, void *CurrentAssetTexture)
 {
-	unsigned int currentKey = SimpleHash(StringKey);
+	unsigned int currentKey = 0;
+	currentKey = SimpleHash(StringKey);
+	CurrentHashset[currentKey].Key = currentKey;
+	CurrentHashset[currentKey].Value = CurrentAssetTexture;
+}
 
-	// check if exist
-	if (CurrentHashset[currentKey] != NULL)
-	{
-		// TODO(nick): finish this up!!
-	}
+// TODO(nick): write a select function
+
+void
+HashDeleteItem()
+{
+	NotImplemented;
 }
 
