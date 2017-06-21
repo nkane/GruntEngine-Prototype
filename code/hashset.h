@@ -39,11 +39,12 @@ HashSet_Insert_AssetTexture(HashSet_AssetTexture CurrentHashSet[], char *StringK
 	CurrentHashSet[CurrentKey].Value = Data;
 }
 
-
 // TODO(nick): write a proper select function
 AssetTexture *
 HashSet_Select_AssetTexture(HashSet_AssetTexture CurrentHashSet[], char *StringKey)
 {
-	NotImplemented
-	return NULL;
+	AssetTexture *SelectedTexture = NULL;
+	SelectedTexture = CurrentHashSet[SimpleHash(StringKey)].Value;
+	return SelectedTexture;
 }
+

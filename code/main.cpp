@@ -137,12 +137,13 @@ main(int argc, char *argv[])
 								// 3) set a flag for state of entity facing direction?
 								if (PlayerEntity->CurrentState & (FaceRight))
 								{
-									PlayerEntity->TextureSet[SimpleHash("Grunt-Idle")].Value->Flip = SDL_FLIP_HORIZONTAL;
-									PlayerEntity->TextureSet[SimpleHash("Grunt-Walk")].Value->Flip = SDL_FLIP_HORIZONTAL;
+									HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Flip = SDL_FLIP_HORIZONTAL;
+									HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk")->Flip = SDL_FLIP_HORIZONTAL;
 									PlayerEntity->CurrentState = FaceLeft;
 								}
 
-								PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->TextureSet[SimpleHash("Grunt-Walk")].Value));
+								PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
+								
 								// TODO(nick): possible change to velocity?
 								PlayerEntity->PositionV2->X -= 5;
 								printf("arrow left pressed\n");
@@ -155,12 +156,13 @@ main(int argc, char *argv[])
 								// NOTE(nick): current state is left
 								if (PlayerEntity->CurrentState & (FaceLeft))
 								{
-									PlayerEntity->TextureSet[SimpleHash("Grunt-Idle")].Value->Flip = SDL_FLIP_NONE;
-									PlayerEntity->TextureSet[SimpleHash("Grunt-Walk")].Value->Flip = SDL_FLIP_NONE;
+									HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Flip = SDL_FLIP_NONE;
+									HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk")->Flip = SDL_FLIP_NONE;
 									PlayerEntity->CurrentState = FaceRight;
 								}
 								
-								PlayerEntity->CurrentTexture = PlayerEntity->TextureSet[SimpleHash("Grunt-Walk")].Value;
+								PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
+								// TODO(nick): possible change to velocity?
 								PlayerEntity->PositionV2->X += 5;
 								printf("arrow right pressed\n");
 							} break;
@@ -214,14 +216,14 @@ main(int argc, char *argv[])
 							case SDLK_LEFT:
 							{
 								PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
-								PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->TextureSet[SimpleHash("Grunt-Idle")].Value));
+								PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
 								printf("arrow left released\n");
 							} break;
 
 							case SDLK_RIGHT:
 							{
 								PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
-								PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->TextureSet[SimpleHash("Grunt-Idle")].Value));
+								PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
 								printf("arrow right released\n");
 							} break;
 
@@ -440,8 +442,7 @@ InitializeGame()
 
 				// NOTE(nick): set default texture on game init
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
-				// TODO(nick): replace with HashSet_Select function
-				PlayerEntity->CurrentTexture = PlayerEntity->TextureSet[SimpleHash("Grunt-Idle")].Value;
+				PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
 
 				// TODO(nick): 
 				// 1) remove static position - figure out starting location
@@ -457,8 +458,7 @@ InitializeGame()
 				ReadWriteOperations = SDL_RWFromFile("./assets/Gronk/Gronk_0011_Gronk-Idle-2.png", "rb");
 				HashSet_Insert_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
 				GronkEntity->CurrentState = (EntityState)(Idle);
-				// TODO(nick): replace with HashSet_Select function
-				GronkEntity->CurrentTexture = GronkEntity->TextureSet[SimpleHash("Gronk-Idle")].Value;
+				GronkEntity->CurrentTexture = HashSet_Select_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle");
 
 				GronkEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 									             sizeof(Vector2));
