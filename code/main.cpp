@@ -9,11 +9,11 @@
 
 #include "gameplatform.h"
 #include "assets.h"
+#include "text.h"
 #include "hashset.h"
 #include "entity.h"
 #include "list.h"
 #include "gamestate.h"
-#include "text.h"
 #include "windowstate.h"
 
 #include <stdio.h>
@@ -137,12 +137,12 @@ main(int argc, char *argv[])
 								// 3) set a flag for state of entity facing direction?
 								if (PlayerEntity->CurrentState & (FaceRight))
 								{
-									((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value))->Flip = SDL_FLIP_HORIZONTAL;
-									((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value))->Flip = SDL_FLIP_HORIZONTAL;
+									PlayerEntity->TextureSet[SimpleHash("Grunt-Idle")].Value->Flip = SDL_FLIP_HORIZONTAL;
+									PlayerEntity->TextureSet[SimpleHash("Grunt-Walk")].Value->Flip = SDL_FLIP_HORIZONTAL;
 									PlayerEntity->CurrentState = FaceLeft;
 								}
 
-								PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value));
+								PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->TextureSet[SimpleHash("Grunt-Walk")].Value));
 								// TODO(nick): possible change to velocity?
 								PlayerEntity->PositionV2->X -= 5;
 								printf("arrow left pressed\n");
@@ -155,12 +155,12 @@ main(int argc, char *argv[])
 								// NOTE(nick): current state is left
 								if (PlayerEntity->CurrentState & (FaceLeft))
 								{
-									((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value))->Flip = SDL_FLIP_NONE;
-									((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value))->Flip = SDL_FLIP_NONE;
+									PlayerEntity->TextureSet[SimpleHash("Grunt-Idle")].Value->Flip = SDL_FLIP_NONE;
+									PlayerEntity->TextureSet[SimpleHash("Grunt-Walk")].Value->Flip = SDL_FLIP_NONE;
 									PlayerEntity->CurrentState = FaceRight;
 								}
 								
-								PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Walk")].Value));
+								PlayerEntity->CurrentTexture = PlayerEntity->TextureSet[SimpleHash("Grunt-Walk")].Value;
 								PlayerEntity->PositionV2->X += 5;
 								printf("arrow right pressed\n");
 							} break;
@@ -214,14 +214,14 @@ main(int argc, char *argv[])
 							case SDLK_LEFT:
 							{
 								PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
-								PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value));
+								PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->TextureSet[SimpleHash("Grunt-Idle")].Value));
 								printf("arrow left released\n");
 							} break;
 
 							case SDLK_RIGHT:
 							{
 								PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
-								PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value));
+								PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->TextureSet[SimpleHash("Grunt-Idle")].Value));
 								printf("arrow right released\n");
 							} break;
 
@@ -433,14 +433,15 @@ InitializeGame()
 							                 sizeof(Entity));
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Idle.png", "rb");
-				HashSetInsertItem(PlayerEntity->Textureset, "Grunt-Idle", (void *)LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Walk-1.png", "rb");
-				HashSetInsertItem(PlayerEntity->Textureset, "Grunt-Walk", (void *)LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
 
 				// NOTE(nick): set default texture on game init
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
-				PlayerEntity->CurrentTexture = ((AssetTexture *)(PlayerEntity->Textureset[SimpleHash("Grunt-Idle")].Value));
+				// TODO(nick): replace with HashSet_Select function
+				PlayerEntity->CurrentTexture = PlayerEntity->TextureSet[SimpleHash("Grunt-Idle")].Value;
 
 				// TODO(nick): 
 				// 1) remove static position - figure out starting location
@@ -454,9 +455,10 @@ InitializeGame()
 									sizeof(Entity));
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Gronk/Gronk_0011_Gronk-Idle-2.png", "rb");
-				HashSetInsertItem(GronkEntity->Textureset, "Gronk-Idle", (void *)LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+				HashSet_Insert_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
 				GronkEntity->CurrentState = (EntityState)(Idle);
-				GronkEntity->CurrentTexture = ((AssetTexture *)(GronkEntity->Textureset[SimpleHash("Gronk-Idle")].Value));
+				// TODO(nick): replace with HashSet_Select function
+				GronkEntity->CurrentTexture = GronkEntity->TextureSet[SimpleHash("Gronk-Idle")].Value;
 
 				GronkEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 									             sizeof(Vector2));
