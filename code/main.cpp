@@ -45,7 +45,7 @@ global_variable Entity *GlobalEntityArray[50];
 
 // TODO(nick): create a global entity queue
 
-// TODO(nick): create global list for fonts
+// TODO(nick): create global array for fonts
 // global fonts
 global_variable TTF_Font *ArcadeFont;
 global_variable TTF_Font *PokeFont;
@@ -81,7 +81,7 @@ LoadAssetTTF(GameState *, TTF_Font *, SDL_Surface *, SDL_Renderer *);
 // 1) need to create this function to be proper movement working
 // 2) pass in a collection of entities to update and cycle through?
 void
-GameUpdateAndRender(WindowState *, GameState *, Entity *, Entity *, Text *);
+GameUpdateAndRender(WindowState *, GameState *, Entity *[], int, Text *);
 
 int
 main(int argc, char *argv[])
@@ -267,9 +267,7 @@ main(int argc, char *argv[])
 				}
 				// clear the screen
 				SDL_RenderClear(GlobalWindowState->GameRenderer);
-				// TODO(nick): Rework GameUpdateAndRender
-				// Update and render game
-				GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GronkEntity, GameText);
+				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityArray, GlobalEntityArrayIndex, GameText);
 			}
 		}
 		else
@@ -278,13 +276,9 @@ main(int argc, char *argv[])
 			// TODO(nick):
 			// 1) only draw title screen
 			// 2) only handle UI commands
-
 			// clear the screen
 			SDL_RenderClear(GlobalWindowState->GameRenderer);
-
-			// TODO(nick): Rework GameUpdateAndRender
-			// Update and render game
-			GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GronkEntity, GameText);
+			GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityArray, GlobalEntityArrayIndex,GameText);
 		}
 
 		// update screen
@@ -657,7 +651,7 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 }
 
 void
-GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Entity *CurrentEntity, Entity *CurrentGronk, Text *GameText)
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Entity *EntityPointerArray[], int EntityArraySize, Text *GameText)
 {
 	// render texture(s) to screen
 	// TODO(nick):
@@ -665,40 +659,29 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	//    - srcrect 
 	// 2) 2nd NULL value is center point
 	//    - center, used for point to determine rotation
+	Entity *CurrentEntity = NULL; 
+	for (int i = 0; i < EntityArraySize; ++i)
+	{
+		CurrentEntity = *(EntityPointerArray + i);
+
+		SDL_Rect PlayerRenderBox = 
+		{
+			CurrentEntity->PositionV2->X,
+			CurrentEntity->PositionV2->Y,
+			CurrentEntity->CurrentTexture->Width,
+			CurrentEntity->CurrentTexture->Height,
+		};
+
+		SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
+				 CurrentEntity->CurrentTexture->Texture,
+				 NULL,
+				 &PlayerRenderBox,
+				 CurrentEntity->CurrentTexture->Rotation,
+				 NULL,
+				 CurrentEntity->CurrentTexture->Flip);
+
+	}
 	
-	SDL_Rect PlayerRenderBox = 
-	{
-		// TODO(nick): figure out a better way to handle all of this ....
-		CurrentEntity->PositionV2->X,
-		CurrentEntity->PositionV2->Y,
-		CurrentEntity->CurrentTexture->Width,
-		CurrentEntity->CurrentTexture->Height,
-	};
-
-	SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
-			 CurrentEntity->CurrentTexture->Texture,
-			 NULL,
-			 &PlayerRenderBox,
-			 CurrentEntity->CurrentTexture->Rotation,
-			 NULL,
-			 CurrentEntity->CurrentTexture->Flip);
-
-	SDL_Rect GronkRenderBox = 
-	{
-		CurrentGronk->PositionV2->X,
-		CurrentGronk->PositionV2->Y,
-		CurrentGronk->CurrentTexture->Width,
-		CurrentGronk->CurrentTexture->Height,
-	};
-
-	SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
-			 CurrentGronk->CurrentTexture->Texture,
-			 NULL,
-			 &GronkRenderBox,
-			 CurrentGronk->CurrentTexture->Rotation,
-			 NULL,
-			 CurrentGronk->CurrentTexture->Flip);
-
 	SDL_Rect TextRenderBox = 
 	{
 		GameText->PrimaryPositionV2->X,
