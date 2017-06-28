@@ -39,9 +39,9 @@ global_variable Text *GameText;
 global_variable Entity *PlayerEntity;
 global_variable Entity *GronkEntity;
 
-// global lists
-// TODO(nick): add all game entities to this list
-global_variable Entity_List *GlobalEntityList;
+// global entity pointer array
+global_variable int GlobalEntityArrayIndex = 0;
+global_variable Entity *GlobalEntityArray[50];
 
 // TODO(nick): create a global entity queue
 
@@ -306,13 +306,10 @@ main(int argc, char *argv[])
 	}
 
 	// destory textures
-	// TODO(nick):
-	// 1) hash sets delete function calls!
-	// 2) put in a function
-	{
-		//SDL_DestroyTexture(PlayerEntity->IdleTexture->Texture);
-		//SDL_DestroyTexture(PlayerEntity->WalkTexture->Texture);
-		//SDL_DestroyTexture(GronkEntity->IdleTexture->Texture);
+	{	
+		SDL_DestroyTexture(HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Texture);
+		SDL_DestroyTexture(HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk")->Texture);
+		SDL_DestroyTexture(HashSet_Select_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle")->Texture);
 	}
 
 	// release fonts
@@ -451,6 +448,9 @@ InitializeGame()
 				PlayerEntity->PositionV2->X = 460;
 				PlayerEntity->PositionV2->Y = 400;
 
+				GlobalEntityArray[GlobalEntityArrayIndex] = PlayerEntity;
+				++GlobalEntityArrayIndex;
+
 				// NOTE(nick): gronk initialization
 				GronkEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 									sizeof(Entity));
@@ -464,6 +464,9 @@ InitializeGame()
 									             sizeof(Vector2));
 				GronkEntity->PositionV2->X = 260;
 				GronkEntity->PositionV2->Y = 250;
+
+				GlobalEntityArray[GlobalEntityArrayIndex] = GronkEntity;
+				++GlobalEntityArrayIndex;
 
 				// NOTE(nick): game font initialization
 				GameText = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
