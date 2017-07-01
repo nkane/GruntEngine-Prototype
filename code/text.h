@@ -7,10 +7,10 @@ struct Text
 {
 	TTF_Font *PrimaryFont;
 	AssetTexture *PrimaryText;
-	Vector2 *PrimaryPositionV2;
+	Vector2 PrimaryPositionV2;
 
 	TTF_Font *SecondaryFont;
 	AssetTexture *SecondaryText;
-	Vector2 *SecondaryPositionV2;
+	Vector2 SecondaryPositionV2;
 };
 

@@ -16,6 +16,6 @@ struct Entity
 	AssetTexture *CurrentTexture;
 	HashSet_AssetTexture TextureSet[32];
 	EntityState CurrentState;
-	Vector2 *PositionV2;
+	Vector2 PositionV2;
 };
 

@@ -35,7 +35,6 @@ global_variable bool GameRunning = true;
 
 // global entities
 global_variable SDL_RWops *ReadWriteOperations;
-global_variable Text *GameText;
 global_variable Entity *PlayerEntity;
 global_variable Entity *GronkEntity;
 
@@ -43,14 +42,16 @@ global_variable Entity *GronkEntity;
 global_variable int GlobalEntityArrayIndex = 0;
 global_variable Entity *GlobalEntityArray[50];
 
-// TODO(nick): create a global entity queue
 
-// TODO(nick): create global array for fonts
+global_variable Text *GameText;
 // global fonts
 global_variable TTF_Font *ArcadeFont;
 global_variable TTF_Font *PokeFont;
 
-// TODO(nick): clean this up and initializegame
+// global text pointer array
+global_variable int GlobalTextArrayIndex = 0;
+global_variable TTF_Font *GlobalTextArray[10];
+
 internal SDL_Window *
 InitializeGameWindow();
 
@@ -60,8 +61,6 @@ InitializeWindowState();
 internal bool
 InitializeAssetPipeline();
 
-// TODO(nick): clean this up and initializegamewindow up
-// this probably shouldn't be returning a window pointer
 internal bool
 InitializeGame();
 
@@ -77,9 +76,6 @@ LoadAssetPNG(GameState *, SDL_RWops *, SDL_Surface *, SDL_Renderer *);
 AssetTexture *
 LoadAssetTTF(GameState *, TTF_Font *, SDL_Surface *, SDL_Renderer *);
 
-// TODO(nick): 
-// 1) need to create this function to be proper movement working
-// 2) pass in a collection of entities to update and cycle through?
 void
 GameUpdateAndRender(WindowState *, GameState *, Entity *[], int, Text *);
 
@@ -145,7 +141,7 @@ main(int argc, char *argv[])
 								PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
 								
 								// TODO(nick): possible change to velocity?
-								PlayerEntity->PositionV2->X -= 5;
+								PlayerEntity->PositionV2.X -= 5;
 								printf("arrow left pressed\n");
 							} break;
 
@@ -163,7 +159,7 @@ main(int argc, char *argv[])
 								
 								PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
 								// TODO(nick): possible change to velocity?
-								PlayerEntity->PositionV2->X += 5;
+								PlayerEntity->PositionV2.X += 5;
 								printf("arrow right pressed\n");
 							} break;
 
@@ -278,7 +274,7 @@ main(int argc, char *argv[])
 			// 2) only handle UI commands
 			// clear the screen
 			SDL_RenderClear(GlobalWindowState->GameRenderer);
-			GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityArray, GlobalEntityArrayIndex,GameText);
+			GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityArray, GlobalEntityArrayIndex, GameText);
 		}
 
 		// update screen
@@ -347,6 +343,7 @@ InitializeGameWindow()
 	}
 	else
 	{
+		// TODO(nick): write out sizes to config file
 		Window = SDL_CreateWindow("Prototype Alpha 0.1",
 					  SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 					  Screen_Width, Screen_Height,
@@ -395,6 +392,7 @@ InitializeGame()
 	if (GlobalWindowState->GameWindow)
 	{
 		GlobalWindowState->GameSurface = SDL_GetWindowSurface(GlobalWindowState->GameWindow);
+		SDL_GetWindowSize(GlobalWindowState->GameWindow, &GlobalWindowState->Width, &GlobalWindowState->Height);
 
 		// TODO(nick): toggle between software / hardware renderering
 		GlobalWindowState->GameRenderer = SDL_CreateRenderer(GlobalWindowState->GameWindow, 
@@ -435,12 +433,7 @@ InitializeGame()
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
 				PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
 
-				// TODO(nick): 
-				// 1) remove static position - figure out starting location
-				PlayerEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-										      sizeof(Vector2));
-				PlayerEntity->PositionV2->X = 460;
-				PlayerEntity->PositionV2->Y = 400;
+				PlayerEntity->PositionV2 = DefaultVector2Position();
 
 				GlobalEntityArray[GlobalEntityArrayIndex] = PlayerEntity;
 				++GlobalEntityArrayIndex;
@@ -453,11 +446,7 @@ InitializeGame()
 				HashSet_Insert_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
 				GronkEntity->CurrentState = (EntityState)(Idle);
 				GronkEntity->CurrentTexture = HashSet_Select_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle");
-
-				GronkEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-									             sizeof(Vector2));
-				GronkEntity->PositionV2->X = 260;
-				GronkEntity->PositionV2->Y = 250;
+				GronkEntity->PositionV2 = DefaultVector2Position();
 
 				GlobalEntityArray[GlobalEntityArrayIndex] = GronkEntity;
 				++GlobalEntityArrayIndex;
@@ -474,10 +463,7 @@ InitializeGame()
 								     GameText->PrimaryFont,
 								     GlobalWindowState->GameSurface,
 								     GlobalWindowState->GameRenderer);
-				GameText->PrimaryPositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-										         sizeof(Vector2));
-				GameText->PrimaryPositionV2->X = 75;
-				GameText->PrimaryPositionV2->Y = 100;
+				GameText->PrimaryPositionV2 = DefaultVector2Position();
 				
 				GameText->SecondaryFont = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 24);
 				if (GameText->SecondaryFont)
@@ -488,10 +474,8 @@ InitializeGame()
 								       GameText->SecondaryFont,
 								       GlobalWindowState->GameSurface,
 								       GlobalWindowState->GameRenderer);
-				GameText->SecondaryPositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-										           sizeof(Vector2));
-				GameText->SecondaryPositionV2->X = 0;
-				GameText->SecondaryPositionV2->Y = 0;
+
+				GameText->SecondaryPositionV2 = DefaultVector2Position();
 			}
 			else
 			{
@@ -666,8 +650,8 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 
 		SDL_Rect PlayerRenderBox = 
 		{
-			CurrentEntity->PositionV2->X,
-			CurrentEntity->PositionV2->Y,
+			CurrentEntity->PositionV2.X,
+			CurrentEntity->PositionV2.Y,
 			CurrentEntity->CurrentTexture->Width,
 			CurrentEntity->CurrentTexture->Height,
 		};
@@ -684,8 +668,8 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	
 	SDL_Rect TextRenderBox = 
 	{
-		GameText->PrimaryPositionV2->X,
-		GameText->PrimaryPositionV2->Y,
+		GameText->PrimaryPositionV2.X,
+		GameText->PrimaryPositionV2.Y,
 		GameText->PrimaryText->Width,
 		GameText->PrimaryText->Height,
 	};
