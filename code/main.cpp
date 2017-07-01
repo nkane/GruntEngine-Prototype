@@ -13,6 +13,7 @@
 #include "hashset.h"
 #include "entity.h"
 #include "list.h"
+#include "queue.h"
 #include "gamestate.h"
 #include "windowstate.h"
 
