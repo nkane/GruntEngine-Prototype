@@ -53,6 +53,13 @@ global_variable TTF_Font *PokeFont;
 global_variable int GlobalTextArrayIndex = 0;
 global_variable TTF_Font *GlobalTextArray[10];
 
+// global entity rendering queue
+global_variable Queue_GameEntity *GlobalEntityRenderQueue;
+
+// global text rendering queue
+// TODO(nick): complete this queue
+global_variable Queue_GameText *GlobalTextRenderQueue;
+
 internal SDL_Window *
 InitializeGameWindow();
 
@@ -477,6 +484,11 @@ InitializeGame()
 								       GlobalWindowState->GameRenderer);
 
 				GameText->SecondaryPositionV2 = DefaultVector2Position();
+
+				// NOTE(nick): allocate enough space for the game queue data
+				// as well as 50 queue slots
+				GlobalEntityRenderQueue = (Queue_GameEntity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+											      sizeof(Queue_GameEntity) + (sizeof(Entity_Node) * 50));
 			}
 			else
 			{
