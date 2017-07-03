@@ -271,6 +271,27 @@ main(int argc, char *argv[])
 				}
 				// clear the screen
 				SDL_RenderClear(GlobalWindowState->GameRenderer);
+
+				// TODO(nick): add some logical step that takes place per level
+				// and builds an array of entity nodes?
+				// for now static ones work
+				Entity_Node PlayerEntityNode = 
+				{
+					PlayerEntity,
+					NULL,
+				};
+
+				Entity_Node GruntEntityNode = 
+				{
+					GronkEntity,
+					NULL,
+				};
+
+				// NOTE(nick): add entities to render queue
+				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
+				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GruntEntityNode);
+
+
 				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityArray, GlobalEntityArrayIndex, GameText);
 			}
 		}
@@ -489,6 +510,8 @@ InitializeGame()
 				// as well as 50 queue slots
 				GlobalEntityRenderQueue = (Queue_GameEntity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 											      sizeof(Queue_GameEntity) + (sizeof(Entity_Node) * 50));
+				GlobalEntityRenderQueue->Size = 0;
+				GlobalEntityRenderQueue->Limit = 50;
 			}
 			else
 			{

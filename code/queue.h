@@ -19,20 +19,28 @@ struct Queue_GameEntity
 };
 
 bool
-Queue_Enqueue_GameEntity(Queue_GameEntity *EntityQueue, Entity_Node *EntityNode)
+Queue_Enqueue_GameEntity(Queue_GameEntity *EntityQueue, Entity_Node EntityNode)
 {
 	Assert(EntityQueue->Size < EntityQueue->Limit);
+	Entity_Node *AllocatedNode = NULL;
+
+	AllocatedNode = (Entity_Node *)((EntityQueue + sizeof(Queue_GameEntity)) + (sizeof(Entity_Node) * EntityQueue->Size));
+	AllocatedNode->Data = EntityNode.Data;
+	AllocatedNode->Previous = NULL;
+
 	if (EntityQueue->Size == 0)
-	{
-		EntityQueue->Head = EntityNode;
-		EntityQueue->Tail = EntityNode;
+	{	
+		EntityQueue->Head = AllocatedNode;
+		EntityQueue->Tail = AllocatedNode;
 	}
 	else 
 	{
 		Entity_Node *Temp = EntityQueue->Tail;
-		EntityQueue->Tail = EntityNode;
+		EntityQueue->Tail = AllocatedNode;
 		EntityQueue->Tail->Previous = Temp;
 	}
+
+	EntityQueue->Size++;
 
 	return true;
 }
