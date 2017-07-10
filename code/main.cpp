@@ -84,8 +84,8 @@ LoadAssetPNG(GameState *, SDL_RWops *, SDL_Surface *, SDL_Renderer *);
 AssetTexture *
 LoadAssetTTF(GameState *, TTF_Font *, SDL_Surface *, SDL_Renderer *);
 
-void
-GameUpdateAndRender(WindowState *, GameState *, Entity *[], int, Text *);
+void 
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue);
 
 int
 main(int argc, char *argv[])
@@ -290,9 +290,7 @@ main(int argc, char *argv[])
 				// NOTE(nick): add entities to render queue
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GruntEntityNode);
-
-
-				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityArray, GlobalEntityArrayIndex, GameText);
+				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
 		}
 		else
@@ -303,7 +301,7 @@ main(int argc, char *argv[])
 			// 2) only handle UI commands
 			// clear the screen
 			SDL_RenderClear(GlobalWindowState->GameRenderer);
-			GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityArray, GlobalEntityArrayIndex, GameText);
+			GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 		}
 
 		// update screen
@@ -670,8 +668,8 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 	return Result;
 }
 
-void
-GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Entity *EntityPointerArray[], int EntityArraySize, Text *GameText)
+void 
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue)
 {
 	// render texture(s) to screen
 	// TODO(nick):
@@ -680,6 +678,13 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	// 2) 2nd NULL value is center point
 	//    - center, used for point to determine rotation
 	Entity *CurrentEntity = NULL; 
+
+	while (CurrentEntity = Queue_Dequeue_GameEntity(EntityQueue))
+	{
+
+	}
+
+	/*
 	for (int i = 0; i < EntityArraySize; ++i)
 	{
 		CurrentEntity = *(EntityPointerArray + i);
@@ -717,5 +722,6 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 			 GameText->PrimaryText->Rotation,
 			 NULL,
 			 GameText->PrimaryText->Flip);
+	*/
 }
 

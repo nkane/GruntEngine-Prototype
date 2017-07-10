@@ -35,9 +35,8 @@ Queue_Enqueue_GameEntity(Queue_GameEntity *EntityQueue, Entity_Node EntityNode)
 	}
 	else 
 	{
-		Entity_Node *Temp = EntityQueue->Tail;
+		EntityQueue->Tail->Previous = AllocatedNode;
 		EntityQueue->Tail = AllocatedNode;
-		EntityQueue->Tail->Previous = Temp;
 	}
 
 	EntityQueue->Size++;
@@ -48,8 +47,24 @@ Queue_Enqueue_GameEntity(Queue_GameEntity *EntityQueue, Entity_Node EntityNode)
 Entity *
 Queue_Dequeue_GameEntity(Queue_GameEntity *EntityQueue)
 {
-	// TODO(nick)
-	return NULL;
+	Entity *CurrentEntity = NULL;
+	if (EntityQueue && EntityQueue->Size > 0)
+	{
+		EntityQueue->Head = EntityQueue->Head->Previous;
+		EntityQueue->Size--;
+	}
+	return CurrentEntity;
+}
+
+Entity_Node
+Queue_Null_GameEntity()
+{
+	Entity_Node NulledEntity = 
+	{
+		NULL,
+		NULL,
+	};
+	return NulledEntity;
 }
 
 bool
