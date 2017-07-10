@@ -678,10 +678,23 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	// 2) 2nd NULL value is center point
 	//    - center, used for point to determine rotation
 	Entity *CurrentEntity = NULL; 
-
 	while (CurrentEntity = Queue_Dequeue_GameEntity(EntityQueue))
 	{
+		SDL_Rect PlayerRenderBox = 
+		{
+			CurrentEntity->PositionV2.X,
+			CurrentEntity->PositionV2.Y,
+			CurrentEntity->CurrentTexture->Width,
+			CurrentEntity->CurrentTexture->Height,
+		};
 
+		SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
+				 CurrentEntity->CurrentTexture->Texture,
+				 NULL,
+				 &PlayerRenderBox,
+				 CurrentEntity->CurrentTexture->Rotation,
+				 NULL,
+				 CurrentEntity->CurrentTexture->Flip);
 	}
 
 	/*

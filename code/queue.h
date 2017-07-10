@@ -50,6 +50,7 @@ Queue_Dequeue_GameEntity(Queue_GameEntity *EntityQueue)
 	Entity *CurrentEntity = NULL;
 	if (EntityQueue && EntityQueue->Size > 0)
 	{
+		CurrentEntity = EntityQueue->Head->Data;
 		EntityQueue->Head = EntityQueue->Head->Previous;
 		EntityQueue->Size--;
 	}
