@@ -290,6 +290,15 @@ main(int argc, char *argv[])
 				// NOTE(nick): add entities to render queue
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GruntEntityNode);
+
+				Text_Node MainTextNode =
+				{
+					GameText,
+					NULL,
+				};
+
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, MainTextNode);
+				
 				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
 		}
@@ -507,9 +516,14 @@ InitializeGame()
 				// NOTE(nick): allocate enough space for the game queue data
 				// as well as 50 queue slots
 				GlobalEntityRenderQueue = (Queue_GameEntity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-											      sizeof(Queue_GameEntity) + (sizeof(Entity_Node) * 50));
+											      (sizeof(Queue_GameEntity) + (sizeof(Entity_Node) * 50)));
 				GlobalEntityRenderQueue->Size = 0;
 				GlobalEntityRenderQueue->Limit = 50;
+
+				GlobalTextRenderQueue = (Queue_GameText *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+											  (sizeof(Queue_GameText) + (sizeof(Text_Node))));
+				GlobalTextRenderQueue->Size = 0;
+				GlobalTextRenderQueue->Limit = 50;
 			}
 			else
 			{
@@ -697,44 +711,24 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 				 CurrentEntity->CurrentTexture->Flip);
 	}
 
-	/*
-	for (int i = 0; i < EntityArraySize; ++i)
+	Text *CurrentText = NULL;
+	while (CurrentText = Queue_Dequeue_GameText(TextQueue))
 	{
-		CurrentEntity = *(EntityPointerArray + i);
-
-		SDL_Rect PlayerRenderBox = 
+		SDL_Rect TextRenderBox = 
 		{
-			CurrentEntity->PositionV2.X,
-			CurrentEntity->PositionV2.Y,
-			CurrentEntity->CurrentTexture->Width,
-			CurrentEntity->CurrentTexture->Height,
+			CurrentText->PrimaryPositionV2.X + 100,
+			CurrentText->PrimaryPositionV2.Y,
+			CurrentText->PrimaryText->Width,
+			CurrentText->PrimaryText->Height,
 		};
 
 		SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
-				 CurrentEntity->CurrentTexture->Texture,
+				 CurrentText->PrimaryText->Texture,
 				 NULL,
-				 &PlayerRenderBox,
-				 CurrentEntity->CurrentTexture->Rotation,
+				 &TextRenderBox,
+				 GameText->PrimaryText->Rotation,
 				 NULL,
-				 CurrentEntity->CurrentTexture->Flip);
-
+				 GameText->PrimaryText->Flip);
 	}
-	
-	SDL_Rect TextRenderBox = 
-	{
-		GameText->PrimaryPositionV2.X,
-		GameText->PrimaryPositionV2.Y,
-		GameText->PrimaryText->Width,
-		GameText->PrimaryText->Height,
-	};
-
-	SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
-			 GameText->PrimaryText->Texture,
-			 NULL,
-			 &TextRenderBox,
-			 GameText->PrimaryText->Rotation,
-			 NULL,
-			 GameText->PrimaryText->Flip);
-	*/
 }
 
