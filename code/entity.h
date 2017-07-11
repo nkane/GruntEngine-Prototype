@@ -3,7 +3,6 @@
  *	Created By: Nick Kane
  */
 
-
 // TODO(nick): bit mask may not be needed, think about it some more ...
 enum EntityState
 {
@@ -12,13 +11,11 @@ enum EntityState
 	FaceRight = (1u << 2),
 };
 
-
 struct Entity
 {
 	AssetTexture *CurrentTexture;
-	AssetTexture *IdleTexture;
-	AssetTexture *WalkTexture;
+	HashSet_AssetTexture TextureSet[32];
 	EntityState CurrentState;
-	Vector2 *PositionV2;
+	Vector2 PositionV2;
 };
 

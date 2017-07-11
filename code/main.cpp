@@ -9,9 +9,12 @@
 
 #include "gameplatform.h"
 #include "assets.h"
-#include "entity.h"
-#include "gamestate.h"
 #include "text.h"
+#include "hashset.h"
+#include "entity.h"
+#include "list.h"
+#include "queue.h"
+#include "gamestate.h"
 #include "windowstate.h"
 
 #include <stdio.h>
@@ -20,8 +23,6 @@
 #define local_persist 	static
 #define internal 	static
 #define global_variable static
-
-#define Assert(Expression) if(!(Expression)) {*(int *)0=0;}
 
 global_variable const int Screen_Width = 640;
 global_variable const int Screen_Height = 480;
@@ -34,17 +35,31 @@ global_variable GameState *GlobalGameState;
 global_variable bool GameRunning = true;
 
 // global entities
-// TODO(nick): this could be moved elsewhere?
 global_variable SDL_RWops *ReadWriteOperations;
-global_variable Text *GameText;
 global_variable Entity *PlayerEntity;
+global_variable Entity *GronkEntity;
 
+// global entity pointer array
+global_variable int GlobalEntityArrayIndex = 0;
+global_variable Entity *GlobalEntityArray[50];
+
+
+global_variable Text *GameText;
 // global fonts
 global_variable TTF_Font *ArcadeFont;
 global_variable TTF_Font *PokeFont;
 
+// global text pointer array
+global_variable int GlobalTextArrayIndex = 0;
+global_variable TTF_Font *GlobalTextArray[10];
 
-// TODO(nick): clean this up and initializegame
+// global entity rendering queue
+global_variable Queue_GameEntity *GlobalEntityRenderQueue;
+
+// global text rendering queue
+// TODO(nick): complete this queue
+global_variable Queue_GameText *GlobalTextRenderQueue;
+
 internal SDL_Window *
 InitializeGameWindow();
 
@@ -54,8 +69,6 @@ InitializeWindowState();
 internal bool
 InitializeAssetPipeline();
 
-// TODO(nick): clean this up and initializegamewindow up
-// this probably shouldn't be returning a window pointer
 internal bool
 InitializeGame();
 
@@ -71,9 +84,8 @@ LoadAssetPNG(GameState *, SDL_RWops *, SDL_Surface *, SDL_Renderer *);
 AssetTexture *
 LoadAssetTTF(GameState *, TTF_Font *, SDL_Surface *, SDL_Renderer *);
 
-// TODO(nick): need to create this function to be proper movement working
-void
-GameUpdateAndRender(WindowState *, GameState *, Entity *, Text *);
+void 
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue);
 
 int
 main(int argc, char *argv[])
@@ -93,174 +105,213 @@ main(int argc, char *argv[])
 		// query for time
 		GlobalGameState->CurrentMS = SDL_GetTicks();
 
-		while (SDL_PollEvent(&CurrentEvent))
+		if (GlobalGameState->IsPlaying)
 		{
-			// TODO(nick): handle input function
-			switch (CurrentEvent.type)
+			while (SDL_PollEvent(&CurrentEvent))
 			{
-				case SDL_QUIT:
+				// TODO(nick): handle input function
+				switch (CurrentEvent.type)
 				{
-					GameRunning = false;
-				} break;
-
-				// TODO(nick): figure out a better way to handle up / release
-				// key presses
-				case SDL_KEYDOWN:
-				{
-					switch (CurrentEvent.key.keysym.sym)
+					case SDL_QUIT:
 					{
-						case SDLK_UP: 
-						{
-							printf("arrow up pressed\n");
-						} break;
+						GameRunning = false;
+					} break;
 
-						case SDLK_DOWN:
-						{
-							printf("arrow down pressed\n");
-						} break;
-
-						case SDLK_LEFT:
-						{
-							// TODO(nick):
-							// 1) flip texture before 
-							// 2) set a flag for state of entity facing direction?
-							if (PlayerEntity->CurrentState & (FaceRight))
-							{
-								PlayerEntity->IdleTexture->Flip = SDL_FLIP_HORIZONTAL;
-								PlayerEntity->WalkTexture->Flip = SDL_FLIP_HORIZONTAL;
-								PlayerEntity->CurrentState = FaceLeft;
-							}
-
-							// TODO(nick): figure out wtf I am doing with these
-							PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
-							// TODO(nick): possible change to velocity?
-							PlayerEntity->PositionV2->X -= 5;
-
-							printf("arrow left pressed\n");
-						} break;
-
-						case SDLK_RIGHT:
-						{
-							// NOTE(nick): current state is left
-							if (PlayerEntity->CurrentState & (FaceLeft))
-							{
-								PlayerEntity->IdleTexture->Flip = SDL_FLIP_NONE;
-								PlayerEntity->WalkTexture->Flip = SDL_FLIP_NONE;
-								PlayerEntity->CurrentState = FaceRight;
-							}
-							
-							PlayerEntity->CurrentTexture = PlayerEntity->WalkTexture;
-
-							PlayerEntity->PositionV2->X += 5;
-
-							printf("arrow right pressed\n");
-						} break;
-
-						case SDLK_w: 
-						{
-							printf("w key pressed\n");
-						} break;
-
-						case SDLK_a:
-						{
-							printf("a key pressed\n");
-						} break;
-
-						case SDLK_s:
-						{
-							printf("s key pressed\n");
-						} break;
-
-						case SDLK_d:
-						{
-							printf("d key pressed\n");
-						} break;
-
-						case SDLK_SPACE: 
-						{
-							printf("space pressed\n");
-						} break;
-
-						default: 
-						{
-							// TODO(nick): not valid key pressed here - just ignore?
-						} break;
-					}
-				} break;
-
-				case SDL_KEYUP:
-				{
-					switch (CurrentEvent.key.keysym.sym)
+					// TODO(nick): figure out a better way to handle up / release
+					// key presses
+					case SDL_KEYDOWN:
 					{
-						case SDLK_UP: 
+						switch (CurrentEvent.key.keysym.sym)
 						{
-							printf("arrow up released\n");
-						} break;
+							case SDLK_UP: 
+							{
+								printf("arrow up pressed\n");
+							} break;
 
-						case SDLK_DOWN:
+							case SDLK_DOWN:
+							{
+								printf("arrow down pressed\n");
+							} break;
+
+							case SDLK_LEFT:
+							{
+								// TODO(nick):
+								// 1) rework with new hash set
+								// 2) flip texture before 
+								// 3) set a flag for state of entity facing direction?
+								if (PlayerEntity->CurrentState & (FaceRight))
+								{
+									HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Flip = SDL_FLIP_HORIZONTAL;
+									HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk")->Flip = SDL_FLIP_HORIZONTAL;
+									PlayerEntity->CurrentState = FaceLeft;
+								}
+
+								PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
+								
+								// TODO(nick): possible change to velocity?
+								PlayerEntity->PositionV2.X -= 5;
+								printf("arrow left pressed\n");
+							} break;
+
+							case SDLK_RIGHT:
+							{
+								// TODO(nick): 
+								// 1) rework with new hash set
+								// NOTE(nick): current state is left
+								if (PlayerEntity->CurrentState & (FaceLeft))
+								{
+									HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Flip = SDL_FLIP_NONE;
+									HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk")->Flip = SDL_FLIP_NONE;
+									PlayerEntity->CurrentState = FaceRight;
+								}
+								
+								PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
+								// TODO(nick): possible change to velocity?
+								PlayerEntity->PositionV2.X += 5;
+								printf("arrow right pressed\n");
+							} break;
+
+							case SDLK_w: 
+							{
+								printf("w key pressed\n");
+							} break;
+
+							case SDLK_a:
+							{
+								printf("a key pressed\n");
+							} break;
+
+							case SDLK_s:
+							{
+								printf("s key pressed\n");
+							} break;
+
+							case SDLK_d:
+							{
+								printf("d key pressed\n");
+							} break;
+
+							case SDLK_SPACE: 
+							{
+								printf("space pressed\n");
+							} break;
+
+							default: 
+							{
+								// TODO(nick): not valid key pressed here - just ignore?
+							} break;
+						}
+					} break;
+
+					case SDL_KEYUP:
+					{
+						switch (CurrentEvent.key.keysym.sym)
 						{
-							printf("arrow down released\n");
-						} break;
+							case SDLK_UP: 
+							{
+								printf("arrow up released\n");
+							} break;
 
-						case SDLK_LEFT:
-						{
-							PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
-							PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
-							printf("arrow left released\n");
-						} break;
+							case SDLK_DOWN:
+							{
+								printf("arrow down released\n");
+							} break;
 
-						case SDLK_RIGHT:
-						{
-							PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
-							PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
-							printf("arrow right released\n");
-						} break;
+							case SDLK_LEFT:
+							{
+								PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
+								PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
+								printf("arrow left released\n");
+							} break;
 
-						case SDLK_w: 
-						{
-							printf("w key released\n");
-						} break;
+							case SDLK_RIGHT:
+							{
+								PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
+								PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
+								printf("arrow right released\n");
+							} break;
 
-						case SDLK_a:
-						{
-							printf("a key released\n");
-						} break;
+							case SDLK_w: 
+							{
+								printf("w key released\n");
+							} break;
 
-						case SDLK_s:
-						{
-							printf("s key released\n");
-						} break;
+							case SDLK_a:
+							{
+								printf("a key released\n");
+							} break;
 
-						case SDLK_d:
-						{
-							printf("d key released\n");
-						} break;
+							case SDLK_s:
+							{
+								printf("s key released\n");
+							} break;
 
-						case SDLK_SPACE: 
-						{
-							printf("space released\n");
-						} break;
+							case SDLK_d:
+							{
+								printf("d key released\n");
+							} break;
 
-						default: 
-						{
-							// TODO(nick): not valid key pressed here - just ignore?
-						} break;
-					}
-				} break;
+							case SDLK_SPACE: 
+							{
+								printf("space released\n");
+							} break;
 
-				default:
+							default: 
+							{
+								// TODO(nick): not valid key pressed here - just ignore?
+							} break;
+						}
+					} break;
+
+					default:
+					{
+						// TODO(nick): not valid code path here ... 
+						// figure out what to do .. 
+					} break;
+				}
+				// clear the screen
+				SDL_RenderClear(GlobalWindowState->GameRenderer);
+
+				// TODO(nick): add some logical step that takes place per level
+				// and builds an array of entity nodes?
+				// for now static ones work
+				Entity_Node PlayerEntityNode = 
 				{
-					// TODO(nick): not valid code path here ... 
-					// figure out what to do .. 
-				} break;
+					PlayerEntity,
+					NULL,
+				};
+
+				Entity_Node GruntEntityNode = 
+				{
+					GronkEntity,
+					NULL,
+				};
+
+				// NOTE(nick): add entities to render queue
+				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
+				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GruntEntityNode);
+
+				Text_Node MainTextNode =
+				{
+					GameText,
+					NULL,
+				};
+
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, MainTextNode);
+				
+				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
 		}
-
-		// clear the screen
-		SDL_RenderClear(GlobalWindowState->GameRenderer);
-
-		// Update and render game
-		GameUpdateAndRender(GlobalWindowState, GlobalGameState, PlayerEntity, GameText);
+		else
+		{
+			// NOTE(nick): player is at title screen
+			// TODO(nick):
+			// 1) only draw title screen
+			// 2) only handle UI commands
+			// clear the screen
+			SDL_RenderClear(GlobalWindowState->GameRenderer);
+			GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
+		}
 
 		// update screen
 		SDL_RenderPresent(GlobalWindowState->GameRenderer);
@@ -281,11 +332,10 @@ main(int argc, char *argv[])
 	}
 
 	// destory textures
-	// TODO(nick):
-	// 1) put in a function
-	{
-		SDL_DestroyTexture(PlayerEntity->IdleTexture->Texture);
-		SDL_DestroyTexture(PlayerEntity->WalkTexture->Texture);
+	{	
+		SDL_DestroyTexture(HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Texture);
+		SDL_DestroyTexture(HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk")->Texture);
+		SDL_DestroyTexture(HashSet_Select_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle")->Texture);
 	}
 
 	// release fonts
@@ -329,6 +379,7 @@ InitializeGameWindow()
 	}
 	else
 	{
+		// TODO(nick): write out sizes to config file
 		Window = SDL_CreateWindow("Prototype Alpha 0.1",
 					  SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 					  Screen_Width, Screen_Height,
@@ -377,14 +428,12 @@ InitializeGame()
 	if (GlobalWindowState->GameWindow)
 	{
 		GlobalWindowState->GameSurface = SDL_GetWindowSurface(GlobalWindowState->GameWindow);
+		SDL_GetWindowSize(GlobalWindowState->GameWindow, &GlobalWindowState->Width, &GlobalWindowState->Height);
 
 		// TODO(nick): toggle between software / hardware renderering
 		GlobalWindowState->GameRenderer = SDL_CreateRenderer(GlobalWindowState->GameWindow, 
 								      -1, SDL_RENDERER_ACCELERATED);
-		
-		// NOTE(nick): sets clear to white
-		//SDL_SetRenderDrawColor(GlobalWindowState->GameRenderer, 0xFF, 0xFF, 0xFF, 0x00);
-		
+
 		// NOTE(nick); sets clear to black
 		SDL_SetRenderDrawColor(GlobalWindowState->GameRenderer, 0x00, 0x00, 0x00, 0x00);
 
@@ -395,40 +444,52 @@ InitializeGame()
 			{
 				// TODO(nick): 
 				// 1) need a better approach to loading game assets
-				// 2) instead of single malloc -
-				//    do a large malloc (or lower level call and control the memory / clean up)
-				// 3) add checking to make sure assets load properly -
+				// 2) add checking to make sure assets load properly -
 				//    else log some failure message
-				// 4) split entity / texture? Current texture could be another struct
+				// 3) split entity / texture? Current texture could be another struct
 				//    something like texture info?
 
 				GlobalGameState = InitializeGameState();
 				Assert(GlobalGameState);
 
+				// TODO(nick): 
+				// 1) complete hash insert funciton
+				unsigned int HashKey = 0;
+				// NOTE(nick): player intitialization
 				PlayerEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 							                 sizeof(Entity));
-				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0014_Idle-.png", "rb");
-				PlayerEntity->IdleTexture = LoadAssetPNG(GlobalGameState, ReadWriteOperations,
-								      	 GlobalWindowState->GameSurface,
-								      	 GlobalWindowState->GameRenderer);
-				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/_0013_Walk.png", "rb");
-				PlayerEntity->WalkTexture = LoadAssetPNG(GlobalGameState,
-							              	 ReadWriteOperations,
-								      	 GlobalWindowState->GameSurface,
-								      	 GlobalWindowState->GameRenderer);
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Idle.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Walk-1.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
 				// NOTE(nick): set default texture on game init
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
-				PlayerEntity->CurrentTexture = PlayerEntity->IdleTexture;
-				// TODO(nick): 
-				// 1) remove static position - figure out starting location
-				PlayerEntity->PositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-										      sizeof(Vector2));
-				PlayerEntity->PositionV2->X = 460;
-				PlayerEntity->PositionV2->Y = 400;
+				PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
 
+				PlayerEntity->PositionV2 = DefaultVector2Position();
+
+				GlobalEntityArray[GlobalEntityArrayIndex] = PlayerEntity;
+				++GlobalEntityArrayIndex;
+
+				// NOTE(nick): gronk initialization
+				GronkEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+									sizeof(Entity));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Gronk/Gronk_0011_Gronk-Idle-2.png", "rb");
+				HashSet_Insert_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+				GronkEntity->CurrentState = (EntityState)(Idle);
+				GronkEntity->CurrentTexture = HashSet_Select_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle");
+				GronkEntity->PositionV2 = DefaultVector2Position();
+
+				GlobalEntityArray[GlobalEntityArrayIndex] = GronkEntity;
+				++GlobalEntityArrayIndex;
+
+				// NOTE(nick): game font initialization
 				GameText = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-								       sizeof(Text));
-
+								   sizeof(Text));
 				GameText->PrimaryFont = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 24);
 				if (!GameText->PrimaryFont)
 				{
@@ -438,10 +499,7 @@ InitializeGame()
 								     GameText->PrimaryFont,
 								     GlobalWindowState->GameSurface,
 								     GlobalWindowState->GameRenderer);
-				GameText->PrimaryPositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-										         sizeof(Vector2));
-				GameText->PrimaryPositionV2->X = 75;
-				GameText->PrimaryPositionV2->Y = 100;
+				GameText->PrimaryPositionV2 = DefaultVector2Position();
 				
 				GameText->SecondaryFont = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 24);
 				if (GameText->SecondaryFont)
@@ -452,10 +510,20 @@ InitializeGame()
 								       GameText->SecondaryFont,
 								       GlobalWindowState->GameSurface,
 								       GlobalWindowState->GameRenderer);
-				GameText->SecondaryPositionV2 = (Vector2 *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-										          sizeof(Vector2));
-				GameText->SecondaryPositionV2->X = 0;
-				GameText->SecondaryPositionV2->Y = 0;
+
+				GameText->SecondaryPositionV2 = DefaultVector2Position();
+
+				// NOTE(nick): allocate enough space for the game queue data
+				// as well as 50 queue slots
+				GlobalEntityRenderQueue = (Queue_GameEntity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+											      (sizeof(Queue_GameEntity) + (sizeof(Entity_Node) * 50)));
+				GlobalEntityRenderQueue->Size = 0;
+				GlobalEntityRenderQueue->Limit = 50;
+
+				GlobalTextRenderQueue = (Queue_GameText *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+											  (sizeof(Queue_GameText) + (sizeof(Text_Node))));
+				GlobalTextRenderQueue->Size = 0;
+				GlobalTextRenderQueue->Limit = 50;
 			}
 			else
 			{
@@ -487,9 +555,10 @@ InitializeGameState()
 	CurrentGameState->StartMS = SDL_GetTicks();
 	CurrentGameState->CurrentMS = 0;
 	CurrentGameState->DeltaMS = 0;
+	// TODO(nick): reset this to false !!!
+	CurrentGameState->IsPlaying = true;
 
 	CurrentGameState->Memory = (GameMemory *)malloc(sizeof(GameMemory));
-	CurrentGameState->CurrentTexture = NULL;
 
 	Assert(CurrentGameState->Memory);
 	
@@ -613,9 +682,8 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 	return Result;
 }
 
-// TODO(nick): think about how to render game objects 
-void
-GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Entity *CurrentEntity, Text *GameText)
+void 
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue)
 {
 	// render texture(s) to screen
 	// TODO(nick):
@@ -623,38 +691,44 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	//    - srcrect 
 	// 2) 2nd NULL value is center point
 	//    - center, used for point to determine rotation
-	
-	SDL_Rect RenderBox = 
+	Entity *CurrentEntity = NULL; 
+	while (CurrentEntity = Queue_Dequeue_GameEntity(EntityQueue))
 	{
-		// TODO(nick): figure out a better way to handle all of this ....
-		CurrentEntity->PositionV2->X,
-		CurrentEntity->PositionV2->Y,
-		CurrentEntity->CurrentTexture->Width,
-		CurrentEntity->CurrentTexture->Height,
-	};
+		SDL_Rect PlayerRenderBox = 
+		{
+			CurrentEntity->PositionV2.X,
+			CurrentEntity->PositionV2.Y,
+			CurrentEntity->CurrentTexture->Width,
+			CurrentEntity->CurrentTexture->Height,
+		};
 
-	SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
-			 CurrentEntity->CurrentTexture->Texture,
-			 NULL,
-			 &RenderBox,
-			 CurrentEntity->CurrentTexture->Rotation,
-			 NULL,
-			 CurrentEntity->CurrentTexture->Flip);
+		SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
+				 CurrentEntity->CurrentTexture->Texture,
+				 NULL,
+				 &PlayerRenderBox,
+				 CurrentEntity->CurrentTexture->Rotation,
+				 NULL,
+				 CurrentEntity->CurrentTexture->Flip);
+	}
 
-	SDL_Rect TextRenderBox = 
+	Text *CurrentText = NULL;
+	while (CurrentText = Queue_Dequeue_GameText(TextQueue))
 	{
-		GameText->PrimaryPositionV2->X,
-		GameText->PrimaryPositionV2->Y,
-		GameText->PrimaryText->Width,
-		GameText->PrimaryText->Height,
-	};
+		SDL_Rect TextRenderBox = 
+		{
+			CurrentText->PrimaryPositionV2.X + 100,
+			CurrentText->PrimaryPositionV2.Y,
+			CurrentText->PrimaryText->Width,
+			CurrentText->PrimaryText->Height,
+		};
 
-	SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
-			 GameText->PrimaryText->Texture,
-			 NULL,
-			 &TextRenderBox,
-			 GameText->PrimaryText->Rotation,
-			 NULL,
-			 GameText->PrimaryText->Flip);
+		SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
+				 CurrentText->PrimaryText->Texture,
+				 NULL,
+				 &TextRenderBox,
+				 GameText->PrimaryText->Rotation,
+				 NULL,
+				 GameText->PrimaryText->Flip);
+	}
 }
 
