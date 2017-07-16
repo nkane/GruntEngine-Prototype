@@ -24,41 +24,52 @@
 #define internal 	static
 #define global_variable static
 
+// Entity Game Constants
+// <=====================================================================>
 global_variable const int Screen_Width = 640;
 global_variable const int Screen_Height = 480;
 global_variable const int Sdl_Image_Flags = IMG_INIT_PNG;
-
 global_variable const float Frame_Rate_Lock = (1000.0f / 60.0f);
+// /=====================================================================/
 
+// Entity Game Window and State
+// <=====================================================================>
 global_variable WindowState *GlobalWindowState; 
 global_variable GameState *GlobalGameState;
 global_variable bool GameRunning = true;
-
-// global entities
 global_variable SDL_RWops *ReadWriteOperations;
+// /=====================================================================/
+
+// Entity Globals
+// <=====================================================================>
 global_variable Entity *PlayerEntity;
 global_variable Entity *GronkEntity;
-
-// global entity pointer array
 global_variable int GlobalEntityArrayIndex = 0;
 global_variable Entity *GlobalEntityArray[50];
+global_variable Queue_GameEntity *GlobalEntityRenderQueue;
+// /=====================================================================/
 
-
-global_variable Text *GameText;
-// global fonts
+// Font Globals
+// <=====================================================================>
 global_variable TTF_Font *ArcadeFont;
 global_variable TTF_Font *PokeFont;
+global_variable int GlobalTextArrayIndex = 0;
+global_variable Text *GlobalTextArray[50];
 
-// global text pointer array
+global_variable Text *TitleScreenGronkKong;
+global_variable Text *TitleScreenBottom;
+
+global_variable Text *LivesCount;
+global_variable Text *CurrentScore;
+global_variable Text *HighScore;
+global_variable Text *CurrentLevel;
+
 global_variable int GlobalTextArrayIndex = 0;
 global_variable TTF_Font *GlobalTextArray[10];
 
-// global entity rendering queue
-global_variable Queue_GameEntity *GlobalEntityRenderQueue;
-
-// global text rendering queue
 // TODO(nick): complete this queue
 global_variable Queue_GameText *GlobalTextRenderQueue;
+// /=====================================================================/
 
 internal SDL_Window *
 InitializeGameWindow();
@@ -79,10 +90,10 @@ internal void
 ReleaseGameState(GameState *);
 
 AssetTexture *
-LoadAssetPNG(GameState *, SDL_RWops *, SDL_Surface *, SDL_Renderer *);
+LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
 
 AssetTexture *
-LoadAssetTTF(GameState *, TTF_Font *, SDL_Surface *, SDL_Renderer *);
+LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, char *text)
 
 void 
 GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue);
@@ -488,15 +499,31 @@ InitializeGame()
 				++GlobalEntityArrayIndex;
 
 				// NOTE(nick): game font initialization
-				GameText = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-								   sizeof(Text));
-				GameText->PrimaryFont = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 24);
-				if (!GameText->PrimaryFont)
+				ArcadeFont = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 24);
+				if (!ArcadeFont) 
 				{
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
 				}
-				GameText->PrimaryText = LoadAssetTTF(GlobalGameState,
-								     GameText->PrimaryFont,
+
+				PokeFont = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 24);
+				if (!PokeFont)
+				{
+					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
+				}
+
+				TitleScreenGronkKong = LoadAssetTTF();
+
+				/*
+				GameText = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+								   sizeof(Text));
+
+				ArcadeFont = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 24);
+				if (!ArcadeFont)
+				{
+					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
+				}
+				GameText->Text = LoadAssetTTF(GlobalGameState,
+								     ArcadeFont,
 								     GlobalWindowState->GameSurface,
 								     GlobalWindowState->GameRenderer);
 				GameText->PrimaryPositionV2 = DefaultVector2Position();
@@ -511,7 +538,9 @@ InitializeGame()
 								       GlobalWindowState->GameSurface,
 								       GlobalWindowState->GameRenderer);
 
+
 				GameText->SecondaryPositionV2 = DefaultVector2Position();
+				*/
 
 				// NOTE(nick): allocate enough space for the game queue data
 				// as well as 50 queue slots
@@ -642,17 +671,15 @@ LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *
 }
 
 // TODO(nick): 
-// 1) could probably replace this and LoadAssetPNG with a single call that does the same thing?
-// 2) pass in color?
+// 1) pass in color?
 AssetTexture *
-LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
+LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, char *text)
 {
 	AssetTexture *Result = NULL;
 	SDL_Texture *Texture = NULL;
 	
 	// TODO(nick): make colors.h file
 	SDL_Color DefaultColor = { 255, 255, 255, 0 };
-
 	SDL_Surface *Raw = TTF_RenderText_Solid(Font, "DEFAULT TEXT WITH A LOT OF EXTRA TEXT TO TEST RENDERERING", DefaultColor);
 
 	if (!Raw)
