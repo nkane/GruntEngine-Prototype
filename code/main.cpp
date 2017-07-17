@@ -56,16 +56,13 @@ global_variable TTF_Font *PokeFont;
 global_variable int GlobalTextArrayIndex = 0;
 global_variable Text *GlobalTextArray[50];
 
-global_variable Text *TitleScreenGronkKong;
+global_variable Text *TitleScreenGronkeyKong;
 global_variable Text *TitleScreenBottom;
 
 global_variable Text *LivesCount;
 global_variable Text *CurrentScore;
 global_variable Text *HighScore;
 global_variable Text *CurrentLevel;
-
-global_variable int GlobalTextArrayIndex = 0;
-global_variable TTF_Font *GlobalTextArray[10];
 
 // TODO(nick): complete this queue
 global_variable Queue_GameText *GlobalTextRenderQueue;
@@ -90,10 +87,10 @@ internal void
 ReleaseGameState(GameState *);
 
 AssetTexture *
-LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer)
+LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer);
 
 AssetTexture *
-LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, char *text)
+LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, char *text);
 
 void 
 GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue);
@@ -116,6 +113,7 @@ main(int argc, char *argv[])
 		// query for time
 		GlobalGameState->CurrentMS = SDL_GetTicks();
 
+		// TODO(nick): make enter key flip
 		if (GlobalGameState->IsPlaying)
 		{
 			while (SDL_PollEvent(&CurrentEvent))
@@ -283,6 +281,8 @@ main(int argc, char *argv[])
 				// clear the screen
 				SDL_RenderClear(GlobalWindowState->GameRenderer);
 
+				// TODO(nick): make nodes only for needed stuff (for queue - entity and text)
+				//
 				// TODO(nick): add some logical step that takes place per level
 				// and builds an array of entity nodes?
 				// for now static ones work
@@ -302,13 +302,16 @@ main(int argc, char *argv[])
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GruntEntityNode);
 
+				// TODO(nick): make nodes only for needed stuff
+				/*
 				Text_Node MainTextNode =
 				{
-					GameText,
+					Gronkey,
 					NULL,
 				};
 
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, MainTextNode);
+				*/
 				
 				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
@@ -321,6 +324,15 @@ main(int argc, char *argv[])
 			// 2) only handle UI commands
 			// clear the screen
 			SDL_RenderClear(GlobalWindowState->GameRenderer);
+
+			Text_Node GronkeyKong = 
+			{
+				TitleScreenGronkeyKong,
+				NULL,
+			};
+
+			Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong);
+
 			GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 		}
 
@@ -511,8 +523,13 @@ InitializeGame()
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
 				}
 
-				TitleScreenGronkKong = LoadAssetTTF();
-
+				TitleScreenGronkeyKong = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+										 sizeof(Text));
+				TitleScreenGronkeyKong->Texture = LoadAssetTTF(GlobalGameState,
+							                       ArcadeFont,
+							      	      	       GlobalWindowState->GameSurface,
+						              	               GlobalWindowState->GameRenderer, 
+								               "GRONKEY\n\tKONG\0");
 				/*
 				GameText = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 								   sizeof(Text));
@@ -585,7 +602,7 @@ InitializeGameState()
 	CurrentGameState->CurrentMS = 0;
 	CurrentGameState->DeltaMS = 0;
 	// TODO(nick): reset this to false !!!
-	CurrentGameState->IsPlaying = true;
+	CurrentGameState->IsPlaying = false;
 
 	CurrentGameState->Memory = (GameMemory *)malloc(sizeof(GameMemory));
 
@@ -680,7 +697,7 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 	
 	// TODO(nick): make colors.h file
 	SDL_Color DefaultColor = { 255, 255, 255, 0 };
-	SDL_Surface *Raw = TTF_RenderText_Solid(Font, "DEFAULT TEXT WITH A LOT OF EXTRA TEXT TO TEST RENDERERING", DefaultColor);
+	SDL_Surface *Raw = TTF_RenderText_Solid(Font, text, DefaultColor);
 
 	if (!Raw)
 	{
@@ -743,19 +760,19 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	{
 		SDL_Rect TextRenderBox = 
 		{
-			CurrentText->PrimaryPositionV2.X + 100,
-			CurrentText->PrimaryPositionV2.Y,
-			CurrentText->PrimaryText->Width,
-			CurrentText->PrimaryText->Height,
+			CurrentText->PositionV2.X + 100,
+			CurrentText->PositionV2.Y,
+			CurrentText->Texture->Width,
+			CurrentText->Texture->Height,
 		};
 
 		SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
-				 CurrentText->PrimaryText->Texture,
+				 CurrentText->Texture->Texture,
 				 NULL,
 				 &TextRenderBox,
-				 GameText->PrimaryText->Rotation,
+				 CurrentText->Texture->Rotation,
 				 NULL,
-				 GameText->PrimaryText->Flip);
+				 CurrentText->Texture->Flip);
 	}
 }
 
