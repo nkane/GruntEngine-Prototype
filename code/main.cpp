@@ -301,17 +301,6 @@ main(int argc, char *argv[])
 				// NOTE(nick): add entities to render queue
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GruntEntityNode);
-
-				// TODO(nick): make nodes only for needed stuff
-				/*
-				Text_Node MainTextNode =
-				{
-					Gronkey,
-					NULL,
-				};
-
-				Queue_Enqueue_GameText(GlobalTextRenderQueue, MainTextNode);
-				*/
 				
 				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
@@ -529,36 +518,10 @@ InitializeGame()
 							                       ArcadeFont,
 							      	      	       GlobalWindowState->GameSurface,
 						              	               GlobalWindowState->GameRenderer, 
-								               "GRONKEY\n\tKONG\0");
-				/*
-				GameText = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-								   sizeof(Text));
+								               "GRONKEY KONG\0");
 
-				ArcadeFont = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 24);
-				if (!ArcadeFont)
-				{
-					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
-				}
-				GameText->Text = LoadAssetTTF(GlobalGameState,
-								     ArcadeFont,
-								     GlobalWindowState->GameSurface,
-								     GlobalWindowState->GameRenderer);
-				GameText->PrimaryPositionV2 = DefaultVector2Position();
-				
-				GameText->SecondaryFont = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 24);
-				if (GameText->SecondaryFont)
-				{
-					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
-				}
-				GameText->SecondaryText = LoadAssetTTF(GlobalGameState,
-								       GameText->SecondaryFont,
-								       GlobalWindowState->GameSurface,
-								       GlobalWindowState->GameRenderer);
-
-
-				GameText->SecondaryPositionV2 = DefaultVector2Position();
-				*/
-
+				TitleScreenGronkeyKong->PositionV2 = DefaultVector2Position();
+		
 				// NOTE(nick): allocate enough space for the game queue data
 				// as well as 50 queue slots
 				GlobalEntityRenderQueue = (Queue_GameEntity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
