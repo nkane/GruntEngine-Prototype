@@ -113,174 +113,174 @@ main(int argc, char *argv[])
 		// query for time
 		GlobalGameState->CurrentMS = SDL_GetTicks();
 
-		// TODO(nick): make enter key flip
-		if (GlobalGameState->IsPlaying)
+		while (SDL_PollEvent(&CurrentEvent))
 		{
-			while (SDL_PollEvent(&CurrentEvent))
+			// TODO(nick): handle input function
+			switch (CurrentEvent.type)
 			{
-				// TODO(nick): handle input function
-				switch (CurrentEvent.type)
+				case SDL_QUIT:
 				{
-					case SDL_QUIT:
-					{
-						GameRunning = false;
-					} break;
+					GameRunning = false;
+				} break;
 
-					// TODO(nick): figure out a better way to handle up / release
-					// key presses
-					case SDL_KEYDOWN:
+				// TODO(nick): figure out a better way to handle up / release
+				// key presses
+				case SDL_KEYDOWN:
+				{
+					switch (CurrentEvent.key.keysym.sym)
 					{
-						switch (CurrentEvent.key.keysym.sym)
+						case SDLK_UP: 
 						{
-							case SDLK_UP: 
-							{
-								printf("arrow up pressed\n");
-							} break;
+							printf("arrow up pressed\n");
+						} break;
 
-							case SDLK_DOWN:
-							{
-								printf("arrow down pressed\n");
-							} break;
-
-							case SDLK_LEFT:
-							{
-								// TODO(nick):
-								// 1) rework with new hash set
-								// 2) flip texture before 
-								// 3) set a flag for state of entity facing direction?
-								if (PlayerEntity->CurrentState & (FaceRight))
-								{
-									HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Flip = SDL_FLIP_HORIZONTAL;
-									HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk")->Flip = SDL_FLIP_HORIZONTAL;
-									PlayerEntity->CurrentState = FaceLeft;
-								}
-
-								PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
-								
-								// TODO(nick): possible change to velocity?
-								PlayerEntity->PositionV2.X -= 5;
-								printf("arrow left pressed\n");
-							} break;
-
-							case SDLK_RIGHT:
-							{
-								// TODO(nick): 
-								// 1) rework with new hash set
-								// NOTE(nick): current state is left
-								if (PlayerEntity->CurrentState & (FaceLeft))
-								{
-									HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Flip = SDL_FLIP_NONE;
-									HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk")->Flip = SDL_FLIP_NONE;
-									PlayerEntity->CurrentState = FaceRight;
-								}
-								
-								PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
-								// TODO(nick): possible change to velocity?
-								PlayerEntity->PositionV2.X += 5;
-								printf("arrow right pressed\n");
-							} break;
-
-							case SDLK_w: 
-							{
-								printf("w key pressed\n");
-							} break;
-
-							case SDLK_a:
-							{
-								printf("a key pressed\n");
-							} break;
-
-							case SDLK_s:
-							{
-								printf("s key pressed\n");
-							} break;
-
-							case SDLK_d:
-							{
-								printf("d key pressed\n");
-							} break;
-
-							case SDLK_SPACE: 
-							{
-								printf("space pressed\n");
-							} break;
-
-							default: 
-							{
-								// TODO(nick): not valid key pressed here - just ignore?
-							} break;
-						}
-					} break;
-
-					case SDL_KEYUP:
-					{
-						switch (CurrentEvent.key.keysym.sym)
+						case SDLK_DOWN:
 						{
-							case SDLK_UP: 
-							{
-								printf("arrow up released\n");
-							} break;
+							printf("arrow down pressed\n");
+						} break;
 
-							case SDLK_DOWN:
+						case SDLK_LEFT:
+						{
+							// TODO(nick):
+							// 1) rework with new hash set
+							// 2) flip texture before 
+							// 3) set a flag for state of entity facing direction?
+							if (PlayerEntity->CurrentState & (FaceRight))
 							{
-								printf("arrow down released\n");
-							} break;
+								HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Flip = SDL_FLIP_HORIZONTAL;
+								HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk")->Flip = SDL_FLIP_HORIZONTAL;
+								PlayerEntity->CurrentState = FaceLeft;
+							}
 
-							case SDLK_LEFT:
+							PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
+							
+							// TODO(nick): possible change to velocity?
+							PlayerEntity->PositionV2.X -= 5;
+							printf("arrow left pressed\n");
+						} break;
+
+						case SDLK_RIGHT:
+						{
+							// TODO(nick): 
+							// 1) rework with new hash set
+							// NOTE(nick): current state is left
+							if (PlayerEntity->CurrentState & (FaceLeft))
 							{
-								PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
-								PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
-								printf("arrow left released\n");
-							} break;
+								HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Flip = SDL_FLIP_NONE;
+								HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk")->Flip = SDL_FLIP_NONE;
+								PlayerEntity->CurrentState = FaceRight;
+							}
+							
+							PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
+							// TODO(nick): possible change to velocity?
+							PlayerEntity->PositionV2.X += 5;
+							printf("arrow right pressed\n");
+						} break;
 
-							case SDLK_RIGHT:
-							{
-								PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
-								PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
-								printf("arrow right released\n");
-							} break;
+						case SDLK_w: 
+						{
+							printf("w key pressed\n");
+						} break;
 
-							case SDLK_w: 
-							{
-								printf("w key released\n");
-							} break;
+						case SDLK_a:
+						{
+							printf("a key pressed\n");
+						} break;
 
-							case SDLK_a:
-							{
-								printf("a key released\n");
-							} break;
+						case SDLK_s:
+						{
+							printf("s key pressed\n");
+						} break;
 
-							case SDLK_s:
-							{
-								printf("s key released\n");
-							} break;
+						case SDLK_d:
+						{
+							printf("d key pressed\n");
+						} break;
 
-							case SDLK_d:
-							{
-								printf("d key released\n");
-							} break;
+						case SDLK_SPACE: 
+						{
+							printf("space pressed\n");
+						} break;
 
-							case SDLK_SPACE: 
-							{
-								printf("space released\n");
-							} break;
+						default: 
+						{
+							// TODO(nick): not valid key pressed here - just ignore?
+						} break;
+					}
+				} break;
 
-							default: 
-							{
-								// TODO(nick): not valid key pressed here - just ignore?
-							} break;
-						}
-					} break;
-
-					default:
+				case SDL_KEYUP:
+				{
+					switch (CurrentEvent.key.keysym.sym)
 					{
-						// TODO(nick): not valid code path here ... 
-						// figure out what to do .. 
-					} break;
-				}
-				// clear the screen
-				SDL_RenderClear(GlobalWindowState->GameRenderer);
+						case SDLK_UP: 
+						{
+							printf("arrow up released\n");
+						} break;
 
+						case SDLK_DOWN:
+						{
+							printf("arrow down released\n");
+						} break;
+
+						case SDLK_LEFT:
+						{
+							PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
+							PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
+							printf("arrow left released\n");
+						} break;
+
+						case SDLK_RIGHT:
+						{
+							PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
+							PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
+							printf("arrow right released\n");
+						} break;
+
+						case SDLK_w: 
+						{
+							printf("w key released\n");
+						} break;
+
+						case SDLK_a:
+						{
+							printf("a key released\n");
+						} break;
+
+						case SDLK_s:
+						{
+							printf("s key released\n");
+						} break;
+
+						case SDLK_d:
+						{
+							printf("d key released\n");
+						} break;
+
+						case SDLK_SPACE: 
+						{
+							printf("space released\n");
+						} break;
+
+						default: 
+						{
+							// TODO(nick): not valid key pressed here - just ignore?
+						} break;
+					}
+				} break;
+
+				default:
+				{
+					// TODO(nick): not valid code path here ... 
+					// figure out what to do .. 
+				} break;
+			}
+			// clear the screen
+			SDL_RenderClear(GlobalWindowState->GameRenderer);
+
+
+			if (GlobalGameState->IsPlaying)
+			{
 				// TODO(nick): make nodes only for needed stuff (for queue - entity and text)
 				//
 				// TODO(nick): add some logical step that takes place per level
@@ -304,25 +304,25 @@ main(int argc, char *argv[])
 				
 				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
-		}
-		else
-		{
-			// NOTE(nick): player is at title screen
-			// TODO(nick):
-			// 1) only draw title screen
-			// 2) only handle UI commands
-			// clear the screen
-			SDL_RenderClear(GlobalWindowState->GameRenderer);
-
-			Text_Node GronkeyKong = 
+			else
 			{
-				TitleScreenGronkeyKong,
-				NULL,
-			};
+				// NOTE(nick): player is at title screen
+				// TODO(nick):
+				// 1) only draw title screen
+				// 2) only handle UI commands
+				// clear the screen
+				SDL_RenderClear(GlobalWindowState->GameRenderer);
 
-			Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong);
+				Text_Node GronkeyKong = 
+				{
+					TitleScreenGronkeyKong,
+					NULL,
+				};
 
-			GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong);
+
+				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
+			}
 		}
 
 		// update screen
