@@ -84,13 +84,13 @@ internal GameState *
 InitializeGameState();
 
 internal void
-ReleaseGameState(GameState *);
+ReleaseGameState(GameState *CurrentGameState);
 
 AssetTexture *
 LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer);
 
 AssetTexture *
-LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, char *text);
+LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, char *text, SDL_Color *Color);
 
 void 
 GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue);
@@ -514,11 +514,14 @@ InitializeGame()
 
 				TitleScreenGronkeyKong = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 										 sizeof(Text));
+				// Color - RGBA
+				SDL_Color Color = { 0, 0, 255, 0 };
 				TitleScreenGronkeyKong->Texture = LoadAssetTTF(GlobalGameState,
 							                       ArcadeFont,
 							      	      	       GlobalWindowState->GameSurface,
 						              	               GlobalWindowState->GameRenderer, 
-								               "GRONKEY KONG\0");
+								               "GRONKEY KONG\0",
+									       &Color);
 
 				TitleScreenGronkeyKong->PositionV2 = DefaultVector2Position();
 		
@@ -653,14 +656,17 @@ LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *
 // TODO(nick): 
 // 1) pass in color?
 AssetTexture *
-LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, char *text)
+LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, char *text, SDL_Color *Color)
 {
 	AssetTexture *Result = NULL;
 	SDL_Texture *Texture = NULL;
 	
-	// TODO(nick): make colors.h file
-	SDL_Color DefaultColor = { 255, 255, 255, 0 };
-	SDL_Surface *Raw = TTF_RenderText_Solid(Font, text, DefaultColor);
+	if (!Color)
+	{
+		*Color = { 255, 255, 255, 0 };
+	}
+
+	SDL_Surface *Raw = TTF_RenderText_Solid(Font, text, *Color);
 
 	if (!Raw)
 	{
