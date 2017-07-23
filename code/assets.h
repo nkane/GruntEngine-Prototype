@@ -28,3 +28,12 @@ DefaultVector2Position()
 	};
 }
 
+inline Vector2
+DefaultVector2CenterScreen(int screenWidth, int screenHeight)
+{
+	return Vector2
+	{
+		(screenWidth / 2),
+		(screenHeight / 2),
+	};
+}

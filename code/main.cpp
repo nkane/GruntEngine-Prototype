@@ -51,12 +51,16 @@ global_variable Queue_GameEntity *GlobalEntityRenderQueue;
 
 // Font Globals
 // <=====================================================================>
-global_variable TTF_Font *ArcadeFont;
-global_variable TTF_Font *PokeFont;
+global_variable TTF_Font *ArcadeFont_Large;
+global_variable TTF_Font *ArcadeFont_Medium;
+global_variable TTF_Font *PokeFont_Large;
+global_variable TTF_Font *PokeFont_Medium;
 global_variable int GlobalTextArrayIndex = 0;
 global_variable Text *GlobalTextArray[50];
 
-global_variable Text *TitleScreenGronkeyKong;
+// TODO(nick): segment into scene text?
+global_variable Text *TitleScreenGronkeyKong_1;
+global_variable Text *TitleScreenGronkeyKong_2;
 global_variable Text *TitleScreenBottom;
 
 global_variable Text *LivesCount;
@@ -64,7 +68,6 @@ global_variable Text *CurrentScore;
 global_variable Text *HighScore;
 global_variable Text *CurrentLevel;
 
-// TODO(nick): complete this queue
 global_variable Queue_GameText *GlobalTextRenderQueue;
 // /=====================================================================/
 
@@ -129,6 +132,16 @@ main(int argc, char *argv[])
 				{
 					switch (CurrentEvent.key.keysym.sym)
 					{
+
+						case SDLK_RETURN:
+						{
+
+							if (!GlobalGameState->IsPlaying)
+							{
+								GlobalGameState->IsPlaying = true;
+							}
+						} break;
+
 						case SDLK_UP: 
 						{
 							printf("arrow up pressed\n");
@@ -313,13 +326,20 @@ main(int argc, char *argv[])
 				// clear the screen
 				SDL_RenderClear(GlobalWindowState->GameRenderer);
 
-				Text_Node GronkeyKong = 
+				Text_Node GronkeyKong_P1 = 
 				{
-					TitleScreenGronkeyKong,
+					TitleScreenGronkeyKong_1,
 					NULL,
 				};
 
-				Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong);
+				Text_Node GronkeyKong_P2 =
+				{
+					TitleScreenGronkeyKong_2,
+					NULL,
+				};
+
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong_P1);
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong_P2);
 
 				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
@@ -352,8 +372,10 @@ main(int argc, char *argv[])
 
 	// release fonts
 	{
-		TTF_CloseFont(ArcadeFont);
-		TTF_CloseFont(PokeFont);
+		TTF_CloseFont(ArcadeFont_Large);
+		TTF_CloseFont(ArcadeFont_Medium);
+		TTF_CloseFont(PokeFont_Large);
+		TTF_CloseFont(PokeFont_Medium);
 	}
 
 	// TODO(nick): stream line some clean up process that is going to unload assest / clean up memory
@@ -500,30 +522,57 @@ InitializeGame()
 				++GlobalEntityArrayIndex;
 
 				// NOTE(nick): game font initialization
-				ArcadeFont = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 24);
-				if (!ArcadeFont) 
+				ArcadeFont_Medium = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 24);
+				if (!ArcadeFont_Medium) 
 				{
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
 				}
 
-				PokeFont = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 24);
-				if (!PokeFont)
+				ArcadeFont_Large = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 48);
+				if (!ArcadeFont_Medium)
 				{
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
 				}
 
-				TitleScreenGronkeyKong = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-										 sizeof(Text));
+				PokeFont_Medium = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 24);
+				if (!PokeFont_Medium)
+				{
+					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
+				}
+
+				PokeFont_Large = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 48);
+				if (!PokeFont_Large)
+				{
+					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
+				}
+
+				TitleScreenGronkeyKong_1 = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+										   sizeof(Text));
+				TitleScreenGronkeyKong_2 = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+										   sizeof(Text));
 				// Color - RGBA
 				SDL_Color Color = { 0, 0, 255, 0 };
-				TitleScreenGronkeyKong->Texture = LoadAssetTTF(GlobalGameState,
-							                       ArcadeFont,
-							      	      	       GlobalWindowState->GameSurface,
-						              	               GlobalWindowState->GameRenderer, 
-								               "GRONKEY KONG\0",
-									       &Color);
+				TitleScreenGronkeyKong_1->Texture = LoadAssetTTF(GlobalGameState,
+							                         ArcadeFont_Large,
+							      	      	         GlobalWindowState->GameSurface,
+						              	                 GlobalWindowState->GameRenderer, 
+								                 "GRONKEY\0",
+									         &Color);
+				// TODO(nick): center of screen and then offset
+				//TitleScreenGronkeyKong_1->PositionV2 = DefaultVector2Position();
+				TitleScreenGronkeyKong_1->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
 
-				TitleScreenGronkeyKong->PositionV2 = DefaultVector2Position();
+				TitleScreenGronkeyKong_2->Texture = LoadAssetTTF(GlobalGameState,
+										 ArcadeFont_Large,
+										 GlobalWindowState->GameSurface,
+										 GlobalWindowState->GameRenderer,
+										 "KONG\0",
+										 &Color);
+				// TODO(nick): center part 2 based on positioning of part 1
+				// TODO(nick): figure out a better way of handling the text positioning
+				TitleScreenGronkeyKong_2->PositionV2.X = (TitleScreenGronkeyKong_1->PositionV2.X + (TitleScreenGronkeyKong_1->Texture->Width / 4));
+				// NOTE(nick): 5 is an offset to allow texture to sit a bit closer
+				TitleScreenGronkeyKong_2->PositionV2.Y = ((TitleScreenGronkeyKong_1->PositionV2.Y + TitleScreenGronkeyKong_1->Texture->Height) / 2) + 5;
 		
 				// NOTE(nick): allocate enough space for the game queue data
 				// as well as 50 queue slots
@@ -729,7 +778,7 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	{
 		SDL_Rect TextRenderBox = 
 		{
-			CurrentText->PositionV2.X + 100,
+			CurrentText->PositionV2.X,
 			CurrentText->PositionV2.Y,
 			CurrentText->Texture->Width,
 			CurrentText->Texture->Height,
