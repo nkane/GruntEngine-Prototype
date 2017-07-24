@@ -305,7 +305,9 @@ main(int argc, char *argv[])
 					NULL,
 				};
 
-				Entity_Node GruntEntityNode = 
+				GronkEntity->PositionV2 = DefaultVector2Position();
+
+				Entity_Node GronkEntityNode = 
 				{
 					GronkEntity,
 					NULL,
@@ -313,7 +315,7 @@ main(int argc, char *argv[])
 
 				// NOTE(nick): add entities to render queue
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
-				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GruntEntityNode);
+				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GronkEntityNode);
 				
 				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
@@ -325,6 +327,14 @@ main(int argc, char *argv[])
 				// 2) only handle UI commands
 				// clear the screen
 				SDL_RenderClear(GlobalWindowState->GameRenderer);
+
+				Entity_Node GronkEntityNode = 
+				{
+					GronkEntity,
+					NULL,
+				};
+
+				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GronkEntityNode);
 
 				Text_Node GronkeyKong_P1 = 
 				{
@@ -516,7 +526,7 @@ InitializeGame()
 				HashSet_Insert_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
 				GronkEntity->CurrentState = (EntityState)(Idle);
 				GronkEntity->CurrentTexture = HashSet_Select_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle");
-				GronkEntity->PositionV2 = DefaultVector2Position();
+				GronkEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
 
 				GlobalEntityArray[GlobalEntityArrayIndex] = GronkEntity;
 				++GlobalEntityArrayIndex;
@@ -528,7 +538,7 @@ InitializeGame()
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
 				}
 
-				ArcadeFont_Large = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 48);
+				ArcadeFont_Large = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 80);
 				if (!ArcadeFont_Medium)
 				{
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
@@ -540,7 +550,7 @@ InitializeGame()
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
 				}
 
-				PokeFont_Large = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 48);
+				PokeFont_Large = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 80);
 				if (!PokeFont_Large)
 				{
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
@@ -561,6 +571,8 @@ InitializeGame()
 				// TODO(nick): center of screen and then offset
 				//TitleScreenGronkeyKong_1->PositionV2 = DefaultVector2Position();
 				TitleScreenGronkeyKong_1->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+				TitleScreenGronkeyKong_1->PositionV2.Y -= 175;
+				TitleScreenGronkeyKong_1->PositionV2.X -= (TitleScreenGronkeyKong_1->Texture->Width / 2);
 
 				TitleScreenGronkeyKong_2->Texture = LoadAssetTTF(GlobalGameState,
 										 ArcadeFont_Large,
@@ -570,9 +582,9 @@ InitializeGame()
 										 &Color);
 				// TODO(nick): center part 2 based on positioning of part 1
 				// TODO(nick): figure out a better way of handling the text positioning
-				TitleScreenGronkeyKong_2->PositionV2.X = (TitleScreenGronkeyKong_1->PositionV2.X + (TitleScreenGronkeyKong_1->Texture->Width / 4));
 				// NOTE(nick): 5 is an offset to allow texture to sit a bit closer
-				TitleScreenGronkeyKong_2->PositionV2.Y = ((TitleScreenGronkeyKong_1->PositionV2.Y + TitleScreenGronkeyKong_1->Texture->Height) / 2) + 5;
+				TitleScreenGronkeyKong_2->PositionV2.X = TitleScreenGronkeyKong_1->PositionV2.X + (TitleScreenGronkeyKong_1->Texture->Width / 4);
+				TitleScreenGronkeyKong_2->PositionV2.Y = (TitleScreenGronkeyKong_1->PositionV2.Y + (TitleScreenGronkeyKong_1->Texture->Height / 2) + 15);
 		
 				// NOTE(nick): allocate enough space for the game queue data
 				// as well as 50 queue slots
