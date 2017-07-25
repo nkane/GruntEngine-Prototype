@@ -49,6 +49,7 @@ global_variable Entity *GlobalEntityArray[50];
 global_variable Queue_GameEntity *GlobalEntityRenderQueue;
 // /=====================================================================/
 
+
 // Font Globals
 // <=====================================================================>
 global_variable TTF_Font *ArcadeFont_Large;
@@ -58,7 +59,17 @@ global_variable TTF_Font *PokeFont_Medium;
 global_variable int GlobalTextArrayIndex = 0;
 global_variable Text *GlobalTextArray[50];
 
+
+// HUD
+// TODO(nick): look in to creating a different view port for hud port?
+global_variable Text *HUDHighScore;
+global_variable Text *HUDHighScoreValue;
+global_variable Text *HUDLivesCount;
+global_variable Text *HUDCurrentScore;
+global_variable Text *HUDCurrentLevel;
+
 // TODO(nick): segment into scene text?
+// Title Screen
 global_variable Text *TitleScreenGronkeyKong_1;
 global_variable Text *TitleScreenGronkeyKong_2;
 global_variable Text *TitleScreenBottom;
@@ -290,6 +301,25 @@ main(int argc, char *argv[])
 			}
 			// clear the screen
 			SDL_RenderClear(GlobalWindowState->GameRenderer);
+
+			// NOTE(nick): top HUD is always displayed
+			// always enqueue HUD text values
+			{
+				Text_Node HUDHighScoreNode
+				{
+					HUDHighScore,
+					NULL,
+				};
+
+				Text_Node HUDHighScoreValueNode
+				{
+					HUDHighScoreValue,
+					NULL,
+				};
+
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDHighScoreNode);
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDHighScoreValueNode);
+			}
 
 
 			if (GlobalGameState->IsPlaying)
@@ -544,7 +574,7 @@ InitializeGame()
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
 				}
 
-				PokeFont_Medium = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 24);
+				PokeFont_Medium = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 35);
 				if (!PokeFont_Medium)
 				{
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
@@ -561,13 +591,17 @@ InitializeGame()
 				TitleScreenGronkeyKong_2 = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 										   sizeof(Text));
 				// Color - RGBA
-				SDL_Color Color = { 0, 0, 255, 0 };
+				// TODO(nick): global color palette?
+				SDL_Color BlueColor = { 0, 0, 255, 0 };
+				SDL_Color RedColor = { 255, 0, 0, 0 };
+				SDL_Color WhiteColor = { 255, 255, 255, 0 };
+
 				TitleScreenGronkeyKong_1->Texture = LoadAssetTTF(GlobalGameState,
 							                         ArcadeFont_Large,
 							      	      	         GlobalWindowState->GameSurface,
 						              	                 GlobalWindowState->GameRenderer, 
-								                 "GRONKEY\0",
-									         &Color);
+								                 "GRONKEY",
+									         &BlueColor);
 				// TODO(nick): center of screen and then offset
 				//TitleScreenGronkeyKong_1->PositionV2 = DefaultVector2Position();
 				TitleScreenGronkeyKong_1->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
@@ -578,13 +612,37 @@ InitializeGame()
 										 ArcadeFont_Large,
 										 GlobalWindowState->GameSurface,
 										 GlobalWindowState->GameRenderer,
-										 "KONG\0",
-										 &Color);
+										 "KONG",
+										 &BlueColor);
 				// TODO(nick): center part 2 based on positioning of part 1
 				// TODO(nick): figure out a better way of handling the text positioning
 				// NOTE(nick): 5 is an offset to allow texture to sit a bit closer
 				TitleScreenGronkeyKong_2->PositionV2.X = TitleScreenGronkeyKong_1->PositionV2.X + (TitleScreenGronkeyKong_1->Texture->Width / 4);
 				TitleScreenGronkeyKong_2->PositionV2.Y = (TitleScreenGronkeyKong_1->PositionV2.Y + (TitleScreenGronkeyKong_1->Texture->Height / 2) + 15);
+
+				
+				HUDHighScore = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+								       sizeof(Text));
+				HUDHighScoreValue = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+									    sizeof(Text));
+				HUDHighScore->Texture = LoadAssetTTF(GlobalGameState,
+								     ArcadeFont_Medium,
+								     GlobalWindowState->GameSurface,
+								     GlobalWindowState->GameRenderer,
+								     "HIGH  SCORE",
+								     &RedColor);
+				HUDHighScore->PositionV2 = DefaultVector2CenterScreen((GlobalWindowState->Width - HUDHighScore->Texture->Width), 0);
+
+				// TODO(nick): keep a current highscore value and write out as a string
+				HUDHighScoreValue->Texture = LoadAssetTTF(GlobalGameState,
+									  ArcadeFont_Medium,
+									  GlobalWindowState->GameSurface,
+									  GlobalWindowState->GameRenderer,
+									  "000000",
+									  &WhiteColor);
+
+				HUDHighScoreValue->PositionV2.X = (HUDHighScore->PositionV2.X + (HUDHighScore->Texture->Width / 4));
+				HUDHighScoreValue->PositionV2.Y = (HUDHighScore->PositionV2.Y + (HUDHighScore->Texture->Height / 2) + 5);
 		
 				// NOTE(nick): allocate enough space for the game queue data
 				// as well as 50 queue slots
