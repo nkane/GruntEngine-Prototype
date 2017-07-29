@@ -5,12 +5,7 @@
 
 struct Text
 {
-	TTF_Font *PrimaryFont;
-	AssetTexture *PrimaryText;
-	Vector2 PrimaryPositionV2;
-
-	TTF_Font *SecondaryFont;
-	AssetTexture *SecondaryText;
-	Vector2 SecondaryPositionV2;
+	AssetTexture *Texture;
+	Vector2 PositionV2;
 };
 
