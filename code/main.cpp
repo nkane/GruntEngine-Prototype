@@ -328,10 +328,17 @@ main(int argc, char *argv[])
 					NULL,
 				};
 
+				Text_Node HUDCurrentLevelNode
+				{
+					HUDCurrentLevel,
+					NULL,
+				};
+
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDHighScoreNode);
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDHighScoreValueNode);
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDLivesCountNode);
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDCurrentScoreNode);
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDCurrentLevelNode);
 			}
 
 
@@ -673,7 +680,18 @@ InitializeGame()
 								     	"000000",
 								     	&White);
 				HUDCurrentScore->PositionV2 = DefaultVector2Position();
-				HUDCurrentScore->PositionV2.Y += HUDLivesCount->Texture->Height + 15;
+				HUDCurrentScore->PositionV2.Y += HUDLivesCount->Texture->Height;
+
+				HUDCurrentLevel = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+									  sizeof(Text));
+				HUDCurrentLevel->Texture = LoadAssetTTF(GlobalGameState,
+									ArcadeFont_Medium,
+									GlobalWindowState->GameSurface,
+									GlobalWindowState->GameRenderer,
+									"L 00",
+									&Blue);
+				HUDCurrentLevel->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, 0);
+				HUDCurrentLevel->PositionV2.X += 100;
 		
 				// NOTE(nick): allocate enough space for the game queue data
 				// as well as 50 queue slots
