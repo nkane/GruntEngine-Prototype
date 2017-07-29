@@ -59,7 +59,6 @@ global_variable TTF_Font *PokeFont_Medium;
 global_variable int GlobalTextArrayIndex = 0;
 global_variable Text *GlobalTextArray[50];
 
-
 // HUD
 // TODO(nick): look in to creating a different view port for hud port?
 global_variable Text *HUDHighScore;
@@ -317,8 +316,22 @@ main(int argc, char *argv[])
 					NULL,
 				};
 
+				Text_Node HUDLivesCountNode
+				{
+					HUDLivesCount,
+					NULL,
+				};
+
+				Text_Node HUDCurrentScoreNode
+				{
+					HUDCurrentScore,
+					NULL,
+				};
+
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDHighScoreNode);
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDHighScoreValueNode);
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDLivesCountNode);
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDCurrentScoreNode);
 			}
 
 
@@ -592,16 +605,16 @@ InitializeGame()
 										   sizeof(Text));
 				// Color - RGBA
 				// TODO(nick): global color palette?
-				SDL_Color BlueColor = { 0, 0, 255, 0 };
-				SDL_Color RedColor = { 255, 0, 0, 0 };
-				SDL_Color WhiteColor = { 255, 255, 255, 0 };
+				SDL_Color Blue = { 0, 0, 255, 0 };
+				SDL_Color Red = { 255, 0, 0, 0 };
+				SDL_Color White = { 255, 255, 255, 0 };
 
 				TitleScreenGronkeyKong_1->Texture = LoadAssetTTF(GlobalGameState,
 							                         ArcadeFont_Large,
 							      	      	         GlobalWindowState->GameSurface,
 						              	                 GlobalWindowState->GameRenderer, 
 								                 "GRONKEY",
-									         &BlueColor);
+									         &Blue);
 				// TODO(nick): center of screen and then offset
 				//TitleScreenGronkeyKong_1->PositionV2 = DefaultVector2Position();
 				TitleScreenGronkeyKong_1->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
@@ -613,13 +626,12 @@ InitializeGame()
 										 GlobalWindowState->GameSurface,
 										 GlobalWindowState->GameRenderer,
 										 "KONG",
-										 &BlueColor);
+										 &Blue);
 				// TODO(nick): center part 2 based on positioning of part 1
 				// TODO(nick): figure out a better way of handling the text positioning
 				// NOTE(nick): 5 is an offset to allow texture to sit a bit closer
 				TitleScreenGronkeyKong_2->PositionV2.X = TitleScreenGronkeyKong_1->PositionV2.X + (TitleScreenGronkeyKong_1->Texture->Width / 4);
 				TitleScreenGronkeyKong_2->PositionV2.Y = (TitleScreenGronkeyKong_1->PositionV2.Y + (TitleScreenGronkeyKong_1->Texture->Height / 2) + 15);
-
 				
 				HUDHighScore = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 								       sizeof(Text));
@@ -630,19 +642,38 @@ InitializeGame()
 								     GlobalWindowState->GameSurface,
 								     GlobalWindowState->GameRenderer,
 								     "HIGH  SCORE",
-								     &RedColor);
+								     &Red);
 				HUDHighScore->PositionV2 = DefaultVector2CenterScreen((GlobalWindowState->Width - HUDHighScore->Texture->Width), 0);
-
 				// TODO(nick): keep a current highscore value and write out as a string
 				HUDHighScoreValue->Texture = LoadAssetTTF(GlobalGameState,
 									  ArcadeFont_Medium,
 									  GlobalWindowState->GameSurface,
 									  GlobalWindowState->GameRenderer,
 									  "000000",
-									  &WhiteColor);
-
+									  &White);
 				HUDHighScoreValue->PositionV2.X = (HUDHighScore->PositionV2.X + (HUDHighScore->Texture->Width / 4));
 				HUDHighScoreValue->PositionV2.Y = (HUDHighScore->PositionV2.Y + (HUDHighScore->Texture->Height / 2) + 5);
+
+				HUDLivesCount = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+									sizeof(Text));
+				HUDCurrentScore = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+									  sizeof(Text));
+				// TODO(nick): keep track of current lives count - texture needs to be rendered on update
+				HUDLivesCount->Texture = LoadAssetTTF(GlobalGameState,
+								      ArcadeFont_Medium,
+								      GlobalWindowState->GameSurface,
+								      GlobalWindowState->GameRenderer,
+								      "0 UP",
+								      &Red);
+				HUDLivesCount->PositionV2 = DefaultVector2Position();
+				HUDCurrentScore->Texture = LoadAssetTTF(GlobalGameState,
+								        ArcadeFont_Medium,
+								     	GlobalWindowState->GameSurface,
+								     	GlobalWindowState->GameRenderer,
+								     	"000000",
+								     	&White);
+				HUDCurrentScore->PositionV2 = DefaultVector2Position();
+				HUDCurrentScore->PositionV2.Y += HUDLivesCount->Texture->Height + 15;
 		
 				// NOTE(nick): allocate enough space for the game queue data
 				// as well as 50 queue slots
