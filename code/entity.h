@@ -13,6 +13,7 @@ enum EntityState
 
 struct Entity
 {
+	int Id;
 	AssetTexture *CurrentTexture;
 	HashSet_AssetTexture TextureSet[32];
 	EntityState CurrentState;

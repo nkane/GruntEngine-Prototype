@@ -105,8 +105,11 @@ LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *
 AssetTexture *
 LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, char *text, SDL_Color *Color);
 
+bool
+CheckCollision(Entity *GlobalEntityArray[], int size, int checkIndex);
+
 void 
-GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue);
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue, Entity *EntityArray[50]);
 
 int
 main(int argc, char *argv[])
@@ -355,8 +358,7 @@ main(int argc, char *argv[])
 					NULL,
 				};
 
-				GronkEntity->PositionV2 = DefaultVector2Position();
-
+				GronkEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
 				Entity_Node GronkEntityNode = 
 				{
 					GronkEntity,
@@ -367,7 +369,7 @@ main(int argc, char *argv[])
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GronkEntityNode);
 				
-				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
+				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue, GlobalEntityArray);
 			}
 			else
 			{
@@ -375,7 +377,6 @@ main(int argc, char *argv[])
 				// TODO(nick):
 				// 1) only draw title screen
 				// 2) only handle UI commands
-				// clear the screen
 				SDL_RenderClear(GlobalWindowState->GameRenderer);
 
 				Entity_Node GronkEntityNode = 
@@ -401,7 +402,7 @@ main(int argc, char *argv[])
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong_P1);
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong_P2);
 
-				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
+				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue, GlobalEntityArray);
 			}
 		}
 
@@ -560,10 +561,10 @@ InitializeGame()
 				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
 
 				// NOTE(nick): set default texture on game init
+				PlayerEntity->Id = GlobalEntityArrayIndex;
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
 				PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
-
-				PlayerEntity->PositionV2 = DefaultVector2Position();
+				PlayerEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
 
 				GlobalEntityArray[GlobalEntityArrayIndex] = PlayerEntity;
 				++GlobalEntityArrayIndex;
@@ -574,6 +575,7 @@ InitializeGame()
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Gronk/Gronk_0011_Gronk-Idle-2.png", "rb");
 				HashSet_Insert_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+				GronkEntity->Id = GlobalEntityArrayIndex;
 				GronkEntity->CurrentState = (EntityState)(Idle);
 				GronkEntity->CurrentTexture = HashSet_Select_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle");
 				GronkEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
@@ -863,8 +865,35 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 	return Result;
 }
 
+bool
+CheckCollision(Entity *EntityArray[50], int checkIndex)
+{
+	bool Result = false;
+	int leftA, leftB;
+	int rightA, rightB;
+	int topA, topB;
+	int bottomA, bottomB;
+	int i = 0;
+
+	Entity *checkEntity = EntityArray[checkIndex];
+	Entity *currentEntity = EntityArray[i]; 
+	while (currentEntity != NULL)
+	{
+		if (i != checkIndex)
+		{
+			if (currentEntity)
+			{
+		
+			}
+		}
+		++i;
+		currentEntity = EntityArray[i];
+	}
+	return Result;
+}
+
 void 
-GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue)
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue, Entity *EntityArray[50])
 {
 	// render texture(s) to screen
 	// TODO(nick):
@@ -872,9 +901,19 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	//    - srcrect 
 	// 2) 2nd NULL value is center point
 	//    - center, used for point to determine rotation
+	//
+	
+	// TODO(nick): collision checking
+	// 1) probably need a flag to turn on or off for title screen rendering?
 	Entity *CurrentEntity = NULL; 
 	while (CurrentEntity = Queue_Dequeue_GameEntity(EntityQueue))
 	{
+		// TODO(nick):
+		// 1) if collision is detected, do not move position
+		if (CheckCollision(EntityArray, CurrentEntity->Id))
+		{
+			CurrentEntity->PositionV2.X -= 5;
+		}
 		SDL_Rect PlayerRenderBox = 
 		{
 			CurrentEntity->PositionV2.X,
@@ -912,4 +951,3 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 				 CurrentText->Texture->Flip);
 	}
 }
-
