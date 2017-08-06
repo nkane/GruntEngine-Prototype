@@ -356,7 +356,6 @@ main(int argc, char *argv[])
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDCurrentScoreNode);
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDCurrentLevelNode);
 
-
 				// TODO(nick): set a debug mode flag check here
 				Text_Node DEBUGInfo_PlayerPositionNode
 				{
@@ -399,8 +398,6 @@ main(int argc, char *argv[])
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GronkEntityNode);
 				
-				// IMPORTANT(nick):
-				// TODO(nick): handle collision call might be better to be done before GameUpdateAndRender
 				HandleCollision(GlobalEntityArray, PlayerEntity->Id);
 				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
@@ -770,7 +767,7 @@ InitializeGame()
 										DEBUG_StringBuffer,
 										&White);
 				DEBUG_EnemyPositionInfo->PositionV2.X = 400;
-				DEBUG_EnemyPositionInfo->PositionV2.Y = 450;
+				DEBUG_EnemyPositionInfo->PositionV2.Y = 425;
 		
 				// NOTE(nick): allocate enough space for the game queue data
 				// as well as 50 queue slots
@@ -908,7 +905,8 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 	
 	if (!Color)
 	{
-		*Color = { 255, 255, 255, 0, };
+		SDL_Color White = { 255, 255, 255, 0 };
+		Color = &White;
 	}
 
 	SDL_Surface *Raw = TTF_RenderText_Solid(Font, text, *Color);
@@ -945,7 +943,8 @@ UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, TTF_Font *Fon
 {
 	if (!Color)
 	{
-		*Color = { 255, 255, 255, 0, };
+		SDL_Color White = { 255, 255, 255, 0 };
+		Color = &White;
 	}
 	SDL_Surface *Raw = TTF_RenderText_Solid(Font, text, *Color);
 	if (!Raw)
@@ -1022,9 +1021,26 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	// 2) 2nd NULL value is center point
 	//    - center, used for point to determine rotation
 	//
-	
-	// TODO(nick): collision checking
-	// 1) probably need a flag to turn on or off for title screen rendering?
+	//
+	//
+
+	// NOTE(nick): debug info
+	{
+		sprintf(DEBUG_StringBuffer, "Player Position x %d y %d ", PlayerEntity->PositionV2.X, PlayerEntity->PositionV2.Y);
+		UpdateAssetTTF(CurrentWindowState->GameRenderer,
+			       DEBUG_PlayerPositionInfo,
+			       PokeFont_Small,
+			       DEBUG_StringBuffer,
+			       NULL);
+		sprintf(DEBUG_StringBuffer, "Enemy Position x %d y: %d", GronkEntity->PositionV2.X, GronkEntity->PositionV2.Y);
+		UpdateAssetTTF(CurrentWindowState->GameRenderer,
+			       DEBUG_EnemyPositionInfo,
+			       PokeFont_Small,
+			       DEBUG_StringBuffer,
+			       NULL);
+	}
+
+
 	Entity *CurrentEntity = NULL; 
 	while (CurrentEntity = Queue_Dequeue_GameEntity(EntityQueue))
 	{
