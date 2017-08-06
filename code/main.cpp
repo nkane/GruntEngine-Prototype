@@ -49,7 +49,6 @@ global_variable Entity *GlobalEntityArray[50];
 global_variable Queue_GameEntity *GlobalEntityRenderQueue;
 // /=====================================================================/
 
-
 // Font Globals
 // <=====================================================================>
 global_variable TTF_Font *ArcadeFont_Large;
@@ -58,6 +57,10 @@ global_variable TTF_Font *PokeFont_Large;
 global_variable TTF_Font *PokeFont_Medium;
 global_variable int GlobalTextArrayIndex = 0;
 global_variable Text *GlobalTextArray[50];
+
+// Debug Info
+global_variable Text *PlayerPositionInfo;
+global_variable Text *EnemyPositionInfo;
 
 // HUD
 // TODO(nick): look in to creating a different view port for hud port?
@@ -105,11 +108,14 @@ LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *
 AssetTexture *
 LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, char *text, SDL_Color *Color);
 
-bool
-CheckCollision(Entity *GlobalEntityArray[], int size, int checkIndex);
+void
+UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, char *text, SDL_Color *Color);
+
+void
+HandleCollision(Entity *GlobalEntityArray[50], int checkIndex);
 
 void 
-GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue, Entity *EntityArray[50]);
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue);
 
 int
 main(int argc, char *argv[])
@@ -344,7 +350,6 @@ main(int argc, char *argv[])
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDCurrentLevelNode);
 			}
 
-
 			if (GlobalGameState->IsPlaying)
 			{
 				// TODO(nick): make nodes only for needed stuff (for queue - entity and text)
@@ -369,7 +374,10 @@ main(int argc, char *argv[])
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GronkEntityNode);
 				
-				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue, GlobalEntityArray);
+				// IMPORTANT(nick):
+				// TODO(nick): handle collision call might be better to be done before GameUpdateAndRender
+				HandleCollision(GlobalEntityArray, PlayerEntity->Id);
+				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
 			else
 			{
@@ -401,8 +409,7 @@ main(int argc, char *argv[])
 
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong_P1);
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong_P2);
-
-				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue, GlobalEntityArray);
+				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
 		}
 
@@ -424,6 +431,7 @@ main(int argc, char *argv[])
 		}
 	}
 
+	// TODO(nick): need better clean up process
 	// destory textures
 	{	
 		SDL_DestroyTexture(HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Texture);
@@ -565,6 +573,7 @@ InitializeGame()
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
 				PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
 				PlayerEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+				PlayerEntity->PositionV2.X += 100;
 
 				GlobalEntityArray[GlobalEntityArrayIndex] = PlayerEntity;
 				++GlobalEntityArrayIndex;
@@ -823,8 +832,6 @@ LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *
 	return Result;
 }
 
-// TODO(nick): 
-// 1) pass in color?
 AssetTexture *
 LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, char *text, SDL_Color *Color)
 {
@@ -833,7 +840,7 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 	
 	if (!Color)
 	{
-		*Color = { 255, 255, 255, 0 };
+		*Color = { 255, 255, 255, 0, };
 	}
 
 	SDL_Surface *Raw = TTF_RenderText_Solid(Font, text, *Color);
@@ -865,35 +872,80 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 	return Result;
 }
 
-bool
-CheckCollision(Entity *EntityArray[50], int checkIndex)
+void
+UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, TTF_Font *Font, char *text, SDL_Color *Color)
 {
-	bool Result = false;
-	int leftA, leftB;
-	int rightA, rightB;
-	int topA, topB;
-	int bottomA, bottomB;
+	if (!Color)
+	{
+		*Color = { 255, 255, 255, 0, };
+	}
+	SDL_Surface *Raw = TTF_RenderText_Solid(Font, text, *Color);
+	if (!Raw)
+	{
+		printf("ERROR - SDL_ttf could not load text properly - SDL_ttf: %s\n", TTF_GetError());
+	}
+	else
+	{
+		// TODO(nick): a free texture might need to be called on this?
+		if (CurrentTextAsset->Texture->Texture)
+		{
+			SDL_DestroyTexture(CurrentTextAsset->Texture->Texture);
+		}
+		CurrentTextAsset->Texture->Texture = SDL_CreateTextureFromSurface(GameRenderer, Raw);
+	}
+}
+
+void
+HandleCollision(Entity *EntityArray[50], int checkIndex)
+{
 	int i = 0;
+
+	int checkEntityLeft, checkEntityRight, checkEntityTop, checkEntityBottom;
+	int currentEntityLeft, currentEntityRight, currentEntityTop, currentEntityBottom;
 
 	Entity *checkEntity = EntityArray[checkIndex];
 	Entity *currentEntity = EntityArray[i]; 
+
+	// TODO(nick): should probably have a bounding hit box that is for the player
+	checkEntityLeft   = checkEntity->PositionV2.X;
+	checkEntityRight  = checkEntity->PositionV2.X + checkEntity->CurrentTexture->Width;
+	checkEntityTop    = checkEntity->PositionV2.Y;
+	checkEntityBottom = checkEntity->PositionV2.Y + checkEntity->CurrentTexture->Height;
+
 	while (currentEntity != NULL)
 	{
 		if (i != checkIndex)
 		{
 			if (currentEntity)
 			{
-		
+				currentEntityLeft   = currentEntity->PositionV2.X;
+				currentEntityRight  = currentEntity->PositionV2.X + currentEntity->CurrentTexture->Width;
+				currentEntityTop    = currentEntity->PositionV2.Y;
+				currentEntityBottom = currentEntity->PositionV2.Y + currentEntity->CurrentTexture->Height;
+				
+				if (!(checkEntityRight <= currentEntityBottom))
+				{
+					checkEntity->PositionV2.X -= 5;
+				}
+
+				/*
+				if (!(checkEntityBottom <= currentEntityTop)   &&
+				    !(checkEntityTop >= currentEntityBottom)   &&
+				    !(checkEntityRight <= currentEntityBottom) &&
+				    !(checkEntityLeft >= currentEntityRight))
+				{
+					checkEntity->PositionV2.X -= 5;
+				}
+				*/
 			}
 		}
 		++i;
 		currentEntity = EntityArray[i];
 	}
-	return Result;
 }
 
 void 
-GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue, Entity *EntityArray[50])
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue)
 {
 	// render texture(s) to screen
 	// TODO(nick):
@@ -910,10 +962,6 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	{
 		// TODO(nick):
 		// 1) if collision is detected, do not move position
-		if (CheckCollision(EntityArray, CurrentEntity->Id))
-		{
-			CurrentEntity->PositionV2.X -= 5;
-		}
 		SDL_Rect PlayerRenderBox = 
 		{
 			CurrentEntity->PositionV2.X,
@@ -951,3 +999,6 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 				 CurrentText->Texture->Flip);
 	}
 }
+
+
+
