@@ -624,6 +624,14 @@ InitializeGame()
 				GronkEntity->CurrentTexture = HashSet_Select_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle");
 				GronkEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
 
+				GronkEntity->CollisionBox = 
+				{
+					((GronkEntity->PositionV2.X / 4) * 3),
+					((GronkEntity->PositionV2.Y / 4) * 3),
+					((GronkEntity->CurrentTexture->Width / 4) * 3),
+					((GronkEntity->CurrentTexture->Height / 4) * 3),
+				};
+
 				GlobalEntityArray[GlobalEntityArrayIndex] = GronkEntity;
 				++GlobalEntityArrayIndex;
 
@@ -1023,9 +1031,6 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	//    - srcrect 
 	// 2) 2nd NULL value is center point
 	//    - center, used for point to determine rotation
-	//
-	//
-	//
 
 	// NOTE(nick): debug info
 	{
@@ -1049,7 +1054,7 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	{
 		// TODO(nick):
 		// 1) if collision is detected, do not move position
-		SDL_Rect PlayerRenderBox = 
+		SDL_Rect CurrentRenderBox = 
 		{
 			CurrentEntity->PositionV2.X,
 			CurrentEntity->PositionV2.Y,
@@ -1060,10 +1065,33 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 		SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
 				 CurrentEntity->CurrentTexture->Texture,
 				 NULL,
-				 &PlayerRenderBox,
+				 &CurrentRenderBox,
 				 CurrentEntity->CurrentTexture->Rotation,
 				 NULL,
 				 CurrentEntity->CurrentTexture->Flip);
+
+		// NOTE(nick): debug collision box render
+		{
+			SDL_Surface *tempCollisionSurface;
+			SDL_Texture *tempCollisionTexture;
+			tempCollisionSurface = SDL_CreateRGBSurface(0, CurrentEntity->CollisionBox.w, CurrentEntity->CollisionBox.h, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+			if (tempCollisionSurface == NULL)
+			{
+				SDL_Log("SDL_CreateRGBSurface() failed: %s", SDL_GetError());
+			}
+			SDL_FillRect(tempCollisionSurface, NULL, SDL_MapRGBA(tempCollisionSurface->format, 255, 0, 0, 64));
+
+			tempCollisionTexture = SDL_CreateTextureFromSurface(CurrentWindowState->GameRenderer, tempCollisionSurface);
+			SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
+					 tempCollisionTexture,
+					 NULL,
+					 &CurrentEntity->CollisionBox,
+					 0,
+					 NULL,
+					 SDL_FLIP_NONE); 
+			SDL_FreeSurface(tempCollisionSurface);
+			SDL_DestroyTexture(tempCollisionTexture);
+		}
 	}
 
 	Text *CurrentText = NULL;
@@ -1086,6 +1114,4 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 				 CurrentText->Texture->Flip);
 	}
 }
-
-
 
