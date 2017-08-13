@@ -197,6 +197,7 @@ main(int argc, char *argv[])
 							
 							// TODO(nick): possible change to velocity?
 							PlayerEntity->PositionV2.X -= 2;
+							PlayerEntity->CollisionBox.x -= 2;
 							printf("arrow left pressed\n");
 						} break;
 
@@ -215,6 +216,7 @@ main(int argc, char *argv[])
 							PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
 							// TODO(nick): possible change to velocity?
 							PlayerEntity->PositionV2.X += 2;
+							PlayerEntity->CollisionBox.x += 2;
 							printf("arrow right pressed\n");
 						} break;
 
@@ -1000,10 +1002,10 @@ HandleCollision(Entity *EntityArray[50], int checkIndex)
 	Entity *currentEntity = EntityArray[i]; 
 
 	// TODO(nick): should probably have a bounding hit box that is for the player
-	checkEntityLeft   = checkEntity->PositionV2.X;
-	checkEntityRight  = checkEntity->PositionV2.X + checkEntity->CurrentTexture->Width;
-	checkEntityTop    = checkEntity->PositionV2.Y;
-	checkEntityBottom = checkEntity->PositionV2.Y + checkEntity->CurrentTexture->Height;
+	checkEntityLeft   = checkEntity->CollisionBox.x;
+	checkEntityRight  = checkEntity->CollisionBox.x + checkEntity->CollisionBox.w;
+	checkEntityTop    = checkEntity->CollisionBox.y;
+	checkEntityBottom = checkEntity->CollisionBox.y + checkEntity->CollisionBox.h;
 
 	while (currentEntity != NULL)
 	{
@@ -1011,16 +1013,17 @@ HandleCollision(Entity *EntityArray[50], int checkIndex)
 		{
 			if (currentEntity)
 			{
-				currentEntityLeft   = currentEntity->PositionV2.X;
-				currentEntityRight  = currentEntity->PositionV2.X + currentEntity->CurrentTexture->Width;
-				currentEntityTop    = currentEntity->PositionV2.Y;
-				currentEntityBottom = currentEntity->PositionV2.Y + currentEntity->CurrentTexture->Height;
+				currentEntityLeft   = currentEntity->CollisionBox.x;
+				currentEntityRight  = currentEntity->CollisionBox.x + currentEntity->CollisionBox.w;
+				currentEntityTop    = currentEntity->CollisionBox.x;
+				currentEntityBottom = currentEntity->CollisionBox.y + currentEntity->CollisionBox.h;
 
 				// NOTE(nick): rectangle coordinates start at top left
 				if (!(checkEntityBottom <= currentEntityTop) &&
 				    !(checkEntityRight <= currentEntityLeft))
 				{
 					checkEntity->PositionV2.X -= 2;
+					checkEntity->CollisionBox.x -= 2;
 				}
 			}
 		}
