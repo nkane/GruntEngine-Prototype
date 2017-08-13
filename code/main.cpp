@@ -601,13 +601,18 @@ InitializeGame()
 				PlayerEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
 				PlayerEntity->PositionV2.X -= 100;
 
-				// TODO(nick): have this computation be apart of the GameUpdateAndRender
+				int collisionBoxWidth = 0;
+				int collisionBoxHeight = 0;
+
+				collisionBoxWidth = ((PlayerEntity->CurrentTexture->Width / 4) * 2);
+				collisionBoxHeight = ((PlayerEntity->CurrentTexture->Height / 4) * 2);
+
 				PlayerEntity->CollisionBox = 
 				{
-					((PlayerEntity->PositionV2.X / 4) * 3),
-					((PlayerEntity->PositionV2.Y / 4) * 3),
-					((PlayerEntity->CurrentTexture->Width / 4) * 3),
-					((PlayerEntity->CurrentTexture->Height / 4) * 3),
+					PlayerEntity->PositionV2.X + (PlayerEntity->CurrentTexture->Width / 4),
+					PlayerEntity->PositionV2.Y + (PlayerEntity->CurrentTexture->Height / 4),
+					collisionBoxWidth,
+					collisionBoxHeight,
 				};
 
 				GlobalEntityArray[GlobalEntityArrayIndex] = PlayerEntity;
@@ -624,12 +629,14 @@ InitializeGame()
 				GronkEntity->CurrentTexture = HashSet_Select_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle");
 				GronkEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
 
+				collisionBoxWidth = ((GronkEntity->CurrentTexture->Width / 4) * 2);
+				collisionBoxHeight = ((GronkEntity->CurrentTexture->Height / 4) * 2);
 				GronkEntity->CollisionBox = 
 				{
-					((GronkEntity->PositionV2.X / 4) * 3),
-					((GronkEntity->PositionV2.Y / 4) * 3),
-					((GronkEntity->CurrentTexture->Width / 4) * 3),
-					((GronkEntity->CurrentTexture->Height / 4) * 3),
+					GronkEntity->PositionV2.X + (GronkEntity->CurrentTexture->Width / 4),
+					GronkEntity->PositionV2.Y + (GronkEntity->CurrentTexture->Height / 4),
+					collisionBoxWidth,
+					collisionBoxHeight,
 				};
 
 				GlobalEntityArray[GlobalEntityArrayIndex] = GronkEntity;
