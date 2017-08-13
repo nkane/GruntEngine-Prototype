@@ -121,6 +121,8 @@ UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, char *text, S
 void
 HandleCollision(Entity *GlobalEntityArray[50], int checkIndex);
 
+// TODO(nick):
+// 1) add ability to render collision boxes for debugging
 void 
 GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue);
 
@@ -194,7 +196,7 @@ main(int argc, char *argv[])
 							PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
 							
 							// TODO(nick): possible change to velocity?
-							PlayerEntity->PositionV2.X -= 5;
+							PlayerEntity->PositionV2.X -= 2;
 							printf("arrow left pressed\n");
 						} break;
 
@@ -212,7 +214,7 @@ main(int argc, char *argv[])
 							
 							PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
 							// TODO(nick): possible change to velocity?
-							PlayerEntity->PositionV2.X += 5;
+							PlayerEntity->PositionV2.X += 2;
 							printf("arrow right pressed\n");
 						} break;
 
@@ -597,7 +599,16 @@ InitializeGame()
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
 				PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
 				PlayerEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
-				PlayerEntity->PositionV2.X += 100;
+				PlayerEntity->PositionV2.X -= 100;
+
+				// TODO(nick): have this computation be apart of the GameUpdateAndRender
+				PlayerEntity->CollisionBox = 
+				{
+					((PlayerEntity->PositionV2.X / 4) * 3),
+					((PlayerEntity->PositionV2.Y / 4) * 3),
+					((PlayerEntity->CurrentTexture->Width / 4) * 3),
+					((PlayerEntity->CurrentTexture->Height / 4) * 3),
+				};
 
 				GlobalEntityArray[GlobalEntityArrayIndex] = PlayerEntity;
 				++GlobalEntityArrayIndex;
@@ -989,21 +1000,13 @@ HandleCollision(Entity *EntityArray[50], int checkIndex)
 				currentEntityRight  = currentEntity->PositionV2.X + currentEntity->CurrentTexture->Width;
 				currentEntityTop    = currentEntity->PositionV2.Y;
 				currentEntityBottom = currentEntity->PositionV2.Y + currentEntity->CurrentTexture->Height;
-				
-				if (!(checkEntityRight <= currentEntityBottom))
-				{
-					checkEntity->PositionV2.X -= 5;
-				}
 
-				/*
-				if (!(checkEntityBottom <= currentEntityTop)   &&
-				    !(checkEntityTop >= currentEntityBottom)   &&
-				    !(checkEntityRight <= currentEntityBottom) &&
-				    !(checkEntityLeft >= currentEntityRight))
+				// NOTE(nick): rectangle coordinates start at top left
+				if (!(checkEntityBottom <= currentEntityTop) &&
+				    !(checkEntityRight <= currentEntityLeft))
 				{
-					checkEntity->PositionV2.X -= 5;
+					checkEntity->PositionV2.X -= 2;
 				}
-				*/
 			}
 		}
 		++i;
