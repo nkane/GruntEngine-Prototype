@@ -16,6 +16,7 @@
 #include "queue.h"
 #include "gamestate.h"
 #include "windowstate.h"
+#include "shapes.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -118,8 +119,8 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 void
 UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, char *text, SDL_Color *Color);
 
-void
-HandleCollision(Entity *GlobalEntityArray[50], int checkIndex);
+bool
+CheckCollision(Entity *GlobalEntityArray[50], int checkIndex);
 
 // TODO(nick):
 // 1) add ability to render collision boxes for debugging
@@ -146,7 +147,9 @@ main(int argc, char *argv[])
 
 		while (SDL_PollEvent(&CurrentEvent))
 		{
-			// TODO(nick): handle input function
+			// TODO(nick):
+			// 1) better handle input function
+			// 2) have handle collision check here
 			switch (CurrentEvent.type)
 			{
 				case SDL_QUIT:
@@ -160,7 +163,6 @@ main(int argc, char *argv[])
 				{
 					switch (CurrentEvent.key.keysym.sym)
 					{
-
 						case SDLK_RETURN:
 						{
 
@@ -172,11 +174,15 @@ main(int argc, char *argv[])
 
 						case SDLK_UP: 
 						{
+							PlayerEntity->PositionV2.Y -= 2;
+							PlayerEntity->CollisionBox.y -= 2;
 							printf("arrow up pressed\n");
 						} break;
 
 						case SDLK_DOWN:
 						{
+							PlayerEntity->PositionV2.Y += 2;
+							PlayerEntity->CollisionBox.y += 2;
 							printf("arrow down pressed\n");
 						} break;
 
@@ -198,6 +204,11 @@ main(int argc, char *argv[])
 							// TODO(nick): possible change to velocity?
 							PlayerEntity->PositionV2.X -= 2;
 							PlayerEntity->CollisionBox.x -= 2;
+							if (CheckCollision(GlobalEntityArray, PlayerEntity->Id))
+							{
+								PlayerEntity->PositionV2.X += 2;
+								PlayerEntity->CollisionBox.x += 2;
+							}
 							printf("arrow left pressed\n");
 						} break;
 
@@ -217,6 +228,11 @@ main(int argc, char *argv[])
 							// TODO(nick): possible change to velocity?
 							PlayerEntity->PositionV2.X += 2;
 							PlayerEntity->CollisionBox.x += 2;
+							if (CheckCollision(GlobalEntityArray, PlayerEntity->Id))
+							{
+								PlayerEntity->PositionV2.X -= 2;
+								PlayerEntity->CollisionBox.x -= 2;
+							}
 							printf("arrow right pressed\n");
 						} break;
 
@@ -402,7 +418,7 @@ main(int argc, char *argv[])
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GronkEntityNode);
 				
-				HandleCollision(GlobalEntityArray, PlayerEntity->Id);
+				//HandleCollision(GlobalEntityArray, PlayerEntity->Id);
 				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
 			else
@@ -608,7 +624,6 @@ InitializeGame()
 
 				collisionBoxWidth = ((PlayerEntity->CurrentTexture->Width / 4) * 2);
 				collisionBoxHeight = ((PlayerEntity->CurrentTexture->Height / 4) * 2);
-
 				PlayerEntity->CollisionBox = 
 				{
 					PlayerEntity->PositionV2.X + (PlayerEntity->CurrentTexture->Width / 4),
@@ -990,46 +1005,72 @@ UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, TTF_Font *Fon
 	}
 }
 
-void
-HandleCollision(Entity *EntityArray[50], int checkIndex)
+bool
+CheckCollision(Entity *EntityArray[50], int checkIndex)
 {
 	int i = 0;
-
-	int checkEntityLeft, checkEntityRight, checkEntityTop, checkEntityBottom;
-	int currentEntityLeft, currentEntityRight, currentEntityTop, currentEntityBottom;
 
 	Entity *checkEntity = EntityArray[checkIndex];
 	Entity *currentEntity = EntityArray[i]; 
 
-	// TODO(nick): should probably have a bounding hit box that is for the player
-	checkEntityLeft   = checkEntity->CollisionBox.x;
-	checkEntityRight  = checkEntity->CollisionBox.x + checkEntity->CollisionBox.w;
-	checkEntityTop    = checkEntity->CollisionBox.y;
-	checkEntityBottom = checkEntity->CollisionBox.y + checkEntity->CollisionBox.h;
+	Rectangle CheckEntityCollisionBox = {};
+	Rectangle CurrentEntityCollisionBox = {};
 
+	// NOTE(nick):
+	// duplication of line calculations here
+	// figure out a better way to handle rectangle collision
+	CheckEntityCollisionBox.BottomLine[0].X = checkEntity->CollisionBox.x;
+	CheckEntityCollisionBox.BottomLine[0].Y = checkEntity->CollisionBox.y;
+	CheckEntityCollisionBox.BottomLine[1].X = checkEntity->CollisionBox.x + checkEntity->CollisionBox.w;
+	CheckEntityCollisionBox.BottomLine[1].Y = checkEntity->CollisionBox.y;
+
+	CheckEntityCollisionBox.TopLine[0].X = checkEntity->CollisionBox.x;
+	CheckEntityCollisionBox.TopLine[0].Y = checkEntity->CollisionBox.y + checkEntity->CollisionBox.h;
+	CheckEntityCollisionBox.TopLine[1].X = checkEntity->CollisionBox.x + checkEntity->CollisionBox.w;
+	CheckEntityCollisionBox.TopLine[1].Y = checkEntity->CollisionBox.y + checkEntity->CollisionBox.h;
+	
 	while (currentEntity != NULL)
 	{
 		if (i != checkIndex)
 		{
 			if (currentEntity)
 			{
-				currentEntityLeft   = currentEntity->CollisionBox.x;
-				currentEntityRight  = currentEntity->CollisionBox.x + currentEntity->CollisionBox.w;
-				currentEntityTop    = currentEntity->CollisionBox.x;
-				currentEntityBottom = currentEntity->CollisionBox.y + currentEntity->CollisionBox.h;
+				CurrentEntityCollisionBox.BottomLine[0].X = currentEntity->CollisionBox.x;
+				CurrentEntityCollisionBox.BottomLine[0].Y = currentEntity->CollisionBox.y;
+				CurrentEntityCollisionBox.BottomLine[1].X = currentEntity->CollisionBox.x + currentEntity->CollisionBox.w;
+				CurrentEntityCollisionBox.BottomLine[1].Y = currentEntity->CollisionBox.y;
 
-				// NOTE(nick): rectangle coordinates start at top left
-				if (!(checkEntityBottom <= currentEntityTop) &&
-				    !(checkEntityRight <= currentEntityLeft))
+				CurrentEntityCollisionBox.TopLine[0].X = currentEntity->CollisionBox.x;
+				CurrentEntityCollisionBox.TopLine[0].Y = currentEntity->CollisionBox.y + currentEntity->CollisionBox.h;
+				CurrentEntityCollisionBox.TopLine[1].X = currentEntity->CollisionBox.x + currentEntity->CollisionBox.w;
+				CurrentEntityCollisionBox.TopLine[1].Y = currentEntity->CollisionBox.y + currentEntity->CollisionBox.h;
+
+				// CheckEntity is on the same y plane as the CurrentEntity
+				if ((CheckEntityCollisionBox.BottomLine[0].Y <= CurrentEntityCollisionBox.TopLine[0].Y) &&
+				    (CheckEntityCollisionBox.TopLine[0].Y >= CurrentEntityCollisionBox.BottomLine[0].Y))
 				{
-					checkEntity->PositionV2.X -= 2;
-					checkEntity->CollisionBox.x -= 2;
+					// check right side collision from CheckEntity perspective
+					if (CheckEntityCollisionBox.BottomLine[1].X >= CurrentEntityCollisionBox.BottomLine[0].X &&
+					    CheckEntityCollisionBox.BottomLine[0].X < CurrentEntityCollisionBox.BottomLine[1].X)
+					{
+						return true;
+					}
+					// check left side collision from CheckEntity persective
+					else if (CheckEntityCollisionBox.BottomLine[0].X > CurrentEntityCollisionBox.BottomLine[1].X)
+					{
+						if (CheckEntityCollisionBox.BottomLine[0].X <= CurrentEntityCollisionBox.BottomLine[1].X)
+						{
+							return true;
+						}
+					}
 				}
 			}
 		}
 		++i;
 		currentEntity = EntityArray[i];
 	}
+
+	return false;
 }
 
 void 
@@ -1044,13 +1085,13 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 
 	// NOTE(nick): debug info
 	{
-		sprintf(DEBUG_StringBuffer, "Player Position x %d y %d ", PlayerEntity->PositionV2.X, PlayerEntity->PositionV2.Y);
+		sprintf(DEBUG_StringBuffer, "Player Collision x %d y %d ", PlayerEntity->CollisionBox.x, PlayerEntity->CollisionBox.y);
 		UpdateAssetTTF(CurrentWindowState->GameRenderer,
 			       DEBUG_PlayerPositionInfo,
 			       PokeFont_Small,
 			       DEBUG_StringBuffer,
 			       NULL);
-		sprintf(DEBUG_StringBuffer, "Enemy Position x %d y: %d", GronkEntity->PositionV2.X, GronkEntity->PositionV2.Y);
+		sprintf(DEBUG_StringBuffer, "Enemy Collision x %d y: %d", GronkEntity->CollisionBox.x, GronkEntity->CollisionBox.y);
 		UpdateAssetTTF(CurrentWindowState->GameRenderer,
 			       DEBUG_EnemyPositionInfo,
 			       PokeFont_Small,
