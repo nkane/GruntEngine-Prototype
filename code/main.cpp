@@ -174,14 +174,22 @@ main(int argc, char *argv[])
 						{
 							PlayerEntity->PositionV2.Y -= 2;
 							PlayerEntity->CollisionBox.y -= 2;
-							printf("arrow up pressed\n");
+							if (CheckCollision(GlobalEntityArray, PlayerEntity->Id))
+							{
+								PlayerEntity->PositionV2.Y += 2;
+								PlayerEntity->CollisionBox.y += 2;
+							}
 						} break;
 
 						case SDLK_DOWN:
 						{
 							PlayerEntity->PositionV2.Y += 2;
 							PlayerEntity->CollisionBox.y += 2;
-							printf("arrow down pressed\n");
+							if (CheckCollision(GlobalEntityArray, PlayerEntity->Id))
+							{
+								PlayerEntity->PositionV2.Y -= 2;
+								PlayerEntity->CollisionBox.y -= 2;
+							}
 						} break;
 
 						case SDLK_LEFT:
@@ -207,7 +215,6 @@ main(int argc, char *argv[])
 								PlayerEntity->PositionV2.X += 2;
 								PlayerEntity->CollisionBox.x += 2;
 							}
-							printf("arrow left pressed\n");
 						} break;
 
 						case SDLK_RIGHT:
@@ -231,32 +238,26 @@ main(int argc, char *argv[])
 								PlayerEntity->PositionV2.X -= 2;
 								PlayerEntity->CollisionBox.x -= 2;
 							}
-							printf("arrow right pressed\n");
 						} break;
 
 						case SDLK_w: 
 						{
-							printf("w key pressed\n");
 						} break;
 
 						case SDLK_a:
 						{
-							printf("a key pressed\n");
 						} break;
 
 						case SDLK_s:
 						{
-							printf("s key pressed\n");
 						} break;
 
 						case SDLK_d:
 						{
-							printf("d key pressed\n");
 						} break;
 
 						case SDLK_SPACE: 
 						{
-							printf("space pressed\n");
 						} break;
 
 						default: 
@@ -272,51 +273,42 @@ main(int argc, char *argv[])
 					{
 						case SDLK_UP: 
 						{
-							printf("arrow up released\n");
 						} break;
 
 						case SDLK_DOWN:
 						{
-							printf("arrow down released\n");
 						} break;
 
 						case SDLK_LEFT:
 						{
 							PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
 							PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
-							printf("arrow left released\n");
 						} break;
 
 						case SDLK_RIGHT:
 						{
 							PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
 							PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
-							printf("arrow right released\n");
 						} break;
 
 						case SDLK_w: 
 						{
-							printf("w key released\n");
 						} break;
 
 						case SDLK_a:
 						{
-							printf("a key released\n");
 						} break;
 
 						case SDLK_s:
 						{
-							printf("s key released\n");
 						} break;
 
 						case SDLK_d:
 						{
-							printf("d key released\n");
 						} break;
 
 						case SDLK_SPACE: 
 						{
-							printf("space released\n");
 						} break;
 
 						default: 
@@ -416,7 +408,6 @@ main(int argc, char *argv[])
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GretelEntityNode);
 				
-				//HandleCollision(GlobalEntityArray, PlayerEntity->Id);
 				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
 			else
@@ -467,7 +458,7 @@ main(int argc, char *argv[])
 			// TODO(nick): remove variable - debug only or keep in game state
 			unsigned int delay = (Frame_Rate_Lock - GlobalGameState->DeltaMS);
 			SDL_Delay(delay);
-			printf("Delay: %d\n", delay);
+			//printf("Delay: %d\n", delay);
 		}
 	}
 
@@ -1043,17 +1034,17 @@ CheckCollision(Entity *EntityArray[50], int checkIndex)
 				CurrentEntityCollisionBox.TopLine[1].X = currentEntity->CollisionBox.x + currentEntity->CollisionBox.w;
 				CurrentEntityCollisionBox.TopLine[1].Y = currentEntity->CollisionBox.y + currentEntity->CollisionBox.h;
 
-				// CheckEntity is on the same y plane as the CurrentEntity
+				// check horizontal collision
 				if ((CheckEntityCollisionBox.BottomLine[0].Y <= CurrentEntityCollisionBox.TopLine[0].Y) &&
 				    (CheckEntityCollisionBox.TopLine[0].Y >= CurrentEntityCollisionBox.BottomLine[0].Y))
 				{
 					// check right side collision from CheckEntity perspective
 					if (CheckEntityCollisionBox.BottomLine[1].X >= CurrentEntityCollisionBox.BottomLine[0].X &&
-					    CheckEntityCollisionBox.BottomLine[0].X < CurrentEntityCollisionBox.BottomLine[1].X)
+					    CheckEntityCollisionBox.BottomLine[0].X <= CurrentEntityCollisionBox.BottomLine[1].X)
 					{
 						return true;
 					}
-					// check left side collision from CheckEntity persective
+					// check left side collision from CheckEntity perspective
 					else if (CheckEntityCollisionBox.BottomLine[0].X > CurrentEntityCollisionBox.BottomLine[1].X)
 					{
 						if (CheckEntityCollisionBox.BottomLine[0].X <= CurrentEntityCollisionBox.BottomLine[1].X)
@@ -1067,7 +1058,6 @@ CheckCollision(Entity *EntityArray[50], int checkIndex)
 		++i;
 		currentEntity = EntityArray[i];
 	}
-
 	return false;
 }
 
