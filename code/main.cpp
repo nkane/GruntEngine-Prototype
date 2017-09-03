@@ -44,7 +44,7 @@ global_variable SDL_RWops *ReadWriteOperations;
 // Entity Globals
 // <=====================================================================>
 global_variable Entity *PlayerEntity;
-global_variable Entity *GronkEntity;
+global_variable Entity *GretelEntity;
 global_variable int GlobalEntityArrayIndex = 0;
 global_variable Entity *GlobalEntityArray[50];
 global_variable Queue_GameEntity *GlobalEntityRenderQueue;
@@ -80,8 +80,8 @@ global_variable Text *HUDCurrentLevel;
 
 // TODO(nick): segment into scene text?
 // Title Screen
-global_variable Text *TitleScreenGronkeyKong_1;
-global_variable Text *TitleScreenGronkeyKong_2;
+global_variable Text *TitleScreenGretelKong_1;
+global_variable Text *TitleScreenGretelKong_2;
 global_variable Text *TitleScreenBottom;
 
 global_variable Text *LivesCount;
@@ -122,8 +122,6 @@ UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, char *text, S
 bool
 CheckCollision(Entity *GlobalEntityArray[50], int checkIndex);
 
-// TODO(nick):
-// 1) add ability to render collision boxes for debugging
 void 
 GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue);
 
@@ -407,16 +405,16 @@ main(int argc, char *argv[])
 					NULL,
 				};
 
-				GronkEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
-				Entity_Node GronkEntityNode = 
+				GretelEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+				Entity_Node GretelEntityNode = 
 				{
-					GronkEntity,
+					GretelEntity,
 					NULL,
 				};
 
 				// NOTE(nick): add entities to render queue
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
-				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GronkEntityNode);
+				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GretelEntityNode);
 				
 				//HandleCollision(GlobalEntityArray, PlayerEntity->Id);
 				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
@@ -429,28 +427,28 @@ main(int argc, char *argv[])
 				// 2) only handle UI commands
 				SDL_RenderClear(GlobalWindowState->GameRenderer);
 
-				Entity_Node GronkEntityNode = 
+				Entity_Node GretelEntityNode = 
 				{
-					GronkEntity,
+					GretelEntity,
 					NULL,
 				};
 
-				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GronkEntityNode);
+				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GretelEntityNode);
 
-				Text_Node GronkeyKong_P1 = 
+				Text_Node GretelKong_P1 = 
 				{
-					TitleScreenGronkeyKong_1,
+					TitleScreenGretelKong_1,
 					NULL,
 				};
 
-				Text_Node GronkeyKong_P2 =
+				Text_Node GretelKong_P2 =
 				{
-					TitleScreenGronkeyKong_2,
+					TitleScreenGretelKong_2,
 					NULL,
 				};
 
-				Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong_P1);
-				Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong_P2);
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, GretelKong_P1);
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, GretelKong_P2);
 				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
 		}
@@ -478,7 +476,7 @@ main(int argc, char *argv[])
 	{	
 		SDL_DestroyTexture(HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Texture);
 		SDL_DestroyTexture(HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk")->Texture);
-		SDL_DestroyTexture(HashSet_Select_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle")->Texture);
+		SDL_DestroyTexture(HashSet_Select_AssetTexture(GretelEntity->TextureSet, "Gretel-Idle")->Texture);
 	}
 
 	// release fonts
@@ -636,27 +634,27 @@ InitializeGame()
 				++GlobalEntityArrayIndex;
 
 				// NOTE(nick): gronk initialization
-				GronkEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+				GretelEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 									sizeof(Entity));
 
-				ReadWriteOperations = SDL_RWFromFile("./assets/Gronk/Gronk_0011_Gronk-Idle-2.png", "rb");
-				HashSet_Insert_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
-				GronkEntity->Id = GlobalEntityArrayIndex;
-				GronkEntity->CurrentState = (EntityState)(Idle);
-				GronkEntity->CurrentTexture = HashSet_Select_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle");
-				GronkEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+				ReadWriteOperations = SDL_RWFromFile("./assets/Gretel/Gretel_0017_Gretel-Idle.png", "rb");
+				HashSet_Insert_AssetTexture(GretelEntity->TextureSet, "Gretel-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+				GretelEntity->Id = GlobalEntityArrayIndex;
+				GretelEntity->CurrentState = (EntityState)(Idle);
+				GretelEntity->CurrentTexture = HashSet_Select_AssetTexture(GretelEntity->TextureSet, "Gretel-Idle");
+				GretelEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
 
-				collisionBoxWidth = ((GronkEntity->CurrentTexture->Width / 4) * 2);
-				collisionBoxHeight = ((GronkEntity->CurrentTexture->Height / 4) * 2);
-				GronkEntity->CollisionBox = 
+				collisionBoxWidth = ((GretelEntity->CurrentTexture->Width / 4) * 2);
+				collisionBoxHeight = ((GretelEntity->CurrentTexture->Height / 4) * 2);
+				GretelEntity->CollisionBox = 
 				{
-					GronkEntity->PositionV2.X + (GronkEntity->CurrentTexture->Width / 4),
-					GronkEntity->PositionV2.Y + (GronkEntity->CurrentTexture->Height / 4),
+					GretelEntity->PositionV2.X + (GretelEntity->CurrentTexture->Width / 4),
+					GretelEntity->PositionV2.Y + (GretelEntity->CurrentTexture->Height / 4),
 					collisionBoxWidth,
 					collisionBoxHeight,
 				};
 
-				GlobalEntityArray[GlobalEntityArrayIndex] = GronkEntity;
+				GlobalEntityArray[GlobalEntityArrayIndex] = GretelEntity;
 				++GlobalEntityArrayIndex;
 
 				// NOTE(nick): game font initialization
@@ -696,9 +694,9 @@ InitializeGame()
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
 				}
 
-				TitleScreenGronkeyKong_1 = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+				TitleScreenGretelKong_1 = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 										   sizeof(Text));
-				TitleScreenGronkeyKong_2 = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+				TitleScreenGretelKong_2 = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 										   sizeof(Text));
 				// Color - RGBA
 				// TODO(nick): global color palette?
@@ -706,19 +704,19 @@ InitializeGame()
 				SDL_Color Red = { 255, 0, 0, 0 };
 				SDL_Color White = { 255, 255, 255, 0 };
 
-				TitleScreenGronkeyKong_1->Texture = LoadAssetTTF(GlobalGameState,
+				TitleScreenGretelKong_1->Texture = LoadAssetTTF(GlobalGameState,
 							                         ArcadeFont_Large,
 							      	      	         GlobalWindowState->GameSurface,
 						              	                 GlobalWindowState->GameRenderer, 
 								                 "GRONKEY",
 									         &Blue);
 				// TODO(nick): center of screen and then offset
-				//TitleScreenGronkeyKong_1->PositionV2 = DefaultVector2Position();
-				TitleScreenGronkeyKong_1->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
-				TitleScreenGronkeyKong_1->PositionV2.Y -= 175;
-				TitleScreenGronkeyKong_1->PositionV2.X -= (TitleScreenGronkeyKong_1->Texture->Width / 2);
+				//TitleScreenGretelKong_1->PositionV2 = DefaultVector2Position();
+				TitleScreenGretelKong_1->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+				TitleScreenGretelKong_1->PositionV2.Y -= 175;
+				TitleScreenGretelKong_1->PositionV2.X -= (TitleScreenGretelKong_1->Texture->Width / 2);
 
-				TitleScreenGronkeyKong_2->Texture = LoadAssetTTF(GlobalGameState,
+				TitleScreenGretelKong_2->Texture = LoadAssetTTF(GlobalGameState,
 										 ArcadeFont_Large,
 										 GlobalWindowState->GameSurface,
 										 GlobalWindowState->GameRenderer,
@@ -727,8 +725,8 @@ InitializeGame()
 				// TODO(nick): center part 2 based on positioning of part 1
 				// TODO(nick): figure out a better way of handling the text positioning
 				// NOTE(nick): 5 is an offset to allow texture to sit a bit closer
-				TitleScreenGronkeyKong_2->PositionV2.X = TitleScreenGronkeyKong_1->PositionV2.X + (TitleScreenGronkeyKong_1->Texture->Width / 4);
-				TitleScreenGronkeyKong_2->PositionV2.Y = (TitleScreenGronkeyKong_1->PositionV2.Y + (TitleScreenGronkeyKong_1->Texture->Height / 2) + 15);
+				TitleScreenGretelKong_2->PositionV2.X = TitleScreenGretelKong_1->PositionV2.X + (TitleScreenGretelKong_1->Texture->Width / 4);
+				TitleScreenGretelKong_2->PositionV2.Y = (TitleScreenGretelKong_1->PositionV2.Y + (TitleScreenGretelKong_1->Texture->Height / 2) + 15);
 				
 				HUDHighScore = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 								       sizeof(Text));
@@ -802,7 +800,7 @@ InitializeGame()
 
 				DEBUG_EnemyPositionInfo = (Text*)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 										 sizeof(Text));
-				sprintf(DEBUG_StringBuffer, "Enemy Position x %d y: %d", GronkEntity->PositionV2.X, GronkEntity->PositionV2.Y);
+				sprintf(DEBUG_StringBuffer, "Enemy Position x %d y: %d", GretelEntity->PositionV2.X, GretelEntity->PositionV2.Y);
 				DEBUG_EnemyPositionInfo->Texture = LoadAssetTTF(GlobalGameState,
 										PokeFont_Small,
 										GlobalWindowState->GameSurface,
@@ -1091,7 +1089,7 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 			       PokeFont_Small,
 			       DEBUG_StringBuffer,
 			       NULL);
-		sprintf(DEBUG_StringBuffer, "Enemy Collision x %d y: %d", GronkEntity->CollisionBox.x, GronkEntity->CollisionBox.y);
+		sprintf(DEBUG_StringBuffer, "Enemy Collision x %d y: %d", GretelEntity->CollisionBox.x, GretelEntity->CollisionBox.y);
 		UpdateAssetTTF(CurrentWindowState->GameRenderer,
 			       DEBUG_EnemyPositionInfo,
 			       PokeFont_Small,
