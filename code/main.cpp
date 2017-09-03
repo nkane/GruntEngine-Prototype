@@ -17,6 +17,7 @@
 #include "gamestate.h"
 #include "windowstate.h"
 #include "shapes.h"
+#include "level.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,6 +40,13 @@ global_variable WindowState *GlobalWindowState;
 global_variable GameState *GlobalGameState;
 global_variable bool GameRunning = true;
 global_variable SDL_RWops *ReadWriteOperations;
+// /=====================================================================/
+
+//// Level Globals
+// <=====================================================================>
+//
+global_variable const int Tile_Height = 16;
+global_variable const int Tile_Width = 12;
 // /=====================================================================/
 
 // Entity Globals
@@ -118,6 +126,13 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 
 void
 UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, char *text, SDL_Color *Color);
+
+// TODO(nick):
+// 1) have this return a new allocated level?
+// 2) global level array
+// 3) "cache" already loaded levels
+Level *
+LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName);
 
 bool
 CheckCollision(Entity *GlobalEntityArray[50], int checkIndex);
@@ -386,11 +401,17 @@ main(int argc, char *argv[])
 
 			if (GlobalGameState->IsPlaying)
 			{
-				// TODO(nick): make nodes only for needed stuff (for queue - entity and text)
-				//
-				// TODO(nick): add some logical step that takes place per level
-				// and builds an array of entity nodes?
-				// for now static ones work
+				// TODO(nick) IMPORTANT(nick):
+				// 1) finish intial loading up ...
+				// 2) create an array that will have levels loaded
+				// 3) check array first before attempting to load level
+				Level *Temp = LoadLevel(GlobalGameState, ReadWriteOperations, "./data/level_one.gdat");
+
+				// TODO(nick):
+				// 1) make nodes only for needed stuff (for queue - entity and text)
+				// 2) add some logical step that takes place per level
+				//    and builds an array of entity nodes?
+				//    for now static ones work
 				Entity_Node PlayerEntityNode = 
 				{
 					PlayerEntity,
@@ -992,6 +1013,25 @@ UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, TTF_Font *Fon
 		}
 		CurrentTextAsset->Texture->Texture = SDL_CreateTextureFromSurface(GameRenderer, Raw);
 	}
+}
+
+Level *
+LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
+{
+	Level *LoadedLevel = NULL;
+	// TODO(nick): finish this up ...
+	FILE *LevelFile = fopen(fileName, "rb");
+	if (LevelFile)
+	{
+		LoadedLevel = (Level *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+						       sizeof(Level));
+		fclose(LevelFile);
+	}
+	else
+	{
+		printf("ERROR: Cannot load level file -> %s\n", fileName);
+	}
+	return LoadedLevel;
 }
 
 bool

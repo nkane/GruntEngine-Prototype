@@ -21,3 +21,12 @@ struct Entity
 	SDL_Rect CollisionBox;
 };
 
+struct Tile
+{
+	int Id;
+	bool IsStatic;
+	AssetTexture *CurrentTexture;
+	Vector2 PositionV2;
+	SDL_Rect CollisionBox;
+};
+

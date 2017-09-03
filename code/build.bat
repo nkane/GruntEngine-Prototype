@@ -23,5 +23,7 @@ copy ..\code\sdl2_x86\lib\SDL2_ttf.dll .\ >NUL
 
 xcopy ..\assets .\assets /S /K /F /I /Y >NUL
 
+xcopy ..\data .\data /S /K /F /I /Y >NUL
+
 popd
 
