@@ -13,9 +13,11 @@ enum EntityState
 
 struct Entity
 {
+	int Id;
 	AssetTexture *CurrentTexture;
 	HashSet_AssetTexture TextureSet[32];
 	EntityState CurrentState;
 	Vector2 PositionV2;
+	SDL_Rect CollisionBox;
 };
 

@@ -16,6 +16,7 @@
 #include "queue.h"
 #include "gamestate.h"
 #include "windowstate.h"
+#include "shapes.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,15 +50,25 @@ global_variable Entity *GlobalEntityArray[50];
 global_variable Queue_GameEntity *GlobalEntityRenderQueue;
 // /=====================================================================/
 
-
 // Font Globals
 // <=====================================================================>
 global_variable TTF_Font *ArcadeFont_Large;
 global_variable TTF_Font *ArcadeFont_Medium;
+global_variable TTF_Font *ArcadeFont_Small;
 global_variable TTF_Font *PokeFont_Large;
 global_variable TTF_Font *PokeFont_Medium;
+global_variable TTF_Font *PokeFont_Small;
 global_variable int GlobalTextArrayIndex = 0;
 global_variable Text *GlobalTextArray[50];
+
+// Debug Info
+// TODO(nick): add the following:
+// 1) memory usage
+// 2) sleep estimate
+// 3) fps estimate
+global_variable char *DEBUG_StringBuffer;
+global_variable Text *DEBUG_PlayerPositionInfo;
+global_variable Text *DEBUG_EnemyPositionInfo;
 
 // HUD
 // TODO(nick): look in to creating a different view port for hud port?
@@ -105,6 +116,14 @@ LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *
 AssetTexture *
 LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, char *text, SDL_Color *Color);
 
+void
+UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, char *text, SDL_Color *Color);
+
+bool
+CheckCollision(Entity *GlobalEntityArray[50], int checkIndex);
+
+// TODO(nick):
+// 1) add ability to render collision boxes for debugging
 void 
 GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue);
 
@@ -128,7 +147,9 @@ main(int argc, char *argv[])
 
 		while (SDL_PollEvent(&CurrentEvent))
 		{
-			// TODO(nick): handle input function
+			// TODO(nick):
+			// 1) better handle input function
+			// 2) have handle collision check here
 			switch (CurrentEvent.type)
 			{
 				case SDL_QUIT:
@@ -142,7 +163,6 @@ main(int argc, char *argv[])
 				{
 					switch (CurrentEvent.key.keysym.sym)
 					{
-
 						case SDLK_RETURN:
 						{
 
@@ -154,11 +174,15 @@ main(int argc, char *argv[])
 
 						case SDLK_UP: 
 						{
+							PlayerEntity->PositionV2.Y -= 2;
+							PlayerEntity->CollisionBox.y -= 2;
 							printf("arrow up pressed\n");
 						} break;
 
 						case SDLK_DOWN:
 						{
+							PlayerEntity->PositionV2.Y += 2;
+							PlayerEntity->CollisionBox.y += 2;
 							printf("arrow down pressed\n");
 						} break;
 
@@ -178,7 +202,13 @@ main(int argc, char *argv[])
 							PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
 							
 							// TODO(nick): possible change to velocity?
-							PlayerEntity->PositionV2.X -= 5;
+							PlayerEntity->PositionV2.X -= 2;
+							PlayerEntity->CollisionBox.x -= 2;
+							if (CheckCollision(GlobalEntityArray, PlayerEntity->Id))
+							{
+								PlayerEntity->PositionV2.X += 2;
+								PlayerEntity->CollisionBox.x += 2;
+							}
 							printf("arrow left pressed\n");
 						} break;
 
@@ -196,7 +226,13 @@ main(int argc, char *argv[])
 							
 							PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk");
 							// TODO(nick): possible change to velocity?
-							PlayerEntity->PositionV2.X += 5;
+							PlayerEntity->PositionV2.X += 2;
+							PlayerEntity->CollisionBox.x += 2;
+							if (CheckCollision(GlobalEntityArray, PlayerEntity->Id))
+							{
+								PlayerEntity->PositionV2.X -= 2;
+								PlayerEntity->CollisionBox.x -= 2;
+							}
 							printf("arrow right pressed\n");
 						} break;
 
@@ -339,8 +375,24 @@ main(int argc, char *argv[])
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDLivesCountNode);
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDCurrentScoreNode);
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDCurrentLevelNode);
-			}
 
+				// TODO(nick): set a debug mode flag check here
+				Text_Node DEBUGInfo_PlayerPositionNode
+				{
+					DEBUG_PlayerPositionInfo,
+					NULL,
+
+				};
+
+				Text_Node DEBUGInfo_EnemyPositionNode
+				{
+					DEBUG_EnemyPositionInfo,
+					NULL,
+				};
+
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, DEBUGInfo_PlayerPositionNode);
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, DEBUGInfo_EnemyPositionNode);
+			}
 
 			if (GlobalGameState->IsPlaying)
 			{
@@ -355,8 +407,7 @@ main(int argc, char *argv[])
 					NULL,
 				};
 
-				GronkEntity->PositionV2 = DefaultVector2Position();
-
+				GronkEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
 				Entity_Node GronkEntityNode = 
 				{
 					GronkEntity,
@@ -367,6 +418,7 @@ main(int argc, char *argv[])
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GronkEntityNode);
 				
+				//HandleCollision(GlobalEntityArray, PlayerEntity->Id);
 				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
 			else
@@ -375,7 +427,6 @@ main(int argc, char *argv[])
 				// TODO(nick):
 				// 1) only draw title screen
 				// 2) only handle UI commands
-				// clear the screen
 				SDL_RenderClear(GlobalWindowState->GameRenderer);
 
 				Entity_Node GronkEntityNode = 
@@ -400,7 +451,6 @@ main(int argc, char *argv[])
 
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong_P1);
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong_P2);
-
 				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
 			}
 		}
@@ -423,6 +473,7 @@ main(int argc, char *argv[])
 		}
 	}
 
+	// TODO(nick): need better clean up process
 	// destory textures
 	{	
 		SDL_DestroyTexture(HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Texture);
@@ -434,8 +485,10 @@ main(int argc, char *argv[])
 	{
 		TTF_CloseFont(ArcadeFont_Large);
 		TTF_CloseFont(ArcadeFont_Medium);
+		TTF_CloseFont(ArcadeFont_Small);
 		TTF_CloseFont(PokeFont_Large);
 		TTF_CloseFont(PokeFont_Medium);
+		TTF_CloseFont(PokeFont_Small);
 	}
 
 	// TODO(nick): stream line some clean up process that is going to unload assest / clean up memory
@@ -560,10 +613,24 @@ InitializeGame()
 				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
 
 				// NOTE(nick): set default texture on game init
+				PlayerEntity->Id = GlobalEntityArrayIndex;
 				PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
 				PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
+				PlayerEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+				PlayerEntity->PositionV2.X -= 100;
 
-				PlayerEntity->PositionV2 = DefaultVector2Position();
+				int collisionBoxWidth = 0;
+				int collisionBoxHeight = 0;
+
+				collisionBoxWidth = ((PlayerEntity->CurrentTexture->Width / 4) * 2);
+				collisionBoxHeight = ((PlayerEntity->CurrentTexture->Height / 4) * 2);
+				PlayerEntity->CollisionBox = 
+				{
+					PlayerEntity->PositionV2.X + (PlayerEntity->CurrentTexture->Width / 4),
+					PlayerEntity->PositionV2.Y + (PlayerEntity->CurrentTexture->Height / 4),
+					collisionBoxWidth,
+					collisionBoxHeight,
+				};
 
 				GlobalEntityArray[GlobalEntityArrayIndex] = PlayerEntity;
 				++GlobalEntityArrayIndex;
@@ -574,14 +641,31 @@ InitializeGame()
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Gronk/Gronk_0011_Gronk-Idle-2.png", "rb");
 				HashSet_Insert_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+				GronkEntity->Id = GlobalEntityArrayIndex;
 				GronkEntity->CurrentState = (EntityState)(Idle);
 				GronkEntity->CurrentTexture = HashSet_Select_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle");
 				GronkEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+
+				collisionBoxWidth = ((GronkEntity->CurrentTexture->Width / 4) * 2);
+				collisionBoxHeight = ((GronkEntity->CurrentTexture->Height / 4) * 2);
+				GronkEntity->CollisionBox = 
+				{
+					GronkEntity->PositionV2.X + (GronkEntity->CurrentTexture->Width / 4),
+					GronkEntity->PositionV2.Y + (GronkEntity->CurrentTexture->Height / 4),
+					collisionBoxWidth,
+					collisionBoxHeight,
+				};
 
 				GlobalEntityArray[GlobalEntityArrayIndex] = GronkEntity;
 				++GlobalEntityArrayIndex;
 
 				// NOTE(nick): game font initialization
+				ArcadeFont_Small = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 10);
+				if (!ArcadeFont_Small)
+				{
+					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
+				}
+
 				ArcadeFont_Medium = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 24);
 				if (!ArcadeFont_Medium) 
 				{
@@ -589,7 +673,13 @@ InitializeGame()
 				}
 
 				ArcadeFont_Large = TTF_OpenFont("./assets/Fonts/arcade_classic/ARCADECLASSIC.TTF", 80);
-				if (!ArcadeFont_Medium)
+				if (!ArcadeFont_Large)
+				{
+					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
+				}
+
+				PokeFont_Small = TTF_OpenFont("./assets/Fonts/poke_font/POKE.FON", 10);
+				if (!PokeFont_Small)
 				{
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
 				}
@@ -692,6 +782,35 @@ InitializeGame()
 									&Blue);
 				HUDCurrentLevel->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, 0);
 				HUDCurrentLevel->PositionV2.X += 100;
+
+				// NOTE(nick): debug info text
+				// TODO(nicK): have this toggle on a key press or something similar
+				DEBUG_StringBuffer = (char *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+							     		     (sizeof(char) * 50));
+
+				DEBUG_PlayerPositionInfo = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+										   sizeof(Text));
+				sprintf(DEBUG_StringBuffer, "Player Position x %d y %d ", PlayerEntity->PositionV2.X, PlayerEntity->PositionV2.Y);
+				DEBUG_PlayerPositionInfo->Texture = LoadAssetTTF(GlobalGameState,
+										 PokeFont_Small,
+										 GlobalWindowState->GameSurface,
+										 GlobalWindowState->GameRenderer,
+										 DEBUG_StringBuffer,
+										 &White);
+				DEBUG_PlayerPositionInfo->PositionV2.X = 400;
+				DEBUG_PlayerPositionInfo->PositionV2.Y = 400;
+
+				DEBUG_EnemyPositionInfo = (Text*)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+										 sizeof(Text));
+				sprintf(DEBUG_StringBuffer, "Enemy Position x %d y: %d", GronkEntity->PositionV2.X, GronkEntity->PositionV2.Y);
+				DEBUG_EnemyPositionInfo->Texture = LoadAssetTTF(GlobalGameState,
+										PokeFont_Small,
+										GlobalWindowState->GameSurface,
+										GlobalWindowState->GameRenderer,
+										DEBUG_StringBuffer,
+										&White);
+				DEBUG_EnemyPositionInfo->PositionV2.X = 400;
+				DEBUG_EnemyPositionInfo->PositionV2.Y = 425;
 		
 				// NOTE(nick): allocate enough space for the game queue data
 				// as well as 50 queue slots
@@ -821,8 +940,6 @@ LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *
 	return Result;
 }
 
-// TODO(nick): 
-// 1) pass in color?
 AssetTexture *
 LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurface, SDL_Renderer *GameRenderer, char *text, SDL_Color *Color)
 {
@@ -831,7 +948,8 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 	
 	if (!Color)
 	{
-		*Color = { 255, 255, 255, 0 };
+		SDL_Color White = { 255, 255, 255, 0 };
+		Color = &White;
 	}
 
 	SDL_Surface *Raw = TTF_RenderText_Solid(Font, text, *Color);
@@ -863,6 +981,98 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 	return Result;
 }
 
+void
+UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, TTF_Font *Font, char *text, SDL_Color *Color)
+{
+	if (!Color)
+	{
+		SDL_Color White = { 255, 255, 255, 0 };
+		Color = &White;
+	}
+	SDL_Surface *Raw = TTF_RenderText_Solid(Font, text, *Color);
+	if (!Raw)
+	{
+		printf("ERROR - SDL_ttf could not load text properly - SDL_ttf: %s\n", TTF_GetError());
+	}
+	else
+	{
+		// TODO(nick): a free texture might need to be called on this?
+		if (CurrentTextAsset->Texture->Texture)
+		{
+			SDL_DestroyTexture(CurrentTextAsset->Texture->Texture);
+		}
+		CurrentTextAsset->Texture->Texture = SDL_CreateTextureFromSurface(GameRenderer, Raw);
+	}
+}
+
+bool
+CheckCollision(Entity *EntityArray[50], int checkIndex)
+{
+	int i = 0;
+
+	Entity *checkEntity = EntityArray[checkIndex];
+	Entity *currentEntity = EntityArray[i]; 
+
+	Rectangle CheckEntityCollisionBox = {};
+	Rectangle CurrentEntityCollisionBox = {};
+
+	// NOTE(nick):
+	// duplication of line calculations here
+	// figure out a better way to handle rectangle collision
+	CheckEntityCollisionBox.BottomLine[0].X = checkEntity->CollisionBox.x;
+	CheckEntityCollisionBox.BottomLine[0].Y = checkEntity->CollisionBox.y;
+	CheckEntityCollisionBox.BottomLine[1].X = checkEntity->CollisionBox.x + checkEntity->CollisionBox.w;
+	CheckEntityCollisionBox.BottomLine[1].Y = checkEntity->CollisionBox.y;
+
+	CheckEntityCollisionBox.TopLine[0].X = checkEntity->CollisionBox.x;
+	CheckEntityCollisionBox.TopLine[0].Y = checkEntity->CollisionBox.y + checkEntity->CollisionBox.h;
+	CheckEntityCollisionBox.TopLine[1].X = checkEntity->CollisionBox.x + checkEntity->CollisionBox.w;
+	CheckEntityCollisionBox.TopLine[1].Y = checkEntity->CollisionBox.y + checkEntity->CollisionBox.h;
+	
+	while (currentEntity != NULL)
+	{
+		if (i != checkIndex)
+		{
+			if (currentEntity)
+			{
+				CurrentEntityCollisionBox.BottomLine[0].X = currentEntity->CollisionBox.x;
+				CurrentEntityCollisionBox.BottomLine[0].Y = currentEntity->CollisionBox.y;
+				CurrentEntityCollisionBox.BottomLine[1].X = currentEntity->CollisionBox.x + currentEntity->CollisionBox.w;
+				CurrentEntityCollisionBox.BottomLine[1].Y = currentEntity->CollisionBox.y;
+
+				CurrentEntityCollisionBox.TopLine[0].X = currentEntity->CollisionBox.x;
+				CurrentEntityCollisionBox.TopLine[0].Y = currentEntity->CollisionBox.y + currentEntity->CollisionBox.h;
+				CurrentEntityCollisionBox.TopLine[1].X = currentEntity->CollisionBox.x + currentEntity->CollisionBox.w;
+				CurrentEntityCollisionBox.TopLine[1].Y = currentEntity->CollisionBox.y + currentEntity->CollisionBox.h;
+
+				// CheckEntity is on the same y plane as the CurrentEntity
+				if ((CheckEntityCollisionBox.BottomLine[0].Y <= CurrentEntityCollisionBox.TopLine[0].Y) &&
+				    (CheckEntityCollisionBox.TopLine[0].Y >= CurrentEntityCollisionBox.BottomLine[0].Y))
+				{
+					// check right side collision from CheckEntity perspective
+					if (CheckEntityCollisionBox.BottomLine[1].X >= CurrentEntityCollisionBox.BottomLine[0].X &&
+					    CheckEntityCollisionBox.BottomLine[0].X < CurrentEntityCollisionBox.BottomLine[1].X)
+					{
+						return true;
+					}
+					// check left side collision from CheckEntity persective
+					else if (CheckEntityCollisionBox.BottomLine[0].X > CurrentEntityCollisionBox.BottomLine[1].X)
+					{
+						if (CheckEntityCollisionBox.BottomLine[0].X <= CurrentEntityCollisionBox.BottomLine[1].X)
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
+		++i;
+		currentEntity = EntityArray[i];
+	}
+
+	return false;
+}
+
 void 
 GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue)
 {
@@ -872,10 +1082,30 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	//    - srcrect 
 	// 2) 2nd NULL value is center point
 	//    - center, used for point to determine rotation
+
+	// NOTE(nick): debug info
+	{
+		sprintf(DEBUG_StringBuffer, "Player Collision x %d y %d ", PlayerEntity->CollisionBox.x, PlayerEntity->CollisionBox.y);
+		UpdateAssetTTF(CurrentWindowState->GameRenderer,
+			       DEBUG_PlayerPositionInfo,
+			       PokeFont_Small,
+			       DEBUG_StringBuffer,
+			       NULL);
+		sprintf(DEBUG_StringBuffer, "Enemy Collision x %d y: %d", GronkEntity->CollisionBox.x, GronkEntity->CollisionBox.y);
+		UpdateAssetTTF(CurrentWindowState->GameRenderer,
+			       DEBUG_EnemyPositionInfo,
+			       PokeFont_Small,
+			       DEBUG_StringBuffer,
+			       NULL);
+	}
+
+
 	Entity *CurrentEntity = NULL; 
 	while (CurrentEntity = Queue_Dequeue_GameEntity(EntityQueue))
 	{
-		SDL_Rect PlayerRenderBox = 
+		// TODO(nick):
+		// 1) if collision is detected, do not move position
+		SDL_Rect CurrentRenderBox = 
 		{
 			CurrentEntity->PositionV2.X,
 			CurrentEntity->PositionV2.Y,
@@ -886,10 +1116,33 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 		SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
 				 CurrentEntity->CurrentTexture->Texture,
 				 NULL,
-				 &PlayerRenderBox,
+				 &CurrentRenderBox,
 				 CurrentEntity->CurrentTexture->Rotation,
 				 NULL,
 				 CurrentEntity->CurrentTexture->Flip);
+
+		// NOTE(nick): debug collision box render
+		{
+			SDL_Surface *tempCollisionSurface;
+			SDL_Texture *tempCollisionTexture;
+			tempCollisionSurface = SDL_CreateRGBSurface(0, CurrentEntity->CollisionBox.w, CurrentEntity->CollisionBox.h, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+			if (tempCollisionSurface == NULL)
+			{
+				SDL_Log("SDL_CreateRGBSurface() failed: %s", SDL_GetError());
+			}
+			SDL_FillRect(tempCollisionSurface, NULL, SDL_MapRGBA(tempCollisionSurface->format, 255, 0, 0, 64));
+
+			tempCollisionTexture = SDL_CreateTextureFromSurface(CurrentWindowState->GameRenderer, tempCollisionSurface);
+			SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
+					 tempCollisionTexture,
+					 NULL,
+					 &CurrentEntity->CollisionBox,
+					 0,
+					 NULL,
+					 SDL_FLIP_NONE); 
+			SDL_FreeSurface(tempCollisionSurface);
+			SDL_DestroyTexture(tempCollisionTexture);
+		}
 	}
 
 	Text *CurrentText = NULL;
