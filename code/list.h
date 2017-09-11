@@ -36,18 +36,33 @@ struct TileList_Node
 {
 	Tile *Value;
 	TileList_Node *Next;
-	TileList_Node *Previous;
 };
 
 struct Tile_List
 {
 	TileList_Node *Head;
 	TileList_Node *Tail;
+	bool IsEmpty;
 };
 
 void
-TileList_Add(Tile_List *CurrentList, Tile *NewTile)
+TileList_Add(Tile_List *CurrentList, TileList_Node *NewTileNode)
 {
-	// TODO(nick):
-	// 1) finish this up
+	Assert(CurrentList);
+	if (CurrentList->IsEmpty == false)
+	{
+		if (CurrentList->Head->Next == NULL)
+		{
+			CurrentList->Head->Next = NewTileNode;
+		}
+		CurrentList->Tail->Next = NewTileNode;
+		CurrentList->Tail = NewTileNode;
+	}
+	else
+	{
+		CurrentList->Head = NewTileNode;
+		CurrentList->Tail = NewTileNode;
+		CurrentList->IsEmpty = false;
+	}
 }
+

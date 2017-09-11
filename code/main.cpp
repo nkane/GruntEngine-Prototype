@@ -48,6 +48,7 @@ global_variable SDL_RWops *ReadWriteOperations;
 //
 global_variable const int Tile_Height = 16;
 global_variable const int Tile_Width = 12;
+global_variable bool LoadNextLevel = false;
 global_variable HashSet_AssetTexture GlobalLevelTextures[64];
 global_variable Level* LevelArray[4];
 // /=====================================================================/
@@ -185,6 +186,7 @@ main(int argc, char *argv[])
 							if (!GlobalGameState->IsPlaying)
 							{
 								GlobalGameState->IsPlaying = true;
+								LoadNextLevel = true;
 							}
 						} break;
 
@@ -408,7 +410,16 @@ main(int argc, char *argv[])
 				// 1) finish intial loading up ...
 				// 2) create an array that will have levels loaded
 				// 3) check array first before attempting to load level
-				LevelArray[0] = LoadLevel(GlobalGameState, ReadWriteOperations, "./data/level_one.gdat");
+				if (LoadNextLevel)
+				{
+					if (LevelArray[0] == NULL)
+					{
+						LevelArray[0] = LoadLevel(GlobalGameState, ReadWriteOperations, "./data/level_one.gdat");
+					}
+					LoadNextLevel = false;
+					// TODO(nick):
+					// 1) switch current level to next level
+				}
 
 				// TODO(nick):
 				// 1) make nodes only for needed stuff (for queue - entity and text)
@@ -1029,6 +1040,7 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
 	{
 		LoadedLevel = (Level *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage,
 						       sizeof(Level));
+		LoadedLevel->TileList.IsEmpty = true;
 		StringCopyOverwrite(LoadedLevel->FileName, fileName, array_len(LoadedLevel->FileName));
 		// TODO(nick): clear this up ...
 		char stringBuffer[256] = { 0 };
@@ -1038,6 +1050,7 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
 		int i = 0;
 		int charCount = 0;
 		int currentKey = 0;
+		int tileIndex = 0;
 		// read each line
 		while (fgets(stringBuffer, sizeof(stringBuffer), LevelFile))
 		{
@@ -1069,14 +1082,20 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
 						}
 						Tile *CurrentTile = (Tile *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage,
 										    	    sizeof(Tile));
-						CurrentTile->Id = currentKey;
+						CurrentTile->Id = tileIndex;
 						CurrentTile->IsStatic = false;
 						CurrentTile->CurrentTexture = HashSet_Select_AssetTexture(GlobalLevelTextures, assetBuffer);
 						// TODO(nick): figure out positioning
 						CurrentTile->PositionV2 = { };
 						CurrentTile->CollisionBox = { };
-						TileList_Add(&LoadedLevel->TileList, CurrentTile);
+	
+						TileList_Node *CurrentTileNode = (TileList_Node *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage,
+													         sizeof(TileList_Node));
+						CurrentTileNode->Value = CurrentTile;
+						CurrentTileNode->Next = NULL;
+						TileList_Add(&LoadedLevel->TileList, CurrentTileNode);
 					}
+					++tileIndex;
 					if (*(stringBuffer + i) == '\r' ||
 				    	    *(stringBuffer + i) == '\n')
 					{
