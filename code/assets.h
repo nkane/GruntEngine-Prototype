@@ -37,3 +37,4 @@ DefaultVector2CenterScreen(int screenWidth, int screenHeight)
 		(screenHeight / 2),
 	};
 }
+

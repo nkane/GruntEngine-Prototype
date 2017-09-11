@@ -11,6 +11,7 @@
 #include "assets.h"
 #include "text.h"
 #include "hashset.h"
+#include "strings.h"
 #include "entity.h"
 #include "list.h"
 #include "queue.h"
@@ -47,6 +48,7 @@ global_variable SDL_RWops *ReadWriteOperations;
 //
 global_variable const int Tile_Height = 16;
 global_variable const int Tile_Width = 12;
+global_variable HashSet_AssetTexture GlobalLevelTextures[64];
 // /=====================================================================/
 
 // Entity Globals
@@ -1015,16 +1017,73 @@ UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, TTF_Font *Fon
 	}
 }
 
+// TODO(nick): finish this up ...
 Level *
 LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
 {
 	Level *LoadedLevel = NULL;
-	// TODO(nick): finish this up ...
 	FILE *LevelFile = fopen(fileName, "rb");
 	if (LevelFile)
 	{
-		LoadedLevel = (Level *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+		LoadedLevel = (Level *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage,
 						       sizeof(Level));
+		StringCopyOverwrite(LoadedLevel->FileName, fileName, array_len(LoadedLevel->FileName));
+		// TODO(nick): clear this up ...
+		char stringBuffer[256] = { 0 };
+		char actualAssetName[64] = { 0 };
+		char assetPath[256] = { 0 };
+		char assetBuffer[3] = { 0 };
+		int i = 0;
+		int charCount = 0;
+		int currentKey = 0;
+		// read each line
+		while (fgets(stringBuffer, sizeof(stringBuffer), LevelFile))
+		{
+			// read two characters
+			printf("%s", stringBuffer);
+			while (*(stringBuffer + i) != '\0')
+			{
+				if (*(stringBuffer + i) == ' '  || 
+				    *(stringBuffer + i) == '\r' ||
+				    *(stringBuffer + i) == '\n')
+				{
+					*(assetBuffer + charCount) = '\0';
+					charCount = 0;
+					// TODO(nick):
+					// 1) make load asset and pass code to function
+					// 2) check if asset needs to be loade
+					if (*(assetBuffer + 0) != '0' || *(assetBuffer + 1) != '0')
+					{
+						currentKey = SimpleHash(assetBuffer);
+						if (GlobalLevelTextures[currentKey].Value == NULL)
+						{
+							// TODO(nick): create simple string compare
+							printf("need to load asset!\n");
+							DecodeAssetName(assetBuffer, actualAssetName, array_len(actualAssetName));
+							StringClear(assetPath, array_len(assetPath));
+							StringConcatenate(assetPath, "./assets/level/");
+							StringConcatenate(assetPath, actualAssetName);
+							StringConcatenate(assetPath, ".png");
+							RWOperations = SDL_RWFromFile(assetPath, "rb");
+							HashSet_Insert_AssetTexture(GlobalLevelTextures, assetBuffer, LoadAssetPNG(CurrentGameState, RWOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+						}
+
+					}
+					if (*(stringBuffer + i) == '\r' ||
+				    	    *(stringBuffer + i) == '\n')
+					{
+						i = 0;
+						break;
+					}
+				}
+				else
+				{
+					*(assetBuffer + charCount) = *(stringBuffer + i);
+					++charCount;
+				}
+				++i;
+			}
+		}
 		fclose(LevelFile);
 	}
 	else

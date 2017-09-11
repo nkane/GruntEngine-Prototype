@@ -30,3 +30,30 @@ struct Tile
 	SDL_Rect CollisionBox;
 };
 
+void
+DecodeAssetName(char *code, char *outBuffer, int max)
+{
+	int i = 0;
+	StringClear(outBuffer, max);
+	while (*(code + i) != '\0')
+	{
+		if (i == 0)
+		{
+			if (*(code + i) == 'T')
+			{
+				StringConcatenate(outBuffer, "Tile-");
+			}
+		} 
+		else
+		{
+			char temp[2] =
+			{
+				*(code + i),
+				'\0',
+			};
+			StringConcatenate(outBuffer, temp); 
+		}
+		++i;
+	}
+}
+

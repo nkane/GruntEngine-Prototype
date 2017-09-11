@@ -5,7 +5,7 @@
 
 struct Level
 {
-	char *FileName;
+	char FileName[32];
 	Tile *Tiles;
 };
 
