@@ -50,7 +50,8 @@ global_variable const int Tile_Height = 16;
 global_variable const int Tile_Width = 12;
 global_variable bool LoadNextLevel = false;
 global_variable HashSet_AssetTexture GlobalLevelTextures[64];
-global_variable Level* LevelArray[4];
+global_variable Level* GlobalLevelArray[4];
+global_variable Level* GlobalCurrentLoadedLevel;
 // /=====================================================================/
 
 // Entity Globals
@@ -142,7 +143,7 @@ bool
 CheckCollision(Entity *GlobalEntityArray[50], int checkIndex);
 
 void 
-GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue);
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue, Level *CurrentLoadedLevel);
 
 int
 main(int argc, char *argv[])
@@ -407,14 +408,15 @@ main(int argc, char *argv[])
 			if (GlobalGameState->IsPlaying)
 			{
 				// TODO(nick) IMPORTANT(nick):
-				// 1) finish intial loading up ...
+				// 1) finish initial loading up ...
 				// 2) create an array that will have levels loaded
 				// 3) check array first before attempting to load level
 				if (LoadNextLevel)
 				{
-					if (LevelArray[0] == NULL)
+					if (GlobalLevelArray[0] == NULL)
 					{
-						LevelArray[0] = LoadLevel(GlobalGameState, ReadWriteOperations, "./data/level_one.gdat");
+						GlobalLevelArray[0] = LoadLevel(GlobalGameState, ReadWriteOperations, "./data/level_one.gdat");
+						GlobalCurrentLoadedLevel = GlobalLevelArray[0];
 					}
 					LoadNextLevel = false;
 					// TODO(nick):
@@ -443,7 +445,7 @@ main(int argc, char *argv[])
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GretelEntityNode);
 				
-				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
+				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue, GlobalCurrentLoadedLevel);
 			}
 			else
 			{
@@ -475,7 +477,7 @@ main(int argc, char *argv[])
 
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, GretelKong_P1);
 				Queue_Enqueue_GameText(GlobalTextRenderQueue, GretelKong_P2);
-				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
+				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue, GlobalCurrentLoadedLevel);
 			}
 		}
 
@@ -1085,10 +1087,13 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
 						CurrentTile->Id = tileIndex;
 						CurrentTile->IsStatic = false;
 						CurrentTile->CurrentTexture = HashSet_Select_AssetTexture(GlobalLevelTextures, assetBuffer);
-						// TODO(nick): figure out positioning
-						CurrentTile->PositionV2 = { };
-						CurrentTile->CollisionBox = { };
-	
+						// TODO(nick): figure out positioning / collision
+						CurrentTile->PositionV2 = 
+						{
+							0,
+							300,
+						};
+						CurrentTile->CollisionBox = {};
 						TileList_Node *CurrentTileNode = (TileList_Node *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage,
 													         sizeof(TileList_Node));
 						CurrentTileNode->Value = CurrentTile;
@@ -1188,7 +1193,7 @@ CheckCollision(Entity *EntityArray[50], int checkIndex)
 }
 
 void 
-GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue)
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue, Level *CurrentLoadedLevel)
 {
 	// render texture(s) to screen
 	// TODO(nick):
@@ -1213,6 +1218,32 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 			       NULL);
 	}
 
+	// TODO(nick):
+	// 1) render level first and check collision between entities and level
+	TileList_Node *CurrentTileNode = NULL;
+	if (CurrentLoadedLevel)
+	{
+		CurrentTileNode = CurrentLoadedLevel->TileList.Head;
+		while (CurrentTileNode)
+		{
+			Tile *CurrentTile = CurrentTileNode->Value;
+			SDL_Rect CurrentRenderBox =
+			{
+				CurrentTile->PositionV2.X,
+				CurrentTile->PositionV2.Y,
+				CurrentTile->CurrentTexture->Width,
+				CurrentTile->CurrentTexture->Height,
+			};
+			CurrentTileNode = CurrentTileNode->Next;
+			SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
+					 CurrentTile->CurrentTexture->Texture,
+					 NULL,
+					 &CurrentRenderBox,
+					 CurrentTile->CurrentTexture->Rotation,
+					 NULL,
+					 CurrentTile->CurrentTexture->Flip);
+		}
+	}
 
 	Entity *CurrentEntity = NULL; 
 	while (CurrentEntity = Queue_Dequeue_GameEntity(EntityQueue))
@@ -1226,7 +1257,6 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 			CurrentEntity->CurrentTexture->Width,
 			CurrentEntity->CurrentTexture->Height,
 		};
-
 		SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
 				 CurrentEntity->CurrentTexture->Texture,
 				 NULL,
