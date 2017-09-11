@@ -6,6 +6,6 @@
 struct Level
 {
 	char FileName[32];
-	Tile *Tiles;
+	Tile_List TileList;
 };
 

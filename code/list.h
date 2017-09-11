@@ -17,7 +17,7 @@ struct Entity_List
 };
 
 void
-Add(Entity_List *CurrentList, Entity *NewEntity)
+EntityList_Add(Entity_List *CurrentList, Entity *NewEntity)
 {
 	Assert(CurrentList);
 	// check if the head is null
@@ -30,4 +30,24 @@ Add(Entity_List *CurrentList, Entity *NewEntity)
 		CurrentList->Head->Value = NewEntity;
 		CurrentList->Tail->Value = NewEntity;
 	}
+}
+
+struct TileList_Node
+{
+	Tile *Value;
+	TileList_Node *Next;
+	TileList_Node *Previous;
+};
+
+struct Tile_List
+{
+	TileList_Node *Head;
+	TileList_Node *Tail;
+};
+
+void
+TileList_Add(Tile_List *CurrentList, Tile *NewTile)
+{
+	// TODO(nick):
+	// 1) finish this up
 }
