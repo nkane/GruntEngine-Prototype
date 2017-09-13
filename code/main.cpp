@@ -1053,6 +1053,8 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
 		int charCount = 0;
 		int currentKey = 0;
 		int tileIndex = 0;
+		int rowIndex = 0;
+		int columnIndex = 0;
 		// read each line
 		while (fgets(stringBuffer, sizeof(stringBuffer), LevelFile))
 		{
@@ -1087,12 +1089,14 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
 						CurrentTile->Id = tileIndex;
 						CurrentTile->IsStatic = false;
 						CurrentTile->CurrentTexture = HashSet_Select_AssetTexture(GlobalLevelTextures, assetBuffer);
-						// TODO(nick): figure out positioning / collision
+
+						// NOTE(nick): rowIndex zero maps to top left corner
 						CurrentTile->PositionV2 = 
 						{
-							0,
-							300,
+							CurrentTile->CurrentTexture->Width * columnIndex,
+							CurrentTile->CurrentTexture->Height * rowIndex,
 						};
+						// TODO(nick): figure out positioning / collision
 						CurrentTile->CollisionBox = {};
 						TileList_Node *CurrentTileNode = (TileList_Node *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage,
 													         sizeof(TileList_Node));
@@ -1105,8 +1109,11 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
 				    	    *(stringBuffer + i) == '\n')
 					{
 						i = 0;
+						columnIndex = 0;
+						++rowIndex;
 						break;
 					}
+					++columnIndex;
 				}
 				else
 				{
