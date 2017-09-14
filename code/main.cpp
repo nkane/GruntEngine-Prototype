@@ -1097,7 +1097,13 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
 							CurrentTile->CurrentTexture->Height * rowIndex,
 						};
 						// TODO(nick): figure out positioning / collision
-						CurrentTile->CollisionBox = {};
+						CurrentTile->CollisionBox = 
+						{
+							CurrentTile->CurrentTexture->Width * columnIndex,
+							CurrentTile->CurrentTexture->Height * rowIndex,
+							CurrentTile->CurrentTexture->Width,
+							CurrentTile->CurrentTexture->Height,
+						};
 						TileList_Node *CurrentTileNode = (TileList_Node *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage,
 													         sizeof(TileList_Node));
 						CurrentTileNode->Value = CurrentTile;
@@ -1276,6 +1282,8 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 		{
 			SDL_Surface *tempCollisionSurface;
 			SDL_Texture *tempCollisionTexture;
+			// TODO(nick):
+			// 1) clean the debugging stuff up a bit to just create one texture instead of creating one per frame and destroying it
 			tempCollisionSurface = SDL_CreateRGBSurface(0, CurrentEntity->CollisionBox.w, CurrentEntity->CollisionBox.h, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
 			if (tempCollisionSurface == NULL)
 			{
