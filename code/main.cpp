@@ -140,7 +140,7 @@ Level *
 LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName);
 
 bool
-CheckCollision(Entity *GlobalEntityArray[50], int checkIndex);
+CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex);
 
 void 
 GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue, Level *CurrentLoadedLevel);
@@ -195,7 +195,7 @@ main(int argc, char *argv[])
 						{
 							PlayerEntity->PositionV2.Y -= 2;
 							PlayerEntity->CollisionBox.y -= 2;
-							if (CheckCollision(GlobalEntityArray, PlayerEntity->Id))
+							if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
 							{
 								PlayerEntity->PositionV2.Y += 2;
 								PlayerEntity->CollisionBox.y += 2;
@@ -206,7 +206,7 @@ main(int argc, char *argv[])
 						{
 							PlayerEntity->PositionV2.Y += 2;
 							PlayerEntity->CollisionBox.y += 2;
-							if (CheckCollision(GlobalEntityArray, PlayerEntity->Id))
+							if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
 							{
 								PlayerEntity->PositionV2.Y -= 2;
 								PlayerEntity->CollisionBox.y -= 2;
@@ -231,7 +231,7 @@ main(int argc, char *argv[])
 							// TODO(nick): possible change to velocity?
 							PlayerEntity->PositionV2.X -= 2;
 							PlayerEntity->CollisionBox.x -= 2;
-							if (CheckCollision(GlobalEntityArray, PlayerEntity->Id))
+							if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
 							{
 								PlayerEntity->PositionV2.X += 2;
 								PlayerEntity->CollisionBox.x += 2;
@@ -254,7 +254,7 @@ main(int argc, char *argv[])
 							// TODO(nick): possible change to velocity?
 							PlayerEntity->PositionV2.X += 2;
 							PlayerEntity->CollisionBox.x += 2;
-							if (CheckCollision(GlobalEntityArray, PlayerEntity->Id))
+							if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
 							{
 								PlayerEntity->PositionV2.X -= 2;
 								PlayerEntity->CollisionBox.x -= 2;
@@ -1139,10 +1139,9 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
 }
 
 bool
-CheckCollision(Entity *EntityArray[50], int checkIndex)
+CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
 {
 	int i = 0;
-
 	Entity *checkEntity = EntityArray[checkIndex];
 	Entity *currentEntity = EntityArray[i]; 
 
@@ -1162,6 +1161,8 @@ CheckCollision(Entity *EntityArray[50], int checkIndex)
 	CheckEntityCollisionBox.TopLine[1].X = checkEntity->CollisionBox.x + checkEntity->CollisionBox.w;
 	CheckEntityCollisionBox.TopLine[1].Y = checkEntity->CollisionBox.y + checkEntity->CollisionBox.h;
 	
+	// NOTE(nicK):
+	// check all collision between entities first
 	while (currentEntity != NULL)
 	{
 		if (i != checkIndex)
@@ -1202,6 +1203,51 @@ CheckCollision(Entity *EntityArray[50], int checkIndex)
 		++i;
 		currentEntity = EntityArray[i];
 	}
+
+	// NOTE(nick):
+	// check all collision between entity and level tiles
+	Assert(CurrentLevel->TileList.Head);
+	TileList_Node *CurrentNode = CurrentLevel->TileList.Head;
+	Tile *CurrentTile = CurrentNode->Value;
+	Rectangle CurrentTileCollisionBox = {};
+	while (CurrentNode != NULL) 
+	{
+		CurrentTileCollisionBox.BottomLine[0].X = CurrentTile->CollisionBox.x;
+		CurrentTileCollisionBox.BottomLine[0].Y = CurrentTile->CollisionBox.y;
+		CurrentTileCollisionBox.BottomLine[1].X = CurrentTile->CollisionBox.x + CurrentTile->CollisionBox.w;
+		CurrentTileCollisionBox.BottomLine[1].Y = CurrentTile->CollisionBox.y;
+
+		CurrentTileCollisionBox.TopLine[0].X = CurrentTile->CollisionBox.x;
+		CurrentTileCollisionBox.TopLine[0].Y = CurrentTile->CollisionBox.y + CurrentTile->CollisionBox.h;
+		CurrentTileCollisionBox.TopLine[1].X = CurrentTile->CollisionBox.x + CurrentTile->CollisionBox.w;
+		CurrentTileCollisionBox.TopLine[1].Y = CurrentTile->CollisionBox.y + CurrentTile->CollisionBox.h;
+
+		// check horizontal collision
+		if ((CheckEntityCollisionBox.BottomLine[0].Y <= CurrentTileCollisionBox.TopLine[0].Y) &&
+		    (CheckEntityCollisionBox.TopLine[0].Y >= CurrentTileCollisionBox.BottomLine[0].Y))
+		{
+			// check right side collision from CheckEntity perspective
+			if (CheckEntityCollisionBox.BottomLine[1].X >= CurrentTileCollisionBox.BottomLine[0].X &&
+			    CheckEntityCollisionBox.BottomLine[0].X <= CurrentTileCollisionBox.BottomLine[1].X)
+			{
+				return true;
+			}
+			// check left side collision from CheckEntity perspective
+			else if (CheckEntityCollisionBox.BottomLine[0].X > CurrentTileCollisionBox.BottomLine[1].X)
+			{
+				if (CheckEntityCollisionBox.BottomLine[0].X <= CurrentTileCollisionBox.BottomLine[1].X)
+				{
+					return true;
+				}
+			}
+		}
+		if ((CurrentNode = CurrentNode->Next) != NULL)
+		{
+			CurrentTile = CurrentNode->Value;
+		}
+
+	}
+
 	return false;
 }
 
