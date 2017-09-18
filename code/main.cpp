@@ -1280,6 +1280,8 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 	// TODO(nick):
 	// 1) render level first and check collision between entities and level
 	TileList_Node *CurrentTileNode = NULL;
+	SDL_Surface *tempTileCollisionSurface;
+	SDL_Texture *tempTileCollisionTexture;
 	if (CurrentLoadedLevel)
 	{
 		CurrentTileNode = CurrentLoadedLevel->TileList.Head;
@@ -1293,7 +1295,6 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 				CurrentTile->CurrentTexture->Width,
 				CurrentTile->CurrentTexture->Height,
 			};
-			CurrentTileNode = CurrentTileNode->Next;
 			SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
 					 CurrentTile->CurrentTexture->Texture,
 					 NULL,
@@ -1301,10 +1302,32 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 					 CurrentTile->CurrentTexture->Rotation,
 					 NULL,
 					 CurrentTile->CurrentTexture->Flip);
+			CurrentTileNode = CurrentTileNode->Next;
+			// NOTE(nick): debug collision box render
+			{
+				tempTileCollisionSurface = SDL_CreateRGBSurface(0, CurrentTile->CollisionBox.w, CurrentTile->CollisionBox.h, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+				if (tempTileCollisionSurface == NULL)
+				{
+					SDL_Log("SDL_CreateRGBSurface() failed: %s", SDL_GetError());
+				}
+				SDL_FillRect(tempTileCollisionSurface, NULL, SDL_MapRGBA(tempTileCollisionSurface->format, 0, 255, 0, 64));
+				tempTileCollisionTexture = SDL_CreateTextureFromSurface(CurrentWindowState->GameRenderer, tempTileCollisionSurface);
+				SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
+						 tempTileCollisionTexture,
+						 NULL,
+						 &CurrentTile->CollisionBox,
+						 0,
+						 NULL,
+						 SDL_FLIP_NONE);
+				SDL_FreeSurface(tempTileCollisionSurface);
+				SDL_DestroyTexture(tempTileCollisionTexture);
+			}
 		}
 	}
 
 	Entity *CurrentEntity = NULL; 
+	SDL_Surface *tempEntityCollisionSurface;
+	SDL_Texture *tempEntityCollisionTexture;
 	while (CurrentEntity = Queue_Dequeue_GameEntity(EntityQueue))
 	{
 		// TODO(nick):
@@ -1326,28 +1349,26 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 
 		// NOTE(nick): debug collision box render
 		{
-			SDL_Surface *tempCollisionSurface;
-			SDL_Texture *tempCollisionTexture;
 			// TODO(nick):
 			// 1) clean the debugging stuff up a bit to just create one texture instead of creating one per frame and destroying it
-			tempCollisionSurface = SDL_CreateRGBSurface(0, CurrentEntity->CollisionBox.w, CurrentEntity->CollisionBox.h, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
-			if (tempCollisionSurface == NULL)
+			tempEntityCollisionSurface = SDL_CreateRGBSurface(0, CurrentEntity->CollisionBox.w, CurrentEntity->CollisionBox.h, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+			if (tempEntityCollisionSurface == NULL)
 			{
 				SDL_Log("SDL_CreateRGBSurface() failed: %s", SDL_GetError());
 			}
-			SDL_FillRect(tempCollisionSurface, NULL, SDL_MapRGBA(tempCollisionSurface->format, 255, 0, 0, 64));
-
-			tempCollisionTexture = SDL_CreateTextureFromSurface(CurrentWindowState->GameRenderer, tempCollisionSurface);
+			SDL_FillRect(tempEntityCollisionSurface, NULL, SDL_MapRGBA(tempEntityCollisionSurface->format, 255, 0, 0, 64));
+			tempEntityCollisionTexture = SDL_CreateTextureFromSurface(CurrentWindowState->GameRenderer, tempEntityCollisionSurface);
 			SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
-					 tempCollisionTexture,
+					 tempEntityCollisionTexture,
 					 NULL,
 					 &CurrentEntity->CollisionBox,
 					 0,
 					 NULL,
 					 SDL_FLIP_NONE); 
-			SDL_FreeSurface(tempCollisionSurface);
-			SDL_DestroyTexture(tempCollisionTexture);
+			SDL_FreeSurface(tempEntityCollisionSurface);
+			SDL_DestroyTexture(tempEntityCollisionTexture);
 		}
+
 	}
 
 	Text *CurrentText = NULL;
