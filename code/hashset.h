@@ -16,6 +16,7 @@ struct HashSet_AssetText
 	Text *Value;
 };
 
+// TODO(nick): add a better hashing function
 unsigned int
 SimpleHash(char *StringKey)
 {
@@ -25,7 +26,6 @@ SimpleHash(char *StringKey)
 		key = ((StringKey[i] + (key << 6) + key) + (key << 16) - key);
 	}
 	key &= 31;
-
 	return key;
 }
 

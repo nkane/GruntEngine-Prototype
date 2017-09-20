@@ -49,7 +49,7 @@ global_variable SDL_RWops *ReadWriteOperations;
 global_variable const int Tile_Height = 16;
 global_variable const int Tile_Width = 12;
 global_variable bool LoadNextLevel = false;
-global_variable HashSet_AssetTexture GlobalLevelTextures[64];
+global_variable HashSet_AssetTexture GlobalLevelTextures[32];
 global_variable Level* GlobalLevelArray[4];
 global_variable Level* GlobalCurrentLoadedLevel;
 // /=====================================================================/
@@ -1031,8 +1031,10 @@ UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, TTF_Font *Fon
 	}
 }
 
+
 // TODO(nick): 
 // 1) only load level if it has not been loaded - should not be checked every frame
+// 2) IMPORTANT(nick): need to think about scaling of entities / tiles
 Level *
 LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
 {
@@ -1045,7 +1047,7 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
 		LoadedLevel->TileList.IsEmpty = true;
 		StringCopyOverwrite(LoadedLevel->FileName, fileName, array_len(LoadedLevel->FileName));
 		// TODO(nick): clear this up ...
-		char stringBuffer[256] = { 0 };
+		char stringBuffer[2048] = { 0 };
 		char actualAssetName[64] = { 0 };
 		char assetPath[256] = { 0 };
 		char assetBuffer[3] = { 0 };
@@ -1072,11 +1074,14 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
 					// 2) check if asset needs to be loade
 					if (*(assetBuffer + 0) != '0' || *(assetBuffer + 1) != '0')
 					{
-						currentKey = SimpleHash(assetBuffer);
+
+						DecodeAssetName(assetBuffer, actualAssetName, array_len(actualAssetName));
+						// TODO(nick): 
+						// 1) IMPORTANT(nick): hash collision finally happed
+						currentKey = SimpleHash(actualAssetName);
 						if (GlobalLevelTextures[currentKey].Value == NULL)
 						{
 							// TODO(nick): create simple string compare
-							DecodeAssetName(assetBuffer, actualAssetName, array_len(actualAssetName));
 							StringClear(assetPath, array_len(assetPath));
 							StringConcatenate(assetPath, "./assets/level/");
 							StringConcatenate(assetPath, actualAssetName);

@@ -39,9 +39,22 @@ DecodeAssetName(char *code, char *outBuffer, int max)
 	{
 		if (i == 0)
 		{
-			if (*(code + i) == 'T')
+			switch (*(code + i))
 			{
-				StringConcatenate(outBuffer, "Tile-");
+				case 'T':
+				{
+					StringConcatenate(outBuffer, "Tile-");
+				} break;
+
+				case 'L':
+				{
+					StringConcatenate(outBuffer, "Ladder-");
+				} break;
+
+				default:
+				{
+					// TODO(nick): error logging
+				} break;
 			}
 		} 
 		else
