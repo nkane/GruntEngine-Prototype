@@ -16,14 +16,13 @@ struct HashSet_AssetText
 	Text *Value;
 };
 
-// TODO(nick): add a better hashing function
 unsigned int
 SimpleHash(char *StringKey)
 {
 	unsigned int key = 0;
 	for (int i = 0; StringKey[i] != '\0'; ++i)
 	{
-		key = ((StringKey[i] + (key << 6) + key) + (key << 16) - key);
+		key = ((StringKey[i] + (key << 6) + (key << 16) - key));
 	}
 	key &= 31;
 	return key;
