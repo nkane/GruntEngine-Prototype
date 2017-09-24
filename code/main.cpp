@@ -11,12 +11,14 @@
 #include "assets.h"
 #include "text.h"
 #include "hashset.h"
+#include "strings.h"
 #include "entity.h"
 #include "list.h"
 #include "queue.h"
 #include "gamestate.h"
 #include "windowstate.h"
 #include "shapes.h"
+#include "level.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,10 +43,21 @@ global_variable bool GameRunning = true;
 global_variable SDL_RWops *ReadWriteOperations;
 // /=====================================================================/
 
+//// Level Globals
+// <=====================================================================>
+//
+global_variable const int Tile_Height = 16;
+global_variable const int Tile_Width = 12;
+global_variable bool LoadNextLevel = false;
+global_variable HashSet_AssetTexture GlobalLevelTextures[32];
+global_variable Level* GlobalLevelArray[4];
+global_variable Level* GlobalCurrentLoadedLevel;
+// /=====================================================================/
+
 // Entity Globals
 // <=====================================================================>
 global_variable Entity *PlayerEntity;
-global_variable Entity *GronkEntity;
+global_variable Entity *GretelEntity;
 global_variable int GlobalEntityArrayIndex = 0;
 global_variable Entity *GlobalEntityArray[50];
 global_variable Queue_GameEntity *GlobalEntityRenderQueue;
@@ -80,8 +93,8 @@ global_variable Text *HUDCurrentLevel;
 
 // TODO(nick): segment into scene text?
 // Title Screen
-global_variable Text *TitleScreenGronkeyKong_1;
-global_variable Text *TitleScreenGronkeyKong_2;
+global_variable Text *TitleScreenGretelKong_1;
+global_variable Text *TitleScreenGretelKong_2;
 global_variable Text *TitleScreenBottom;
 
 global_variable Text *LivesCount;
@@ -119,13 +132,18 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
 void
 UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, char *text, SDL_Color *Color);
 
-bool
-CheckCollision(Entity *GlobalEntityArray[50], int checkIndex);
-
 // TODO(nick):
-// 1) add ability to render collision boxes for debugging
+// 1) have this return a new allocated level?
+// 2) global level array
+// 3) "cache" already loaded levels
+Level *
+LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName);
+
+bool
+CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex);
+
 void 
-GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue);
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue, Level *CurrentLoadedLevel);
 
 int
 main(int argc, char *argv[])
@@ -169,6 +187,7 @@ main(int argc, char *argv[])
 							if (!GlobalGameState->IsPlaying)
 							{
 								GlobalGameState->IsPlaying = true;
+								LoadNextLevel = true;
 							}
 						} break;
 
@@ -176,14 +195,22 @@ main(int argc, char *argv[])
 						{
 							PlayerEntity->PositionV2.Y -= 2;
 							PlayerEntity->CollisionBox.y -= 2;
-							printf("arrow up pressed\n");
+							if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+							{
+								PlayerEntity->PositionV2.Y += 2;
+								PlayerEntity->CollisionBox.y += 2;
+							}
 						} break;
 
 						case SDLK_DOWN:
 						{
 							PlayerEntity->PositionV2.Y += 2;
 							PlayerEntity->CollisionBox.y += 2;
-							printf("arrow down pressed\n");
+							if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+							{
+								PlayerEntity->PositionV2.Y -= 2;
+								PlayerEntity->CollisionBox.y -= 2;
+							}
 						} break;
 
 						case SDLK_LEFT:
@@ -204,12 +231,11 @@ main(int argc, char *argv[])
 							// TODO(nick): possible change to velocity?
 							PlayerEntity->PositionV2.X -= 2;
 							PlayerEntity->CollisionBox.x -= 2;
-							if (CheckCollision(GlobalEntityArray, PlayerEntity->Id))
+							if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
 							{
 								PlayerEntity->PositionV2.X += 2;
 								PlayerEntity->CollisionBox.x += 2;
 							}
-							printf("arrow left pressed\n");
 						} break;
 
 						case SDLK_RIGHT:
@@ -228,37 +254,31 @@ main(int argc, char *argv[])
 							// TODO(nick): possible change to velocity?
 							PlayerEntity->PositionV2.X += 2;
 							PlayerEntity->CollisionBox.x += 2;
-							if (CheckCollision(GlobalEntityArray, PlayerEntity->Id))
+							if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
 							{
 								PlayerEntity->PositionV2.X -= 2;
 								PlayerEntity->CollisionBox.x -= 2;
 							}
-							printf("arrow right pressed\n");
 						} break;
 
 						case SDLK_w: 
 						{
-							printf("w key pressed\n");
 						} break;
 
 						case SDLK_a:
 						{
-							printf("a key pressed\n");
 						} break;
 
 						case SDLK_s:
 						{
-							printf("s key pressed\n");
 						} break;
 
 						case SDLK_d:
 						{
-							printf("d key pressed\n");
 						} break;
 
 						case SDLK_SPACE: 
 						{
-							printf("space pressed\n");
 						} break;
 
 						default: 
@@ -274,51 +294,42 @@ main(int argc, char *argv[])
 					{
 						case SDLK_UP: 
 						{
-							printf("arrow up released\n");
 						} break;
 
 						case SDLK_DOWN:
 						{
-							printf("arrow down released\n");
 						} break;
 
 						case SDLK_LEFT:
 						{
 							PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
 							PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
-							printf("arrow left released\n");
 						} break;
 
 						case SDLK_RIGHT:
 						{
 							PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
 							PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
-							printf("arrow right released\n");
 						} break;
 
 						case SDLK_w: 
 						{
-							printf("w key released\n");
 						} break;
 
 						case SDLK_a:
 						{
-							printf("a key released\n");
 						} break;
 
 						case SDLK_s:
 						{
-							printf("s key released\n");
 						} break;
 
 						case SDLK_d:
 						{
-							printf("d key released\n");
 						} break;
 
 						case SDLK_SPACE: 
 						{
-							printf("space released\n");
 						} break;
 
 						default: 
@@ -396,30 +407,45 @@ main(int argc, char *argv[])
 
 			if (GlobalGameState->IsPlaying)
 			{
-				// TODO(nick): make nodes only for needed stuff (for queue - entity and text)
-				//
-				// TODO(nick): add some logical step that takes place per level
-				// and builds an array of entity nodes?
-				// for now static ones work
+				// TODO(nick) IMPORTANT(nick):
+				// 1) finish initial loading up ...
+				// 2) create an array that will have levels loaded
+				// 3) check array first before attempting to load level
+				if (LoadNextLevel)
+				{
+					if (GlobalLevelArray[0] == NULL)
+					{
+						GlobalLevelArray[0] = LoadLevel(GlobalGameState, ReadWriteOperations, "./data/level_one.gdat");
+						GlobalCurrentLoadedLevel = GlobalLevelArray[0];
+					}
+					LoadNextLevel = false;
+					// TODO(nick):
+					// 1) switch current level to next level
+				}
+
+				// TODO(nick):
+				// 1) make nodes only for needed stuff (for queue - entity and text)
+				// 2) add some logical step that takes place per level
+				//    and builds an array of entity nodes?
+				//    for now static ones work
 				Entity_Node PlayerEntityNode = 
 				{
 					PlayerEntity,
 					NULL,
 				};
 
-				GronkEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
-				Entity_Node GronkEntityNode = 
+				GretelEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+				Entity_Node GretelEntityNode = 
 				{
-					GronkEntity,
+					GretelEntity,
 					NULL,
 				};
 
 				// NOTE(nick): add entities to render queue
 				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
-				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GronkEntityNode);
+				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GretelEntityNode);
 				
-				//HandleCollision(GlobalEntityArray, PlayerEntity->Id);
-				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
+				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue, GlobalCurrentLoadedLevel);
 			}
 			else
 			{
@@ -429,29 +455,29 @@ main(int argc, char *argv[])
 				// 2) only handle UI commands
 				SDL_RenderClear(GlobalWindowState->GameRenderer);
 
-				Entity_Node GronkEntityNode = 
+				Entity_Node GretelEntityNode = 
 				{
-					GronkEntity,
+					GretelEntity,
 					NULL,
 				};
 
-				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GronkEntityNode);
+				Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GretelEntityNode);
 
-				Text_Node GronkeyKong_P1 = 
+				Text_Node GretelKong_P1 = 
 				{
-					TitleScreenGronkeyKong_1,
+					TitleScreenGretelKong_1,
 					NULL,
 				};
 
-				Text_Node GronkeyKong_P2 =
+				Text_Node GretelKong_P2 =
 				{
-					TitleScreenGronkeyKong_2,
+					TitleScreenGretelKong_2,
 					NULL,
 				};
 
-				Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong_P1);
-				Queue_Enqueue_GameText(GlobalTextRenderQueue, GronkeyKong_P2);
-				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue);
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, GretelKong_P1);
+				Queue_Enqueue_GameText(GlobalTextRenderQueue, GretelKong_P2);
+				GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue, GlobalCurrentLoadedLevel);
 			}
 		}
 
@@ -469,7 +495,7 @@ main(int argc, char *argv[])
 			// TODO(nick): remove variable - debug only or keep in game state
 			unsigned int delay = (Frame_Rate_Lock - GlobalGameState->DeltaMS);
 			SDL_Delay(delay);
-			printf("Delay: %d\n", delay);
+			//printf("Delay: %d\n", delay);
 		}
 	}
 
@@ -478,7 +504,7 @@ main(int argc, char *argv[])
 	{	
 		SDL_DestroyTexture(HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Texture);
 		SDL_DestroyTexture(HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk")->Texture);
-		SDL_DestroyTexture(HashSet_Select_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle")->Texture);
+		SDL_DestroyTexture(HashSet_Select_AssetTexture(GretelEntity->TextureSet, "Gretel-Idle")->Texture);
 	}
 
 	// release fonts
@@ -636,27 +662,27 @@ InitializeGame()
 				++GlobalEntityArrayIndex;
 
 				// NOTE(nick): gronk initialization
-				GronkEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+				GretelEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 									sizeof(Entity));
 
-				ReadWriteOperations = SDL_RWFromFile("./assets/Gronk/Gronk_0011_Gronk-Idle-2.png", "rb");
-				HashSet_Insert_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
-				GronkEntity->Id = GlobalEntityArrayIndex;
-				GronkEntity->CurrentState = (EntityState)(Idle);
-				GronkEntity->CurrentTexture = HashSet_Select_AssetTexture(GronkEntity->TextureSet, "Gronk-Idle");
-				GronkEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+				ReadWriteOperations = SDL_RWFromFile("./assets/Gretel/Gretel_0017_Gretel-Idle.png", "rb");
+				HashSet_Insert_AssetTexture(GretelEntity->TextureSet, "Gretel-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+				GretelEntity->Id = GlobalEntityArrayIndex;
+				GretelEntity->CurrentState = (EntityState)(Idle);
+				GretelEntity->CurrentTexture = HashSet_Select_AssetTexture(GretelEntity->TextureSet, "Gretel-Idle");
+				GretelEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
 
-				collisionBoxWidth = ((GronkEntity->CurrentTexture->Width / 4) * 2);
-				collisionBoxHeight = ((GronkEntity->CurrentTexture->Height / 4) * 2);
-				GronkEntity->CollisionBox = 
+				collisionBoxWidth = ((GretelEntity->CurrentTexture->Width / 4) * 2);
+				collisionBoxHeight = ((GretelEntity->CurrentTexture->Height / 4) * 2);
+				GretelEntity->CollisionBox = 
 				{
-					GronkEntity->PositionV2.X + (GronkEntity->CurrentTexture->Width / 4),
-					GronkEntity->PositionV2.Y + (GronkEntity->CurrentTexture->Height / 4),
+					GretelEntity->PositionV2.X + (GretelEntity->CurrentTexture->Width / 4),
+					GretelEntity->PositionV2.Y + (GretelEntity->CurrentTexture->Height / 4),
 					collisionBoxWidth,
 					collisionBoxHeight,
 				};
 
-				GlobalEntityArray[GlobalEntityArrayIndex] = GronkEntity;
+				GlobalEntityArray[GlobalEntityArrayIndex] = GretelEntity;
 				++GlobalEntityArrayIndex;
 
 				// NOTE(nick): game font initialization
@@ -696,9 +722,9 @@ InitializeGame()
 					printf("ERROR - failed to load TTF file - SDL_ttf Error: %s\n", TTF_GetError());
 				}
 
-				TitleScreenGronkeyKong_1 = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+				TitleScreenGretelKong_1 = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 										   sizeof(Text));
-				TitleScreenGronkeyKong_2 = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
+				TitleScreenGretelKong_2 = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 										   sizeof(Text));
 				// Color - RGBA
 				// TODO(nick): global color palette?
@@ -706,19 +732,19 @@ InitializeGame()
 				SDL_Color Red = { 255, 0, 0, 0 };
 				SDL_Color White = { 255, 255, 255, 0 };
 
-				TitleScreenGronkeyKong_1->Texture = LoadAssetTTF(GlobalGameState,
+				TitleScreenGretelKong_1->Texture = LoadAssetTTF(GlobalGameState,
 							                         ArcadeFont_Large,
 							      	      	         GlobalWindowState->GameSurface,
 						              	                 GlobalWindowState->GameRenderer, 
 								                 "GRONKEY",
 									         &Blue);
 				// TODO(nick): center of screen and then offset
-				//TitleScreenGronkeyKong_1->PositionV2 = DefaultVector2Position();
-				TitleScreenGronkeyKong_1->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
-				TitleScreenGronkeyKong_1->PositionV2.Y -= 175;
-				TitleScreenGronkeyKong_1->PositionV2.X -= (TitleScreenGronkeyKong_1->Texture->Width / 2);
+				//TitleScreenGretelKong_1->PositionV2 = DefaultVector2Position();
+				TitleScreenGretelKong_1->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+				TitleScreenGretelKong_1->PositionV2.Y -= 175;
+				TitleScreenGretelKong_1->PositionV2.X -= (TitleScreenGretelKong_1->Texture->Width / 2);
 
-				TitleScreenGronkeyKong_2->Texture = LoadAssetTTF(GlobalGameState,
+				TitleScreenGretelKong_2->Texture = LoadAssetTTF(GlobalGameState,
 										 ArcadeFont_Large,
 										 GlobalWindowState->GameSurface,
 										 GlobalWindowState->GameRenderer,
@@ -727,8 +753,8 @@ InitializeGame()
 				// TODO(nick): center part 2 based on positioning of part 1
 				// TODO(nick): figure out a better way of handling the text positioning
 				// NOTE(nick): 5 is an offset to allow texture to sit a bit closer
-				TitleScreenGronkeyKong_2->PositionV2.X = TitleScreenGronkeyKong_1->PositionV2.X + (TitleScreenGronkeyKong_1->Texture->Width / 4);
-				TitleScreenGronkeyKong_2->PositionV2.Y = (TitleScreenGronkeyKong_1->PositionV2.Y + (TitleScreenGronkeyKong_1->Texture->Height / 2) + 15);
+				TitleScreenGretelKong_2->PositionV2.X = TitleScreenGretelKong_1->PositionV2.X + (TitleScreenGretelKong_1->Texture->Width / 4);
+				TitleScreenGretelKong_2->PositionV2.Y = (TitleScreenGretelKong_1->PositionV2.Y + (TitleScreenGretelKong_1->Texture->Height / 2) + 15);
 				
 				HUDHighScore = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 								       sizeof(Text));
@@ -802,7 +828,7 @@ InitializeGame()
 
 				DEBUG_EnemyPositionInfo = (Text*)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 										 sizeof(Text));
-				sprintf(DEBUG_StringBuffer, "Enemy Position x %d y: %d", GronkEntity->PositionV2.X, GronkEntity->PositionV2.Y);
+				sprintf(DEBUG_StringBuffer, "Enemy Position x %d y: %d", GretelEntity->PositionV2.X, GretelEntity->PositionV2.Y);
 				DEBUG_EnemyPositionInfo->Texture = LoadAssetTTF(GlobalGameState,
 										PokeFont_Small,
 										GlobalWindowState->GameSurface,
@@ -1005,11 +1031,126 @@ UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, TTF_Font *Fon
 	}
 }
 
+
+// TODO(nick): 
+// 1) only load level if it has not been loaded - should not be checked every frame
+// 2) IMPORTANT(nick): need to think about scaling of entities / tiles
+Level *
+LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
+{
+	Level *LoadedLevel = NULL;
+	FILE *LevelFile = fopen(fileName, "rb");
+	if (LevelFile)
+	{
+		LoadedLevel = (Level *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage,
+						       sizeof(Level));
+		LoadedLevel->TileList.IsEmpty = true;
+		StringCopyOverwrite(LoadedLevel->FileName, fileName, array_len(LoadedLevel->FileName));
+		// TODO(nick): clear this up ...
+		char stringBuffer[2048] = { 0 };
+		char actualAssetName[64] = { 0 };
+		char assetPath[256] = { 0 };
+		char assetBuffer[3] = { 0 };
+		int i = 0;
+		int charCount = 0;
+		int currentKey = 0;
+		int tileIndex = 0;
+		int rowIndex = 0;
+		int columnIndex = 0;
+		// read each line
+		while (fgets(stringBuffer, sizeof(stringBuffer), LevelFile))
+		{
+			// read two characters
+			while (*(stringBuffer + i) != '\0')
+			{
+				if (*(stringBuffer + i) == ' '  || 
+				    *(stringBuffer + i) == '\r' ||
+				    *(stringBuffer + i) == '\n')
+				{
+					*(assetBuffer + charCount) = '\0';
+					charCount = 0;
+					// TODO(nick):
+					// 1) make load asset and pass code to function
+					// 2) check if asset needs to be loade
+					if (*(assetBuffer + 0) != '0' || *(assetBuffer + 1) != '0')
+					{
+
+						DecodeAssetName(assetBuffer, actualAssetName, array_len(actualAssetName));
+						// TODO(nick): 
+						// 1) IMPORTANT(nick): hash collision finally happed
+						currentKey = SimpleHash(actualAssetName);
+						if (GlobalLevelTextures[currentKey].Value == NULL)
+						{
+							// TODO(nick): create simple string compare
+							StringClear(assetPath, array_len(assetPath));
+							StringConcatenate(assetPath, "./assets/level/");
+							StringConcatenate(assetPath, actualAssetName);
+							StringConcatenate(assetPath, ".png");
+							RWOperations = SDL_RWFromFile(assetPath, "rb");
+							HashSet_Insert_AssetTexture(GlobalLevelTextures, assetBuffer, LoadAssetPNG(CurrentGameState, RWOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+						}
+						Tile *CurrentTile = (Tile *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage,
+										    	    sizeof(Tile));
+						CurrentTile->Id = tileIndex;
+						CurrentTile->IsStatic = false;
+						// TODO(nick): actualAssetName should determine whether or not a tile is collidable
+						CurrentTile->IsCollidable = IsCollidable(assetBuffer);
+						CurrentTile->CurrentTexture = HashSet_Select_AssetTexture(GlobalLevelTextures, assetBuffer);
+
+						// T
+
+						// NOTE(nick): rowIndex zero maps to top left corner
+						CurrentTile->PositionV2 = 
+						{
+							CurrentTile->CurrentTexture->Width * columnIndex,
+							CurrentTile->CurrentTexture->Height * rowIndex,
+						};
+						// TODO(nick): figure out positioning / collision
+						CurrentTile->CollisionBox = 
+						{
+							CurrentTile->CurrentTexture->Width * columnIndex,
+							CurrentTile->CurrentTexture->Height * rowIndex,
+							CurrentTile->CurrentTexture->Width,
+							CurrentTile->CurrentTexture->Height,
+						};
+						TileList_Node *CurrentTileNode = (TileList_Node *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage,
+													         sizeof(TileList_Node));
+						CurrentTileNode->Value = CurrentTile;
+						CurrentTileNode->Next = NULL;
+						TileList_Add(&LoadedLevel->TileList, CurrentTileNode);
+					}
+					++tileIndex;
+					if (*(stringBuffer + i) == '\r' ||
+				    	    *(stringBuffer + i) == '\n')
+					{
+						i = 0;
+						columnIndex = 0;
+						++rowIndex;
+						break;
+					}
+					++columnIndex;
+				}
+				else
+				{
+					*(assetBuffer + charCount) = *(stringBuffer + i);
+					++charCount;
+				}
+				++i;
+			}
+		}
+		fclose(LevelFile);
+	}
+	else
+	{
+		printf("ERROR: Cannot load level file -> %s\n", fileName);
+	}
+	return LoadedLevel;
+}
+
 bool
-CheckCollision(Entity *EntityArray[50], int checkIndex)
+CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
 {
 	int i = 0;
-
 	Entity *checkEntity = EntityArray[checkIndex];
 	Entity *currentEntity = EntityArray[i]; 
 
@@ -1029,6 +1170,8 @@ CheckCollision(Entity *EntityArray[50], int checkIndex)
 	CheckEntityCollisionBox.TopLine[1].X = checkEntity->CollisionBox.x + checkEntity->CollisionBox.w;
 	CheckEntityCollisionBox.TopLine[1].Y = checkEntity->CollisionBox.y + checkEntity->CollisionBox.h;
 	
+	// NOTE(nicK):
+	// check all collision between entities first
 	while (currentEntity != NULL)
 	{
 		if (i != checkIndex)
@@ -1045,17 +1188,17 @@ CheckCollision(Entity *EntityArray[50], int checkIndex)
 				CurrentEntityCollisionBox.TopLine[1].X = currentEntity->CollisionBox.x + currentEntity->CollisionBox.w;
 				CurrentEntityCollisionBox.TopLine[1].Y = currentEntity->CollisionBox.y + currentEntity->CollisionBox.h;
 
-				// CheckEntity is on the same y plane as the CurrentEntity
+				// check horizontal collision
 				if ((CheckEntityCollisionBox.BottomLine[0].Y <= CurrentEntityCollisionBox.TopLine[0].Y) &&
 				    (CheckEntityCollisionBox.TopLine[0].Y >= CurrentEntityCollisionBox.BottomLine[0].Y))
 				{
 					// check right side collision from CheckEntity perspective
 					if (CheckEntityCollisionBox.BottomLine[1].X >= CurrentEntityCollisionBox.BottomLine[0].X &&
-					    CheckEntityCollisionBox.BottomLine[0].X < CurrentEntityCollisionBox.BottomLine[1].X)
+					    CheckEntityCollisionBox.BottomLine[0].X <= CurrentEntityCollisionBox.BottomLine[1].X)
 					{
 						return true;
 					}
-					// check left side collision from CheckEntity persective
+					// check left side collision from CheckEntity perspective
 					else if (CheckEntityCollisionBox.BottomLine[0].X > CurrentEntityCollisionBox.BottomLine[1].X)
 					{
 						if (CheckEntityCollisionBox.BottomLine[0].X <= CurrentEntityCollisionBox.BottomLine[1].X)
@@ -1070,11 +1213,63 @@ CheckCollision(Entity *EntityArray[50], int checkIndex)
 		currentEntity = EntityArray[i];
 	}
 
+	
+	// IMPORTANT(nick):
+	// certain tiles are not collidable, but they instead allow a specific function (i.e., ladders for "climbing")
+	// NOTE(nick):
+	// check all collision between entity and level tiles
+	TileList_Node *CurrentNode = NULL;
+	Tile *CurrentTile = NULL; Rectangle CurrentTileCollisionBox = {};
+	if (CurrentLevel)
+	{
+		CurrentNode = CurrentLevel->TileList.Head;
+		CurrentTile = CurrentNode->Value;
+	}
+	while (CurrentNode != NULL) 
+	{
+		if (CurrentTile->IsCollidable)
+		{
+			CurrentTileCollisionBox.BottomLine[0].X = CurrentTile->CollisionBox.x;
+			CurrentTileCollisionBox.BottomLine[0].Y = CurrentTile->CollisionBox.y;
+			CurrentTileCollisionBox.BottomLine[1].X = CurrentTile->CollisionBox.x + CurrentTile->CollisionBox.w;
+			CurrentTileCollisionBox.BottomLine[1].Y = CurrentTile->CollisionBox.y;
+
+			CurrentTileCollisionBox.TopLine[0].X = CurrentTile->CollisionBox.x;
+			CurrentTileCollisionBox.TopLine[0].Y = CurrentTile->CollisionBox.y + CurrentTile->CollisionBox.h;
+			CurrentTileCollisionBox.TopLine[1].X = CurrentTile->CollisionBox.x + CurrentTile->CollisionBox.w;
+			CurrentTileCollisionBox.TopLine[1].Y = CurrentTile->CollisionBox.y + CurrentTile->CollisionBox.h;
+
+			// check horizontal collision
+			if ((CheckEntityCollisionBox.BottomLine[0].Y <= CurrentTileCollisionBox.TopLine[0].Y) &&
+			    (CheckEntityCollisionBox.TopLine[0].Y >= CurrentTileCollisionBox.BottomLine[0].Y))
+			{
+				// check right side collision from CheckEntity perspective
+				if (CheckEntityCollisionBox.BottomLine[1].X >= CurrentTileCollisionBox.BottomLine[0].X &&
+				    CheckEntityCollisionBox.BottomLine[0].X <= CurrentTileCollisionBox.BottomLine[1].X)
+				{
+					return true;
+				}
+				// check left side collision from CheckEntity perspective
+				else if (CheckEntityCollisionBox.BottomLine[0].X > CurrentTileCollisionBox.BottomLine[1].X)
+				{
+					if (CheckEntityCollisionBox.BottomLine[0].X <= CurrentTileCollisionBox.BottomLine[1].X)
+					{
+						return true;
+					}
+				}
+			}
+		}
+		if ((CurrentNode = CurrentNode->Next) != NULL)
+		{
+			CurrentTile = CurrentNode->Value;
+		}
+	}
+
 	return false;
 }
 
 void 
-GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue)
+GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue, Level *CurrentLoadedLevel)
 {
 	// render texture(s) to screen
 	// TODO(nick):
@@ -1091,7 +1286,7 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 			       PokeFont_Small,
 			       DEBUG_StringBuffer,
 			       NULL);
-		sprintf(DEBUG_StringBuffer, "Enemy Collision x %d y: %d", GronkEntity->CollisionBox.x, GronkEntity->CollisionBox.y);
+		sprintf(DEBUG_StringBuffer, "Enemy Collision x %d y: %d", GretelEntity->CollisionBox.x, GretelEntity->CollisionBox.y);
 		UpdateAssetTTF(CurrentWindowState->GameRenderer,
 			       DEBUG_EnemyPositionInfo,
 			       PokeFont_Small,
@@ -1099,8 +1294,57 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 			       NULL);
 	}
 
+	// TODO(nick):
+	// 1) render level first and check collision between entities and level
+	TileList_Node *CurrentTileNode = NULL;
+	SDL_Surface *tempTileCollisionSurface;
+	SDL_Texture *tempTileCollisionTexture;
+	if (CurrentLoadedLevel)
+	{
+		CurrentTileNode = CurrentLoadedLevel->TileList.Head;
+		while (CurrentTileNode)
+		{
+			Tile *CurrentTile = CurrentTileNode->Value;
+			SDL_Rect CurrentRenderBox =
+			{
+				CurrentTile->PositionV2.X,
+				CurrentTile->PositionV2.Y,
+				CurrentTile->CurrentTexture->Width,
+				CurrentTile->CurrentTexture->Height,
+			};
+			SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
+					 CurrentTile->CurrentTexture->Texture,
+					 NULL,
+					 &CurrentRenderBox,
+					 CurrentTile->CurrentTexture->Rotation,
+					 NULL,
+					 CurrentTile->CurrentTexture->Flip);
+			CurrentTileNode = CurrentTileNode->Next;
+			// NOTE(nick): debug collision box render
+			{
+				tempTileCollisionSurface = SDL_CreateRGBSurface(0, CurrentTile->CollisionBox.w, CurrentTile->CollisionBox.h, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+				if (tempTileCollisionSurface == NULL)
+				{
+					SDL_Log("SDL_CreateRGBSurface() failed: %s", SDL_GetError());
+				}
+				SDL_FillRect(tempTileCollisionSurface, NULL, SDL_MapRGBA(tempTileCollisionSurface->format, 0, 255, 0, 64));
+				tempTileCollisionTexture = SDL_CreateTextureFromSurface(CurrentWindowState->GameRenderer, tempTileCollisionSurface);
+				SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
+						 tempTileCollisionTexture,
+						 NULL,
+						 &CurrentTile->CollisionBox,
+						 0,
+						 NULL,
+						 SDL_FLIP_NONE);
+				SDL_FreeSurface(tempTileCollisionSurface);
+				SDL_DestroyTexture(tempTileCollisionTexture);
+			}
+		}
+	}
 
 	Entity *CurrentEntity = NULL; 
+	SDL_Surface *tempEntityCollisionSurface;
+	SDL_Texture *tempEntityCollisionTexture;
 	while (CurrentEntity = Queue_Dequeue_GameEntity(EntityQueue))
 	{
 		// TODO(nick):
@@ -1112,7 +1356,6 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 			CurrentEntity->CurrentTexture->Width,
 			CurrentEntity->CurrentTexture->Height,
 		};
-
 		SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
 				 CurrentEntity->CurrentTexture->Texture,
 				 NULL,
@@ -1123,26 +1366,26 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
 
 		// NOTE(nick): debug collision box render
 		{
-			SDL_Surface *tempCollisionSurface;
-			SDL_Texture *tempCollisionTexture;
-			tempCollisionSurface = SDL_CreateRGBSurface(0, CurrentEntity->CollisionBox.w, CurrentEntity->CollisionBox.h, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
-			if (tempCollisionSurface == NULL)
+			// TODO(nick):
+			// 1) clean the debugging stuff up a bit to just create one texture instead of creating one per frame and destroying it
+			tempEntityCollisionSurface = SDL_CreateRGBSurface(0, CurrentEntity->CollisionBox.w, CurrentEntity->CollisionBox.h, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+			if (tempEntityCollisionSurface == NULL)
 			{
 				SDL_Log("SDL_CreateRGBSurface() failed: %s", SDL_GetError());
 			}
-			SDL_FillRect(tempCollisionSurface, NULL, SDL_MapRGBA(tempCollisionSurface->format, 255, 0, 0, 64));
-
-			tempCollisionTexture = SDL_CreateTextureFromSurface(CurrentWindowState->GameRenderer, tempCollisionSurface);
+			SDL_FillRect(tempEntityCollisionSurface, NULL, SDL_MapRGBA(tempEntityCollisionSurface->format, 255, 0, 0, 64));
+			tempEntityCollisionTexture = SDL_CreateTextureFromSurface(CurrentWindowState->GameRenderer, tempEntityCollisionSurface);
 			SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
-					 tempCollisionTexture,
+					 tempEntityCollisionTexture,
 					 NULL,
 					 &CurrentEntity->CollisionBox,
 					 0,
 					 NULL,
 					 SDL_FLIP_NONE); 
-			SDL_FreeSurface(tempCollisionSurface);
-			SDL_DestroyTexture(tempCollisionTexture);
+			SDL_FreeSurface(tempEntityCollisionSurface);
+			SDL_DestroyTexture(tempEntityCollisionTexture);
 		}
+
 	}
 
 	Text *CurrentText = NULL;
