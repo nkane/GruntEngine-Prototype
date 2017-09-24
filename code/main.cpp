@@ -1093,7 +1093,11 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
 										    	    sizeof(Tile));
 						CurrentTile->Id = tileIndex;
 						CurrentTile->IsStatic = false;
+						// TODO(nick): actualAssetName should determine whether or not a tile is collidable
+						CurrentTile->IsCollidable = IsCollidable(assetBuffer);
 						CurrentTile->CurrentTexture = HashSet_Select_AssetTexture(GlobalLevelTextures, assetBuffer);
+
+						// T
 
 						// NOTE(nick): rowIndex zero maps to top left corner
 						CurrentTile->PositionV2 = 
@@ -1209,40 +1213,49 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
 		currentEntity = EntityArray[i];
 	}
 
+	
+	// IMPORTANT(nick):
+	// certain tiles are not collidable, but they instead allow a specific function (i.e., ladders for "climbing")
 	// NOTE(nick):
 	// check all collision between entity and level tiles
-	Assert(CurrentLevel->TileList.Head);
-	TileList_Node *CurrentNode = CurrentLevel->TileList.Head;
-	Tile *CurrentTile = CurrentNode->Value;
-	Rectangle CurrentTileCollisionBox = {};
+	TileList_Node *CurrentNode = NULL;
+	Tile *CurrentTile = NULL; Rectangle CurrentTileCollisionBox = {};
+	if (CurrentLevel)
+	{
+		CurrentNode = CurrentLevel->TileList.Head;
+		CurrentTile = CurrentNode->Value;
+	}
 	while (CurrentNode != NULL) 
 	{
-		CurrentTileCollisionBox.BottomLine[0].X = CurrentTile->CollisionBox.x;
-		CurrentTileCollisionBox.BottomLine[0].Y = CurrentTile->CollisionBox.y;
-		CurrentTileCollisionBox.BottomLine[1].X = CurrentTile->CollisionBox.x + CurrentTile->CollisionBox.w;
-		CurrentTileCollisionBox.BottomLine[1].Y = CurrentTile->CollisionBox.y;
-
-		CurrentTileCollisionBox.TopLine[0].X = CurrentTile->CollisionBox.x;
-		CurrentTileCollisionBox.TopLine[0].Y = CurrentTile->CollisionBox.y + CurrentTile->CollisionBox.h;
-		CurrentTileCollisionBox.TopLine[1].X = CurrentTile->CollisionBox.x + CurrentTile->CollisionBox.w;
-		CurrentTileCollisionBox.TopLine[1].Y = CurrentTile->CollisionBox.y + CurrentTile->CollisionBox.h;
-
-		// check horizontal collision
-		if ((CheckEntityCollisionBox.BottomLine[0].Y <= CurrentTileCollisionBox.TopLine[0].Y) &&
-		    (CheckEntityCollisionBox.TopLine[0].Y >= CurrentTileCollisionBox.BottomLine[0].Y))
+		if (CurrentTile->IsCollidable)
 		{
-			// check right side collision from CheckEntity perspective
-			if (CheckEntityCollisionBox.BottomLine[1].X >= CurrentTileCollisionBox.BottomLine[0].X &&
-			    CheckEntityCollisionBox.BottomLine[0].X <= CurrentTileCollisionBox.BottomLine[1].X)
+			CurrentTileCollisionBox.BottomLine[0].X = CurrentTile->CollisionBox.x;
+			CurrentTileCollisionBox.BottomLine[0].Y = CurrentTile->CollisionBox.y;
+			CurrentTileCollisionBox.BottomLine[1].X = CurrentTile->CollisionBox.x + CurrentTile->CollisionBox.w;
+			CurrentTileCollisionBox.BottomLine[1].Y = CurrentTile->CollisionBox.y;
+
+			CurrentTileCollisionBox.TopLine[0].X = CurrentTile->CollisionBox.x;
+			CurrentTileCollisionBox.TopLine[0].Y = CurrentTile->CollisionBox.y + CurrentTile->CollisionBox.h;
+			CurrentTileCollisionBox.TopLine[1].X = CurrentTile->CollisionBox.x + CurrentTile->CollisionBox.w;
+			CurrentTileCollisionBox.TopLine[1].Y = CurrentTile->CollisionBox.y + CurrentTile->CollisionBox.h;
+
+			// check horizontal collision
+			if ((CheckEntityCollisionBox.BottomLine[0].Y <= CurrentTileCollisionBox.TopLine[0].Y) &&
+			    (CheckEntityCollisionBox.TopLine[0].Y >= CurrentTileCollisionBox.BottomLine[0].Y))
 			{
-				return true;
-			}
-			// check left side collision from CheckEntity perspective
-			else if (CheckEntityCollisionBox.BottomLine[0].X > CurrentTileCollisionBox.BottomLine[1].X)
-			{
-				if (CheckEntityCollisionBox.BottomLine[0].X <= CurrentTileCollisionBox.BottomLine[1].X)
+				// check right side collision from CheckEntity perspective
+				if (CheckEntityCollisionBox.BottomLine[1].X >= CurrentTileCollisionBox.BottomLine[0].X &&
+				    CheckEntityCollisionBox.BottomLine[0].X <= CurrentTileCollisionBox.BottomLine[1].X)
 				{
 					return true;
+				}
+				// check left side collision from CheckEntity perspective
+				else if (CheckEntityCollisionBox.BottomLine[0].X > CurrentTileCollisionBox.BottomLine[1].X)
+				{
+					if (CheckEntityCollisionBox.BottomLine[0].X <= CurrentTileCollisionBox.BottomLine[1].X)
+					{
+						return true;
+					}
 				}
 			}
 		}
@@ -1250,7 +1263,6 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
 		{
 			CurrentTile = CurrentNode->Value;
 		}
-
 	}
 
 	return false;

@@ -25,6 +25,7 @@ struct Tile
 {
 	int Id;
 	bool IsStatic;
+	bool IsCollidable;
 	AssetTexture *CurrentTexture;
 	Vector2 PositionV2;
 	SDL_Rect CollisionBox;
@@ -41,16 +42,16 @@ DecodeAssetName(char *code, char *outBuffer, int max)
 		{
 			switch (*(code + i))
 			{
-				case 'T':
-				{
-					StringConcatenate(outBuffer, "Tile-");
-				} break;
-
 				case 'L':
 				{
 					StringConcatenate(outBuffer, "Ladder-");
 				} break;
 
+				case 'T':
+				{
+					StringConcatenate(outBuffer, "Tile-");
+				} break;
+		
 				default:
 				{
 					// TODO(nick): error logging
@@ -68,5 +69,27 @@ DecodeAssetName(char *code, char *outBuffer, int max)
 		}
 		++i;
 	}
+}
+
+// TODO(nick): this this process out a bit more ...
+// NOTE(nick): list of "tiles" that are not collidable
+// 1) Ladders should not stop plays, but players should be allowed to "climb" ladders
+bool
+IsCollidable(char *code)
+{
+	bool result = true;
+	switch (*(code + 0))
+	{
+		case 'L':
+		{
+			result = false;
+		} break;
+
+		default:
+		{
+
+		} break;
+	}
+	return result;
 }
 
