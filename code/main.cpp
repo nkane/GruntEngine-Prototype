@@ -621,7 +621,6 @@ InitializeGame()
 				//    else log some failure message
 				// 3) split entity / texture? Current texture could be another struct
 				//    something like texture info?
-
 				GlobalGameState = InitializeGameState();
 				Assert(GlobalGameState);
 
@@ -632,11 +631,64 @@ InitializeGame()
 				PlayerEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
 							                 sizeof(Entity));
 
+				// TODO(nick) - IMPORTANT!
+				// 1) Time to change the hash code to actually handle collision, and change the type to pointers instead of structs!
+				// TODO(nick):
+				// 1) need a better way to load assets
+				// 2) possibly have some type of file encoding that relates the entity to the loaded image?
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Idle.png", "rb");
 				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
 
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-SS.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-SS", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-SS-Empty-Hand.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-SS-Empty-Hand", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Walk-1.png", "rb");
-				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk-1", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Walk-2.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk-2", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-SS-Walk-1.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-SS-Walk-1", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-SS-Walk-2.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-SS-Walk-2", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-SS-Walk-3.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-SS-Walk-3", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Jump-1.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Jump-1", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Jump-2.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Jump-2", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Climb-1.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Climb-1", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Climb-2.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Climb-2", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Climb-3.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Climb-3", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Dead-1.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Dead-1", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Dead-2.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Dead-2", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Dead-3.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Dead-3", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Dead-4.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Dead-4", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+
+				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Dead-5.png", "rb");
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Dead-5", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
 
 				// NOTE(nick): set default texture on game init
 				PlayerEntity->Id = GlobalEntityArrayIndex;
