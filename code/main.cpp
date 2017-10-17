@@ -636,11 +636,13 @@ InitializeGame()
 				// TODO(nick):
 				// 1) need a better way to load assets
 				// 2) possibly have some type of file encoding that relates the entity to the loaded image?
+				// 3) consider just having a global hashset that stores all game textures instead
+				//    and having a list of key (texture name) - value (global game texture hashset index or id)
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-Idle.png", "rb");
 				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-SS.png", "rb");
-				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-SS", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-SS-0", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
 
 				ReadWriteOperations = SDL_RWFromFile("./assets/Grunt/Grunt-SS-Empty-Hand.png", "rb");
 				HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, "Grunt-SS-Empty-Hand", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));

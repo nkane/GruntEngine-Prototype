@@ -25,7 +25,7 @@ SimpleHash(char *StringKey)
 		key = ((StringKey[i] + (key << 6) + (key << 16) - key));
 	}
 	//key &= 31;
-	key &= 63;
+	key &= 127;
 	return key;
 }
 
