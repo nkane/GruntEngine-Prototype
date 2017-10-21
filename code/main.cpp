@@ -49,7 +49,7 @@ global_variable SDL_RWops *ReadWriteOperations;
 global_variable const int Tile_Height = 16;
 global_variable const int Tile_Width = 12;
 global_variable bool LoadNextLevel = false;
-global_variable HashSet_AssetTexture GlobalLevelTextures[32];
+global_variable HashSet_AssetTexture GlobalLevelTextures[256];
 global_variable Level* GlobalLevelArray[4];
 global_variable Level* GlobalCurrentLoadedLevel;
 // /=====================================================================/
@@ -505,7 +505,7 @@ main(int argc, char *argv[])
     {	
         SDL_DestroyTexture(HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Texture);
         SDL_DestroyTexture(HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Texture);
-        SDL_DestroyTexture(HashSet_Select_AssetTexture(GretelEntity->TextureSet, "Gretel-Idle")->Texture);
+        SDL_DestroyTexture(HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Gretel-Idle")->Texture);
     }
     
     // release fonts
@@ -703,12 +703,42 @@ InitializeGame()
                 // NOTE(nick): gretel initialization
                 GretelEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                          sizeof(Entity));
+                char *gretelTextureList[32][2] = 
+                {
+                    { "Gretel-Idle",            "./assets/Gretel/Gretel-Idle.png" },
+                    { "Gretel-Angry-1",         "./assets/Gretel/Gretel-Angry-1.png" },
+                    { "Gretel-Angry-2",         "./assets/Gretel/Gretel-Angry-2.png" },
+                    { "Gretel-Jump-1",          "./assets/Gretel/Gretel-Jump-1.png" },
+                    { "Gretel-Jump-2",          "./assets/Gretel/Gretel-Jump-2.png" },
+                    { "Gretel-Shock-1",         "./assets/Gretel/Gretel-Shock-1.png" },
+                    { "Gretel-Shock-2",         "./assets/Gretel/Gretel-Shock-2.png" },
+                    { "Gretel-Hold-Green-Beer", "./assets/Gretel/Gretel-Hold-Green-Beer.png" },
+                    { "Gretel-Hold-Red-Beer",   "./assets/Gretel/Gretel-Hold-Red-Beer.png" },
+                    { "Gretel-Beer-Toss-Empty", "./assets/Gretel/Gretel-Beer-Toss-Empty.png" },
+                    { "Gretel-Beer-Toss-Green", "./assets/Gretel/Gretel-Beer-Toss-Green.png" },
+                    { "Gretel-Beer-Toss-Red",   "./assets/Gretel/Gretel-Beer-Toss-Red.png" },
+                    { "Gretel-Climb-1",         "./assets/Gretel/Gretel-Climb-1.png" },
+                    { "Gretel-Climb-2",         "./assets/Gretel/Gretel-Climb-2.png" },
+                    { "Gretel-Defeat-1",        "./assets/Gretel/Gretel-Defeat-1.png" },
+                    { "Gretel-Defeat-2",        "./assets/Gretel/Gretel-Defeat-2.png" },
+                    { "Gretel-Fall",            "./assets/Gretel/Gretel-Fall.png" },
+                    { "Gretel-Growl",           "./assets/Gretel/Gretel-Growl.png" },
+                    
+                };
                 
-                ReadWriteOperations = SDL_RWFromFile("./assets/Gretel/Gretel_0017_Gretel-Idle.png", "rb");
-                HashSet_Insert_AssetTexture(GretelEntity->TextureSet, "Gretel-Idle", LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+                for (int i = 0, j = 0; i < 32; ++i)
+                {
+                    if (gretelTextureList[i][j])
+                    {
+                        ReadWriteOperations = SDL_RWFromFile(gretelTextureList[i][j + 1], "rb");
+                        HashSet_Insert_AssetTexture(GlobalEntityTextureSet, gretelTextureList[i][j],
+                                                    LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+                    }
+                }
+                
                 GretelEntity->Id = GlobalEntityArrayIndex;
                 GretelEntity->CurrentState = (EntityState)(Idle);
-                GretelEntity->CurrentTexture = HashSet_Select_AssetTexture(GretelEntity->TextureSet, "Gretel-Idle");
+                GretelEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Gretel-Idle");
                 GretelEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
                 
                 collisionBoxWidth = ((GretelEntity->CurrentTexture->Width / 4) * 2);
