@@ -10,33 +10,33 @@
 
 struct MemoryBlock
 {
-	MemoryBlock *Next;
-	uint64 Size;
-	uint64 CurrentBytes;
+    MemoryBlock *Next;
+    uint64 Size;
+    uint64 CurrentBytes;
 };
 
 struct GameMemory
 {
-	MemoryBlock *PermanentStorage;
-	MemoryBlock *TransientStorage;
+    MemoryBlock *PermanentStorage;
+    MemoryBlock *TransientStorage;
 };
 
 // TODO(nick): iron this process out ...
 inline void *
 PushMemoryChunk(MemoryBlock *Block, int chunkSize)
 {
-	Assert(Block->CurrentBytes + chunkSize <= Block->Size);
-
-	uint8 *MemoryChunk = ((uint8 *)Block->Next);
-	Block->Next += chunkSize;
-	Block->CurrentBytes += chunkSize;
-
-	return (void *)MemoryChunk;
+    Assert(Block->CurrentBytes + chunkSize <= Block->Size);
+    
+    uint8 *MemoryChunk = ((uint8 *)Block->Next);
+    Block->Next += chunkSize;
+    Block->CurrentBytes += chunkSize;
+    
+    return (void *)MemoryChunk;
 }
 
 inline void
 PopMemoryChunk()
 {
-	// TODO(nick)
+    // TODO(nick)
 }
 

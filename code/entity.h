@@ -11,6 +11,9 @@ enum EntityState
 	FaceRight = (1u << 2),
 };
 
+// TODO(nick):
+// remove Entity Texture hashset and replace with
+//
 struct Entity
 {
 	int Id;
