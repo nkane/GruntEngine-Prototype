@@ -222,12 +222,12 @@ main(int argc, char *argv[])
                             // 3) set a flag for state of entity facing direction?
                             if (PlayerEntity->CurrentState & (FaceRight))
                             {
-                                HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Flip = SDL_FLIP_HORIZONTAL;
-                                HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk-1")->Flip = SDL_FLIP_HORIZONTAL;
+                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Flip = SDL_FLIP_HORIZONTAL;
+                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Flip = SDL_FLIP_HORIZONTAL;
                                 PlayerEntity->CurrentState = FaceLeft;
                             }
                             
-                            PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk-1");
+                            PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1");
                             
                             // TODO(nick): possible change to velocity?
                             PlayerEntity->PositionV2.X -= 2;
@@ -246,12 +246,12 @@ main(int argc, char *argv[])
                             // NOTE(nick): current state is left
                             if (PlayerEntity->CurrentState & (FaceLeft))
                             {
-                                HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Flip = SDL_FLIP_NONE;
-                                HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk-1")->Flip = SDL_FLIP_NONE;
+                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Flip = SDL_FLIP_NONE;
+                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Flip = SDL_FLIP_NONE;
                                 PlayerEntity->CurrentState = FaceRight;
                             }
                             
-                            PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk-1");
+                            PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1");
                             // TODO(nick): possible change to velocity?
                             PlayerEntity->PositionV2.X += 2;
                             PlayerEntity->CollisionBox.x += 2;
@@ -304,13 +304,13 @@ main(int argc, char *argv[])
                         case SDLK_LEFT:
                         {
                             PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
-                            PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
+                            PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle");
                         } break;
                         
                         case SDLK_RIGHT:
                         {
                             PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
-                            PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
+                            PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle");
                         } break;
                         
                         case SDLK_w: 
@@ -503,8 +503,8 @@ main(int argc, char *argv[])
     // TODO(nick): need better clean up process
     // destory textures
     {	
-        SDL_DestroyTexture(HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle")->Texture);
-        SDL_DestroyTexture(HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Walk-1")->Texture);
+        SDL_DestroyTexture(HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Texture);
+        SDL_DestroyTexture(HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Texture);
         SDL_DestroyTexture(HashSet_Select_AssetTexture(GretelEntity->TextureSet, "Gretel-Idle")->Texture);
     }
     
@@ -642,23 +642,23 @@ InitializeGame()
                 char *playerTextureList[32][2] =
                 { 
                     { "Grunt-Idle" 	, "./assets/Grunt/Grunt-Idle.png" },
-                    { "Grunt-SS-0"  	, "./assets/Grunt/Grunt-SS.png" }, 
-                    { "Grunt-SS-Empty-Hand" , "./assets/Grunt/Grunt-SS-Empty-Hand.png" }, 
-                    { "Grunt-Walk-1" 	, "./assets/Grunt/Grunt-Walk-1.png" }, 
-                    { "Grunt-Walk-2" 	, "./assets/Grunt/Grunt-Walk-2.png" }, 
-                    { "Grunt-SS-Walk-1" 	, "./assets/Grunt/Grunt-SS-Walk-1.png" }, 
-                    { "Grunt-SS-Walk-2" 	, "./assets/Grunt/Grunt-SS-Walk-2.png" }, 
-                    { "Grunt-SS-Walk-3" 	, "./assets/Grunt/Grunt-SS-Walk-3.png" }, 
-                    { "Grunt-Jump-1" 	, "./assets/Grunt/Grunt-Jump-1.png" }, 
-                    { "Grunt-Jump-2" 	, "./assets/Grunt/Grunt-Jump-2.png" }, 
-                    { "Grunt-Climb-1" 	, "./assets/Grunt/Grunt-Climb-1.png" }, 
-                    { "Grunt-Climb-2" 	, "./assets/Grunt/Grunt-Climb-2.png" }, 
+                    { "Grunt-SS-0"  	, "./assets/Grunt/Grunt-SS.png" },
+                    { "Grunt-SS-Empty-Hand" , "./assets/Grunt/Grunt-SS-Empty-Hand.png" },
+                    { "Grunt-Walk-1" 	, "./assets/Grunt/Grunt-Walk-1.png" },
+                    { "Grunt-Walk-2" 	, "./assets/Grunt/Grunt-Walk-2.png" },
+                    { "Grunt-SS-Walk-1" 	, "./assets/Grunt/Grunt-SS-Walk-1.png" },
+                    { "Grunt-SS-Walk-2" 	, "./assets/Grunt/Grunt-SS-Walk-2.png" },
+                    { "Grunt-SS-Walk-3" 	, "./assets/Grunt/Grunt-SS-Walk-3.png" },
+                    { "Grunt-Jump-1" 	, "./assets/Grunt/Grunt-Jump-1.png" },
+                    { "Grunt-Jump-2" 	, "./assets/Grunt/Grunt-Jump-2.png" },
+                    { "Grunt-Climb-1" 	, "./assets/Grunt/Grunt-Climb-1.png" },
+                    { "Grunt-Climb-2" 	, "./assets/Grunt/Grunt-Climb-2.png" },
                     { "Grunt-Climb-3" 	, "./assets/Grunt/Grunt-Climb-3.png" }, 
-                    { "Grunt-Dead-1" 	, "./assets/Grunt/Grunt-Dead-1.png" }, 
-                    { "Grunt-Dead-2" 	, "./assets/Grunt/Grunt-Dead-2.png" }, 
-                    { "Grunt-Dead-3" 	, "./assets/Grunt/Grunt-Dead-3.png" }, 
-                    { "Grunt-Dead-4" 	, "./assets/Grunt/Grunt-Dead-4.png" }, 
-                    { "Grunt-Dead-5" 	, "./assets/Grunt/Grunt-Dead-5.png" }, 
+                    { "Grunt-Dead-1" 	, "./assets/Grunt/Grunt-Dead-1.png" },
+                    { "Grunt-Dead-2" 	, "./assets/Grunt/Grunt-Dead-2.png" },
+                    { "Grunt-Dead-3" 	, "./assets/Grunt/Grunt-Dead-3.png" },
+                    { "Grunt-Dead-4" 	, "./assets/Grunt/Grunt-Dead-4.png" },
+                    { "Grunt-Dead-5" 	, "./assets/Grunt/Grunt-Dead-5.png" },
                 };
                 
                 for (int i = 0, j = 0; i < 32; ++i)
@@ -666,7 +666,9 @@ InitializeGame()
                     if (playerTextureList[i][j])
                     {
                         ReadWriteOperations = SDL_RWFromFile(playerTextureList[i][j + 1], "rb");
-                        HashSet_Insert_AssetTexture(PlayerEntity->TextureSet, playerTextureList[i][j],
+                        // TODO(nick):
+                        // 1) after initial loading of all textures - build sprite animaition(s) for each entity
+                        HashSet_Insert_AssetTexture(GlobalEntityTextureSet, playerTextureList[i][j],
                                                     LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
                     }
                     else
@@ -678,7 +680,7 @@ InitializeGame()
                 // NOTE(nick): set default texture on game init
                 PlayerEntity->Id = GlobalEntityArrayIndex;
                 PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
-                PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(PlayerEntity->TextureSet, "Grunt-Idle");
+                PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle");
                 PlayerEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
                 PlayerEntity->PositionV2.X -= 100;
                 
@@ -698,7 +700,7 @@ InitializeGame()
                 GlobalEntityArray[GlobalEntityArrayIndex] = PlayerEntity;
                 ++GlobalEntityArrayIndex;
                 
-                // NOTE(nick): gronk initialization
+                // NOTE(nick): gretel initialization
                 GretelEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                          sizeof(Entity));
                 
