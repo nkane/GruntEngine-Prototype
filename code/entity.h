@@ -9,6 +9,8 @@ enum EntityState
     Idle      = (1u << 0),
     FaceLeft  = (1u << 1),
     FaceRight = (1u << 2),
+    Walking   = (1u << 3),
+    Jumping   = (1U << 4),
 };
 
 // TODO(nick):
@@ -18,7 +20,8 @@ struct Entity
 {
     int Id;
     AssetTexture *CurrentTexture;
-    EntityState CurrentState;
+    int CurrentState;
+    int CurrentFrame;
     Vector2 PositionV2;
     SDL_Rect CollisionBox;
 };
@@ -95,3 +98,59 @@ IsCollidable(char *code)
     return result;
 }
 
+void
+UpdatePlayerState(Entity *PlayerEntity, int NewState, HashSet_AssetTexture *TextureSet)
+{
+    if (PlayerEntity->CurrentState & (Walking))
+    {
+        if (PlayerEntity->CurrentState & (NewState))
+        {
+            // TODO(nick): move to next frame in animation
+            // NOTE(nick): walk animation for player is
+            // 1) idle 
+            // 2) walk-1
+            // 3) walk-2
+            switch (PlayerEntity->CurrentFrame)
+            {
+                case 0:
+                { 
+                    PlayerEntity->CurrentTexture = ;
+                    PlayerEntity->CurrentFrame++;
+                } break;
+                
+                case 1:
+                {
+                    PlayerEntity->CurrentFrame++;
+                } break;
+                
+                case 2:
+                {
+                    PlayerEntity->CurrentFrame = 0;
+                } break;
+            }
+        }
+        else
+        {
+            
+        }
+    }
+    else if (PlayerEntity->CurrentState & (Idle))
+    {
+        
+    }
+    else if (PlayerEntity->CurrentState & (Jumping))
+    {
+        
+    }
+}
+
+void UpdateEnemyState(Entity *EnemyEntity)
+{
+    
+}
+
+void 
+UpdateEntityPosition()
+{
+    
+}

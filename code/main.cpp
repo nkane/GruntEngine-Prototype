@@ -216,18 +216,23 @@ main(int argc, char *argv[])
                         
                         case SDLK_LEFT:
                         {
-                            // TODO(nick):
-                            // 1) rework with new hash set
-                            // 2) flip texture before 
-                            // 3) set a flag for state of entity facing direction?
                             if (PlayerEntity->CurrentState & (FaceRight))
                             {
                                 HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Flip = SDL_FLIP_HORIZONTAL;
                                 HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Flip = SDL_FLIP_HORIZONTAL;
+                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2")->Flip = SDL_FLIP_HORIZONTAL;
                                 PlayerEntity->CurrentState = FaceLeft;
                             }
                             
-                            PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1");
+                            if (PlayerEntity->CurrentTexture == HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1"))
+                            {
+                                
+                                PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2");
+                            }
+                            else
+                            {
+                                PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1");
+                            }
                             
                             // TODO(nick): possible change to velocity?
                             PlayerEntity->PositionV2.X -= 2;
@@ -241,17 +246,24 @@ main(int argc, char *argv[])
                         
                         case SDLK_RIGHT:
                         {
-                            // TODO(nick): 
-                            // 1) rework with new hash set
                             // NOTE(nick): current state is left
                             if (PlayerEntity->CurrentState & (FaceLeft))
                             {
                                 HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Flip = SDL_FLIP_NONE;
                                 HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Flip = SDL_FLIP_NONE;
+                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2")->Flip = SDL_FLIP_NONE;
                                 PlayerEntity->CurrentState = FaceRight;
                             }
                             
-                            PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1");
+                            if (PlayerEntity->CurrentTexture == HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1"))
+                            {
+                                PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2");
+                            }
+                            else 
+                            {
+                                PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1");
+                            }
+                            
                             // TODO(nick): possible change to velocity?
                             PlayerEntity->PositionV2.X += 2;
                             PlayerEntity->CollisionBox.x += 2;
@@ -309,8 +321,15 @@ main(int argc, char *argv[])
                         
                         case SDLK_RIGHT:
                         {
-                            PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
-                            PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle");
+                            if (PlayerEntity->CurrentState & (EntityState)(Walking))
+                            {
+                                PlayerEntity->CurrentState = (EntityState)(FaceRight | Walking);
+                            }
+                            else
+                            {
+                                PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
+                                PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle");
+                            }
                         } break;
                         
                         case SDLK_w: 
@@ -640,7 +659,7 @@ InitializeGame()
                 // 3) consider just having a global hashset that stores all game textures instead
                 //    and having a list of key (texture name) - value (global game texture hashset index or id)
                 char *playerTextureList[32][2] =
-                { 
+                {
                     { "Grunt-Idle" 	, "./assets/Grunt/Grunt-Idle.png" },
                     { "Grunt-SS-0"  	, "./assets/Grunt/Grunt-SS.png" },
                     { "Grunt-SS-Empty-Hand" , "./assets/Grunt/Grunt-SS-Empty-Hand.png" },
@@ -723,7 +742,6 @@ InitializeGame()
                     { "Gretel-Defeat-2",        "./assets/Gretel/Gretel-Defeat-2.png" },
                     { "Gretel-Fall",            "./assets/Gretel/Gretel-Fall.png" },
                     { "Gretel-Growl",           "./assets/Gretel/Gretel-Growl.png" },
-                    
                 };
                 
                 for (int i = 0, j = 0; i < 32; ++i)
