@@ -47,4 +47,3 @@ HashSet_Select_AssetTexture(HashSet_AssetTexture CurrentHashSet[], char *StringK
     SelectedTexture = CurrentHashSet[SimpleHash(StringKey)].Value;
     return SelectedTexture;
 }
-

@@ -114,7 +114,7 @@ UpdatePlayerState(Entity *PlayerEntity, int NewState, HashSet_AssetTexture *Text
             {
                 case 0:
                 { 
-                    PlayerEntity->CurrentTexture = ;
+                    //PlayerEntity->CurrentTexture = ;
                     PlayerEntity->CurrentFrame++;
                 } break;
                 

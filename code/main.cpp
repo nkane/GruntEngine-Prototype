@@ -19,6 +19,7 @@
 #include "windowstate.h"
 #include "shapes.h"
 #include "level.h"
+#include "animation.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,11 +58,14 @@ global_variable Level* GlobalCurrentLoadedLevel;
 // Entity Globals
 // <=====================================================================>
 global_variable HashSet_AssetTexture GlobalEntityTextureSet[128];
-global_variable Entity *PlayerEntity;
-global_variable Entity *GretelEntity;
-global_variable int GlobalEntityArrayIndex = 0;
 global_variable Entity *GlobalEntityArray[50];
 global_variable Queue_GameEntity *GlobalEntityRenderQueue;
+// player
+global_variable Entity *PlayerEntity;
+global_variable Animation *PlayerAnimations[10];
+// enemies
+global_variable Entity *GretelEntity;
+global_variable int GlobalEntityArrayIndex = 0;
 // /=====================================================================/
 
 // Font Globals
@@ -259,7 +263,7 @@ main(int argc, char *argv[])
                             {
                                 PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2");
                             }
-                            else 
+                            else
                             {
                                 PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1");
                             }
@@ -519,7 +523,7 @@ main(int argc, char *argv[])
         }
     }
     
-    // TODO(nick): need better clean up process
+    // IMPORTANT(nick): clean up definitely needs to be handled ASAP!
     // destory textures
     {	
         SDL_DestroyTexture(HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Texture);
@@ -685,13 +689,14 @@ InitializeGame()
                     if (playerTextureList[i][j])
                     {
                         ReadWriteOperations = SDL_RWFromFile(playerTextureList[i][j + 1], "rb");
-                        // TODO(nick):
-                        // 1) after initial loading of all textures - build sprite animaition(s) for each entity
                         HashSet_Insert_AssetTexture(GlobalEntityTextureSet, playerTextureList[i][j],
                                                     LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
                     }
                     else
                     {
+                        // TODO(nick):
+                        // 1) after initial loading of all textures - build sprite animaition(s) for each entity
+                        BuildPlayerAnimations(PlayerEntity, GlobalEntityTextureSet, PlayerAnimations, GlobalGameState->Memory->PermanentStorage);
                         break;
                     }
                 }
@@ -1495,11 +1500,3 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
                          CurrentText->Texture->Flip);
     }
 }
-
-
-bool
-LoadAssetToHashSet(char FileListArray[32][32], SDL_RWops *RWOperations, HashSet_AssetTexture CurrentHashSet[])
-{
-    return 0;
-}
-
