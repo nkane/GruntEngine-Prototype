@@ -25,7 +25,7 @@
 #include <stdlib.h>
 
 #define local_persist   static
-#define internal 	   static
+#define internal 	static
 #define global_variable static
 
 // Entity Game Constants
@@ -171,8 +171,10 @@ main(int argc, char *argv[])
         while (SDL_PollEvent(&CurrentEvent))
         {
             // TODO(nick):
-            // 1) better handle input function
-            // 2) have handle collision check here
+	    // 1) pull this out to state handling, input handling, and frame selection function
+	    // 2) player input for movement shouldn't happen on title screen
+            // 3) better handle input function
+            // 4) have handle collision check here
             switch (CurrentEvent.type)
             {
                 case SDL_QUIT:
@@ -188,64 +190,66 @@ main(int argc, char *argv[])
                     {
                         case SDLK_RETURN:
                         {
-                            
-                            if (!GlobalGameState->IsPlaying)
-                            {
-                                GlobalGameState->IsPlaying = true;
-                                LoadNextLevel = true;
-                            }
+				if (!GlobalGameState->IsPlaying)
+				{
+					GlobalGameState->IsPlaying = true;
+					LoadNextLevel = true;
+				}
                         } break;
                         
                         case SDLK_UP: 
                         {
-                            PlayerEntity->PositionV2.Y -= 2;
-                            PlayerEntity->CollisionBox.y -= 2;
-                            if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
-                            {
-                                PlayerEntity->PositionV2.Y += 2;
-                                PlayerEntity->CollisionBox.y += 2;
-                            }
+				PlayerEntity->PositionV2.Y -= 2;
+				PlayerEntity->CollisionBox.y -= 2;
+				if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+				{
+					PlayerEntity->PositionV2.Y += 2;
+					PlayerEntity->CollisionBox.y += 2;
+				}
                         } break;
                         
                         case SDLK_DOWN:
                         {
-                            PlayerEntity->PositionV2.Y += 2;
-                            PlayerEntity->CollisionBox.y += 2;
-                            if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
-                            {
-                                PlayerEntity->PositionV2.Y -= 2;
-                                PlayerEntity->CollisionBox.y -= 2;
-                            }
+				PlayerEntity->PositionV2.Y += 2;
+				PlayerEntity->CollisionBox.y += 2;
+				if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+				{
+					PlayerEntity->PositionV2.Y -= 2;
+					PlayerEntity->CollisionBox.y -= 2;
+				}
                         } break;
                         
-                        case SDLK_LEFT:
-                        {
-                            if (PlayerEntity->CurrentState & (FaceRight))
-                            {
-                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Flip = SDL_FLIP_HORIZONTAL;
-                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Flip = SDL_FLIP_HORIZONTAL;
-                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2")->Flip = SDL_FLIP_HORIZONTAL;
-                                PlayerEntity->CurrentState = FaceLeft;
-                            }
-                            
-                            if (PlayerEntity->CurrentTexture == HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1"))
-                            {
-                                
-                                PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2");
-                            }
-                            else
-                            {
-                                PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1");
-                            }
-                            
-                            // TODO(nick): possible change to velocity?
-                            PlayerEntity->PositionV2.X -= 2;
-                            PlayerEntity->CollisionBox.x -= 2;
-                            if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
-                            {
-                                PlayerEntity->PositionV2.X += 2;
-                                PlayerEntity->CollisionBox.x += 2;
-                            }
+			case SDLK_LEFT:
+			{
+				if (PlayerEntity->CurrentState & (FaceRight))
+				{
+					HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Flip = SDL_FLIP_HORIZONTAL;
+					HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Flip = SDL_FLIP_HORIZONTAL;
+					HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2")->Flip = SDL_FLIP_HORIZONTAL;
+					PlayerEntity->CurrentState = FaceLeft;
+				}
+
+				// TODO(nick): pick up here! -> last day worked on 11/19/2017
+				// TODO(nick): have a select animation frame function 
+				SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+				/*
+				if (PlayerEntity->CurrentTexture == HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1"))
+				{
+					PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2");
+				}
+				else
+				{
+					PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1");
+				}
+				*/
+
+				PlayerEntity->PositionV2.X -= 2;
+				PlayerEntity->CollisionBox.x -= 2;
+				if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+				{
+					PlayerEntity->PositionV2.X += 2;
+					PlayerEntity->CollisionBox.x += 2;
+				}
                         } break;
                         
                         case SDLK_RIGHT:
@@ -259,6 +263,7 @@ main(int argc, char *argv[])
                                 PlayerEntity->CurrentState = FaceRight;
                             }
                             
+			    // TODO(nick): have a select animation frame function 
                             if (PlayerEntity->CurrentTexture == HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1"))
                             {
                                 PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2");
@@ -319,21 +324,25 @@ main(int argc, char *argv[])
                         
                         case SDLK_LEFT:
                         {
-                            PlayerEntity->CurrentState = (EntityState)(FaceLeft | Idle);
+				/*
+                            PlayerEntity->CurrentState = (FaceLeft | Idle);
                             PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle");
+			    */
                         } break;
                         
                         case SDLK_RIGHT:
                         {
-                            if (PlayerEntity->CurrentState & (EntityState)(Walking))
+				/*
+                            if (PlayerEntity->CurrentState & (Walking))
                             {
-                                PlayerEntity->CurrentState = (EntityState)(FaceRight | Walking);
+                                PlayerEntity->CurrentState = (FaceRight | Walking);
                             }
                             else
                             {
-                                PlayerEntity->CurrentState = (EntityState)(FaceRight | Idle);
+                                PlayerEntity->CurrentState = (FaceRight | Idle);
                                 PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle");
                             }
+			    */
                         } break;
                         
                         case SDLK_w: 
@@ -369,6 +378,7 @@ main(int argc, char *argv[])
                     // figure out what to do .. 
                 } break;
             }
+
             // clear the screen
             SDL_RenderClear(GlobalWindowState->GameRenderer);
             
@@ -664,24 +674,24 @@ InitializeGame()
                 //    and having a list of key (texture name) - value (global game texture hashset index or id)
                 char *playerTextureList[32][2] =
                 {
-                    { "Grunt-Idle" 	, "./assets/Grunt/Grunt-Idle.png" },
-                    { "Grunt-SS-0"  	, "./assets/Grunt/Grunt-SS.png" },
-                    { "Grunt-SS-Empty-Hand" , "./assets/Grunt/Grunt-SS-Empty-Hand.png" },
-                    { "Grunt-Walk-1" 	, "./assets/Grunt/Grunt-Walk-1.png" },
-                    { "Grunt-Walk-2" 	, "./assets/Grunt/Grunt-Walk-2.png" },
+                    { "Grunt-Idle" 		, "./assets/Grunt/Grunt-Idle.png" },
+                    { "Grunt-SS-0"  		, "./assets/Grunt/Grunt-SS.png" },
+                    { "Grunt-SS-Empty-Hand"	, "./assets/Grunt/Grunt-SS-Empty-Hand.png" },
+                    { "Grunt-Walk-1" 		, "./assets/Grunt/Grunt-Walk-1.png" },
+                    { "Grunt-Walk-2" 		, "./assets/Grunt/Grunt-Walk-2.png" },
                     { "Grunt-SS-Walk-1" 	, "./assets/Grunt/Grunt-SS-Walk-1.png" },
                     { "Grunt-SS-Walk-2" 	, "./assets/Grunt/Grunt-SS-Walk-2.png" },
                     { "Grunt-SS-Walk-3" 	, "./assets/Grunt/Grunt-SS-Walk-3.png" },
-                    { "Grunt-Jump-1" 	, "./assets/Grunt/Grunt-Jump-1.png" },
-                    { "Grunt-Jump-2" 	, "./assets/Grunt/Grunt-Jump-2.png" },
-                    { "Grunt-Climb-1" 	, "./assets/Grunt/Grunt-Climb-1.png" },
-                    { "Grunt-Climb-2" 	, "./assets/Grunt/Grunt-Climb-2.png" },
-                    { "Grunt-Climb-3" 	, "./assets/Grunt/Grunt-Climb-3.png" }, 
-                    { "Grunt-Dead-1" 	, "./assets/Grunt/Grunt-Dead-1.png" },
-                    { "Grunt-Dead-2" 	, "./assets/Grunt/Grunt-Dead-2.png" },
-                    { "Grunt-Dead-3" 	, "./assets/Grunt/Grunt-Dead-3.png" },
-                    { "Grunt-Dead-4" 	, "./assets/Grunt/Grunt-Dead-4.png" },
-                    { "Grunt-Dead-5" 	, "./assets/Grunt/Grunt-Dead-5.png" },
+                    { "Grunt-Jump-1" 		, "./assets/Grunt/Grunt-Jump-1.png" },
+                    { "Grunt-Jump-2" 		, "./assets/Grunt/Grunt-Jump-2.png" },
+                    { "Grunt-Climb-1" 		, "./assets/Grunt/Grunt-Climb-1.png" },
+                    { "Grunt-Climb-2" 		, "./assets/Grunt/Grunt-Climb-2.png" },
+                    { "Grunt-Climb-3" 		, "./assets/Grunt/Grunt-Climb-3.png" }, 
+                    { "Grunt-Dead-1" 		, "./assets/Grunt/Grunt-Dead-1.png" },
+                    { "Grunt-Dead-2" 		, "./assets/Grunt/Grunt-Dead-2.png" },
+                    { "Grunt-Dead-3" 		, "./assets/Grunt/Grunt-Dead-3.png" },
+                    { "Grunt-Dead-4" 		, "./assets/Grunt/Grunt-Dead-4.png" },
+                    { "Grunt-Dead-5" 		, "./assets/Grunt/Grunt-Dead-5.png" },
                 };
                 
                 for (int i = 0, j = 0; i < 32; ++i)
@@ -695,7 +705,7 @@ InitializeGame()
                     else
                     {
                         // TODO(nick):
-                        // 1) after initial loading of all textures - build sprite animaition(s) for each entity
+                        // 1) after initial loading of all textures - build sprite animations for each entity
                         BuildPlayerAnimations(PlayerEntity, GlobalEntityTextureSet, PlayerAnimations, GlobalGameState->Memory->PermanentStorage);
                         break;
                     }
