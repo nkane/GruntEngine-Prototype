@@ -171,8 +171,8 @@ main(int argc, char *argv[])
         while (SDL_PollEvent(&CurrentEvent))
         {
             // TODO(nick):
-	    // 1) pull this out to state handling, input handling, and frame selection function
-	    // 2) player input for movement shouldn't happen on title screen
+            // 1) pull this out to state handling, input handling, and frame selection function
+            // 2) player input for movement shouldn't happen on title screen
             // 3) better handle input function
             // 4) have handle collision check here
             switch (CurrentEvent.type)
@@ -190,113 +190,87 @@ main(int argc, char *argv[])
                     {
                         case SDLK_RETURN:
                         {
-				if (!GlobalGameState->IsPlaying)
-				{
-					GlobalGameState->IsPlaying = true;
-					LoadNextLevel = true;
-				}
+                            if (!GlobalGameState->IsPlaying)
+                            {
+                                GlobalGameState->IsPlaying = true;
+                                LoadNextLevel = true;
+                            }
                         } break;
-                        
+                                
+                        case SDLK_w: 
                         case SDLK_UP: 
                         {
-				PlayerEntity->PositionV2.Y -= 2;
-				PlayerEntity->CollisionBox.y -= 2;
-				if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
-				{
-					PlayerEntity->PositionV2.Y += 2;
-					PlayerEntity->CollisionBox.y += 2;
-				}
-                        } break;
-                        
-                        case SDLK_DOWN:
-                        {
-				PlayerEntity->PositionV2.Y += 2;
-				PlayerEntity->CollisionBox.y += 2;
-				if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
-				{
-					PlayerEntity->PositionV2.Y -= 2;
-					PlayerEntity->CollisionBox.y -= 2;
-				}
-                        } break;
-                        
-			case SDLK_LEFT:
-			{
-				if (PlayerEntity->CurrentState & (FaceRight))
-				{
-					HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Flip = SDL_FLIP_HORIZONTAL;
-					HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Flip = SDL_FLIP_HORIZONTAL;
-					HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2")->Flip = SDL_FLIP_HORIZONTAL;
-					PlayerEntity->CurrentState = FaceLeft;
-				}
-
-				// TODO(nick): pick up here! -> last day worked on 11/19/2017
-				// TODO(nick): have a select animation frame function 
-				SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
-				/*
-				if (PlayerEntity->CurrentTexture == HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1"))
-				{
-					PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2");
-				}
-				else
-				{
-					PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1");
-				}
-				*/
-
-				PlayerEntity->PositionV2.X -= 2;
-				PlayerEntity->CollisionBox.x -= 2;
-				if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
-				{
-					PlayerEntity->PositionV2.X += 2;
-					PlayerEntity->CollisionBox.x += 2;
-				}
-                        } break;
-                        
-                        case SDLK_RIGHT:
-                        {
-                            // NOTE(nick): current state is left
-                            if (PlayerEntity->CurrentState & (FaceLeft))
-                            {
-                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Flip = SDL_FLIP_NONE;
-                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Flip = SDL_FLIP_NONE;
-                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2")->Flip = SDL_FLIP_NONE;
-                                PlayerEntity->CurrentState = FaceRight;
-                            }
-                            
-			    // TODO(nick): have a select animation frame function 
-                            if (PlayerEntity->CurrentTexture == HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1"))
-                            {
-                                PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2");
-                            }
-                            else
-                            {
-                                PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1");
-                            }
-                            
-                            // TODO(nick): possible change to velocity?
-                            PlayerEntity->PositionV2.X += 2;
-                            PlayerEntity->CollisionBox.x += 2;
+                            PlayerEntity->PositionV2.Y -= 2;
+				            PlayerEntity->CollisionBox.y -= 2;
                             if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
                             {
-                                PlayerEntity->PositionV2.X -= 2;
-                                PlayerEntity->CollisionBox.x -= 2;
+                                PlayerEntity->PositionV2.Y += 2;
+                                PlayerEntity->CollisionBox.y += 2;
                             }
-                        } break;
-                        
-                        case SDLK_w: 
-                        {
-                        } break;
-                        
-                        case SDLK_a:
-                        {
                         } break;
                         
                         case SDLK_s:
+                        case SDLK_DOWN:
                         {
+                            PlayerEntity->PositionV2.Y += 2;
+                            PlayerEntity->CollisionBox.y += 2;
+                            if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+                            {
+                                PlayerEntity->PositionV2.Y -= 2;
+                                PlayerEntity->CollisionBox.y -= 2;
+                            }
                         } break;
                         
-                        case SDLK_d:
-                        {
+                        case SDLK_a:
+                        case SDLK_LEFT:
+			            {
+                           PlayerEntity->CurrentState = (EntityState)(Walking);
+                           // TODO(nick): remove this flipping for animation handling
+                           if (PlayerEntity->CurrentFaceDirection & (FaceRight))
+                           {
+                               HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Flip = SDL_FLIP_HORIZONTAL;
+                               HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Flip = SDL_FLIP_HORIZONTAL;
+                               HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2")->Flip = SDL_FLIP_HORIZONTAL;
+                               PlayerEntity->CurrentFaceDirection = FaceLeft;
+                           }
+
+                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+
+                           // TODO(nick):
+                           // 1) change to velocity? real vector math!
+                           PlayerEntity->PositionV2.X -= 2;
+                           PlayerEntity->CollisionBox.x -= 2;
+                           if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+                           {
+                               PlayerEntity->PositionV2.X += 2;
+                               PlayerEntity->CollisionBox.x += 2;
+                           }
+                       } break;
+                                   
+                       case SDLK_d:
+                       case SDLK_RIGHT:
+                       {
+                           PlayerEntity->CurrentState = (EntityState)(Walking);
+                           // TODO(nick): remove this flipping for animation handling
+                           if (PlayerEntity->CurrentFaceDirection & (FaceLeft))
+                           {
+                               HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Flip = SDL_FLIP_NONE;
+                               HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Flip = SDL_FLIP_NONE;
+                               HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2")->Flip = SDL_FLIP_NONE;
+                               PlayerEntity->CurrentFaceDirection = FaceRight;
+                           }
+                           
+                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+
+                           // TODO(nick): 
+                           // 1) change to velocity? real vector math!
+                           PlayerEntity->PositionV2.X += 2;
+                           PlayerEntity->CollisionBox.x += 2;
+                           if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+                           {
+                               PlayerEntity->PositionV2.X -= 2;
+                               PlayerEntity->CollisionBox.x -= 2;
+                           }
                         } break;
                         
                         case SDLK_SPACE: 
@@ -713,7 +687,8 @@ InitializeGame()
                 
                 // NOTE(nick): set default texture on game init
                 PlayerEntity->Id = GlobalEntityArrayIndex;
-                PlayerEntity->CurrentState = (EntityState)(Idle | FaceRight);
+                PlayerEntity->CurrentState = (EntityState)(Idle);
+                PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceRight);
                 PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle");
                 PlayerEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
                 PlayerEntity->PositionV2.X -= 100;

@@ -32,7 +32,7 @@ BuildPlayerAnimations(Entity *CurrentEntity, HashSet_AssetTexture *TextureHashSe
 	// idle animation
 	CurrentAnimation = (Animation *)PushMemoryChunk(Block, sizeof(Animation));
 	CurrentAnimation->FrameLength = 1;
-	CurrentAnimation->FrameRateMS = 100;
+	CurrentAnimation->FrameRateMS = 500;
 	CurrentAnimation->PreviousTime = 0;
 	CurrentAnimation->CurrentFrame = 0;
 	CurrentAnimation->AnimationStrip[frameIndex] = HashSet_Select_AssetTexture(TextureHashSet, "Grunt-Idle");
@@ -41,7 +41,7 @@ BuildPlayerAnimations(Entity *CurrentEntity, HashSet_AssetTexture *TextureHashSe
 	// walking animation
 	CurrentAnimation = (Animation *)PushMemoryChunk(Block, sizeof(Animation));
 	CurrentAnimation->FrameLength = 2;
-	CurrentAnimation->FrameRateMS = 100;
+	CurrentAnimation->FrameRateMS = 500;
 	CurrentAnimation->PreviousTime = 0;
 	CurrentAnimation->CurrentFrame = 0;
 	CurrentAnimation->AnimationStrip[frameIndex++] = HashSet_Select_AssetTexture(TextureHashSet, "Grunt-Walk-1");
@@ -52,7 +52,7 @@ BuildPlayerAnimations(Entity *CurrentEntity, HashSet_AssetTexture *TextureHashSe
 	frameIndex = 0;
 	CurrentAnimation = (Animation *)PushMemoryChunk(Block, sizeof(Animation));
 	CurrentAnimation->FrameLength = 3;
-	CurrentAnimation->FrameRateMS = 100;
+	CurrentAnimation->FrameRateMS = 500;
 	CurrentAnimation->PreviousTime = 0;
 	CurrentAnimation->CurrentFrame = 0;
 	CurrentAnimation->AnimationStrip[frameIndex++] = HashSet_Select_AssetTexture(TextureHashSet, "Grunt-Climb-1");
@@ -70,29 +70,45 @@ BuildEnemyAnimations()
 }
 
 AssetTexture *
-SelectPlayerAnimationFrame(Entity *CurrentPlayer, Animation *CurrentPlayerAnimation[10])
+SelectPlayerAnimationFrame(Entity *CurrentPlayer, Animation *CurrentPlayerAnimations[10])
 {
 	AssetTexture *Result = NULL;
 	Animation *CurrentAnimation = NULL;
-
-	// NOTE(nick): select current animation strip based on 
-	if (CurrentPlayer->CurrentState | (Walking))
-	{
-		CurrentAnimation = CurrentPlayerAnimation[WalkingAnimation];
-	}
-	else if (CurrentPlayer->CurrentState | (Idle))
-	{
-		CurrentAnimation = CurrentPlayerAnimation[Idle];
-	}
+	// NOTE(nick): select current animation strip based on player state
 	// TODO(nick): finish up the rest of the animations
-	
-	if (CurrentAnimation->PreviousTime + CurrentAnimation->FrameRateMS > SDL_GetTicks())
+    if (CurrentPlayer->CurrentState & (Idle))
+	{
+		CurrentAnimation = CurrentPlayerAnimations[Idle];
+	}
+    else if (CurrentPlayer->CurrentState & (Walking))
+	{
+		CurrentAnimation = CurrentPlayerAnimations[WalkingAnimation];
+	}
+
+    unsigned int currentTick = SDL_GetTicks();
+    int frameDelta = (currentTick - CurrentAnimation->PreviousTime);
+	if (frameDelta > CurrentAnimation->FrameRateMS)
+	{
+        if (CurrentAnimation->PreviousTime != 0)
+        {
+            int animationIndex = CurrentAnimation->CurrentFrame + 1;
+            if (CurrentAnimation->FrameLength <= animationIndex)
+            {
+                // reset animation to loop it
+                CurrentAnimation->CurrentFrame = 0;
+            }
+            else
+            {
+                // go to next frame in animation
+                CurrentAnimation->CurrentFrame++;
+            }
+        }
+		Result = CurrentAnimation->AnimationStrip[CurrentAnimation->CurrentFrame];
+        CurrentAnimation->PreviousTime = currentTick;
+	}
+    else
 	{
 		Result = CurrentAnimation->AnimationStrip[CurrentAnimation->CurrentFrame];
-	}
-	else
-	{
-		Result = CurrentAnimation->AnimationStrip[++CurrentAnimation->CurrentFrame];
 	}
 
 	// TODO(nick): handling texture direction flipping

@@ -6,22 +6,28 @@
 // TODO(nick): bit mask may not be needed, think about it some more ...
 enum EntityState
 {
-    Idle      = (1u << 0),
-    FaceLeft  = (1u << 1),
-    FaceRight = (1u << 2),
-    Walking   = (1u << 3),
-    Jumping   = (1U << 4),
+    Stateless = (0u),           // 0
+    Idle      = (1u << 0),      // 1
+    Walking   = (1u << 1),      // 2 
+    Jumping   = (1U << 2),      // 4
+};
+
+enum EntityFaceDirection
+{
+    Directionless    = 0x00,
+    FaceLeft         = 0x01,
+    FaceRight        = 0x02,
 };
 
 // TODO(nick):
 // remove Entity Texture hashset and replace with
-//
 struct Entity
 {
-    int Id;
+    unsigned int Id;
     AssetTexture *CurrentTexture;
-    int CurrentState;
-    int CurrentFrame;
+    unsigned int CurrentState;
+    unsigned int CurrentFaceDirection;
+    unsigned int CurrentFrame;
     Vector2 PositionV2;
     SDL_Rect CollisionBox;
 };
