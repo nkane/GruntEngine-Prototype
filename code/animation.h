@@ -70,7 +70,7 @@ BuildEnemyAnimations()
 }
 
 AssetTexture *
-SelectPlayerAnimationFrame(Entity *CurrentPlayer, Animation *CurrentPlayerAnimations[10])
+SelectPlayerAnimationFrame(Entity *CurrentPlayer, Animation *CurrentPlayerAnimations[10], bool flip)
 {
 	AssetTexture *Result = NULL;
 	Animation *CurrentAnimation = NULL;
@@ -78,7 +78,7 @@ SelectPlayerAnimationFrame(Entity *CurrentPlayer, Animation *CurrentPlayerAnimat
 	// TODO(nick): finish up the rest of the animations
     if (CurrentPlayer->CurrentState & (Idle))
 	{
-		CurrentAnimation = CurrentPlayerAnimations[Idle];
+		CurrentAnimation = CurrentPlayerAnimations[IdleAnimation];
 	}
     else if (CurrentPlayer->CurrentState & (Walking))
 	{
@@ -111,7 +111,18 @@ SelectPlayerAnimationFrame(Entity *CurrentPlayer, Animation *CurrentPlayerAnimat
 		Result = CurrentAnimation->AnimationStrip[CurrentAnimation->CurrentFrame];
 	}
 
-	// TODO(nick): handling texture direction flipping
+	// NOTE(nick): handling texture direction flipping
+    // TODO(nick):
+    // 1) all of the frames in the animation strip need to be "flipped" or "unflipped"
+    // 2) figure out a better way of handling this?
+    if (flip) 
+    {
+        Result->Flip = SDL_FLIP_HORIZONTAL;
+    }
+    else
+    {
+        Result->Flip = SDL_FLIP_NONE;
+    }
 
 	return Result;
 }

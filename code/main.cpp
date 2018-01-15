@@ -161,7 +161,7 @@ main(int argc, char *argv[])
         // TODO(nick): logging / other stuff
         return -1;
     }
-    
+
     // game initialized successfully
     while (GameRunning)
     {
@@ -226,6 +226,7 @@ main(int argc, char *argv[])
 			            {
                            PlayerEntity->CurrentState = (EntityState)(Walking);
                            // TODO(nick): remove this flipping for animation handling
+                           /*
                            if (PlayerEntity->CurrentFaceDirection & (FaceRight))
                            {
                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Flip = SDL_FLIP_HORIZONTAL;
@@ -233,8 +234,14 @@ main(int argc, char *argv[])
                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2")->Flip = SDL_FLIP_HORIZONTAL;
                                PlayerEntity->CurrentFaceDirection = FaceLeft;
                            }
-
-                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                           */
+                           bool flip = false;
+                           if (PlayerEntity->CurrentFaceDirection & (FaceRight))
+                           {
+                               flip = true;
+                               PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceLeft);
+                           }
+                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations, flip);
 
                            // TODO(nick):
                            // 1) change to velocity? real vector math!
@@ -252,6 +259,7 @@ main(int argc, char *argv[])
                        {
                            PlayerEntity->CurrentState = (EntityState)(Walking);
                            // TODO(nick): remove this flipping for animation handling
+                           /*
                            if (PlayerEntity->CurrentFaceDirection & (FaceLeft))
                            {
                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Flip = SDL_FLIP_NONE;
@@ -259,8 +267,16 @@ main(int argc, char *argv[])
                                HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2")->Flip = SDL_FLIP_NONE;
                                PlayerEntity->CurrentFaceDirection = FaceRight;
                            }
-                           
-                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                           */
+                           // TODO(nick):
+                           // 1) maybe create another function in animation.h that entirely handles the flipping? possibly passing the input?
+                           bool flip = false;
+                           if (PlayerEntity->CurrentFaceDirection & (FaceLeft))
+                           {
+                               flip = true;
+                               PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceRight);
+                           }
+                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations, flip);
 
                            // TODO(nick): 
                            // 1) change to velocity? real vector math!
@@ -288,53 +304,30 @@ main(int argc, char *argv[])
                 {
                     switch (CurrentEvent.key.keysym.sym)
                     {
+                        case SDLK_w:
                         case SDLK_UP: 
                         {
                         } break;
                         
+                        case SDLK_s:
                         case SDLK_DOWN:
                         {
                         } break;
                         
+                        case SDLK_a:
                         case SDLK_LEFT:
                         {
-				/*
-                            PlayerEntity->CurrentState = (FaceLeft | Idle);
-                            PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle");
-			    */
-                        } break;
-                        
-                        case SDLK_RIGHT:
-                        {
-				/*
-                            if (PlayerEntity->CurrentState & (Walking))
-                            {
-                                PlayerEntity->CurrentState = (FaceRight | Walking);
-                            }
-                            else
-                            {
-                                PlayerEntity->CurrentState = (FaceRight | Idle);
-                                PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle");
-                            }
-			    */
-                        } break;
-                        
-                        case SDLK_w: 
-                        {
-                        } break;
-                        
-                        case SDLK_a:
-                        {
-                        } break;
-                        
-                        case SDLK_s:
-                        {
+                           PlayerEntity->CurrentState = (EntityState)(Idle);
+                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations, (EntityFaceDirection)PlayerEntity->CurrentFaceDirection);
                         } break;
                         
                         case SDLK_d:
+                        case SDLK_RIGHT:
                         {
+                           PlayerEntity->CurrentState = (EntityState)(Idle);
+                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations, (EntityFaceDirection)PlayerEntity->CurrentFaceDirection);
                         } break;
-                        
+                
                         case SDLK_SPACE: 
                         {
                         } break;

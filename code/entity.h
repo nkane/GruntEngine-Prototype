@@ -1,6 +1,6 @@
-/*	entity.h
+/*	    entity.h
  *
- *	Created By: Nick Kane
+ *	    Created By: Nick Kane
  */
 
 // TODO(nick): bit mask may not be needed, think about it some more ...
