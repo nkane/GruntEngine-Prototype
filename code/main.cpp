@@ -25,7 +25,7 @@
 #include <stdlib.h>
 
 #define local_persist   static
-#define internal 	static
+#define internal 	    static
 #define global_variable static
 
 // Entity Game Constants
@@ -225,23 +225,12 @@ main(int argc, char *argv[])
                         case SDLK_LEFT:
 			            {
                            PlayerEntity->CurrentState = (EntityState)(Walking);
-                           // TODO(nick): remove this flipping for animation handling
-                           /*
                            if (PlayerEntity->CurrentFaceDirection & (FaceRight))
                            {
-                               HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Flip = SDL_FLIP_HORIZONTAL;
-                               HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Flip = SDL_FLIP_HORIZONTAL;
-                               HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2")->Flip = SDL_FLIP_HORIZONTAL;
-                               PlayerEntity->CurrentFaceDirection = FaceLeft;
-                           }
-                           */
-                           bool flip = false;
-                           if (PlayerEntity->CurrentFaceDirection & (FaceRight))
-                           {
-                               flip = true;
+                               FlipAnimations(PlayerAnimations, LeftFlip);
                                PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceLeft);
                            }
-                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations, flip);
+                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
 
                            // TODO(nick):
                            // 1) change to velocity? real vector math!
@@ -258,25 +247,12 @@ main(int argc, char *argv[])
                        case SDLK_RIGHT:
                        {
                            PlayerEntity->CurrentState = (EntityState)(Walking);
-                           // TODO(nick): remove this flipping for animation handling
-                           /*
                            if (PlayerEntity->CurrentFaceDirection & (FaceLeft))
                            {
-                               HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Flip = SDL_FLIP_NONE;
-                               HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Flip = SDL_FLIP_NONE;
-                               HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-2")->Flip = SDL_FLIP_NONE;
-                               PlayerEntity->CurrentFaceDirection = FaceRight;
-                           }
-                           */
-                           // TODO(nick):
-                           // 1) maybe create another function in animation.h that entirely handles the flipping? possibly passing the input?
-                           bool flip = false;
-                           if (PlayerEntity->CurrentFaceDirection & (FaceLeft))
-                           {
-                               flip = true;
+                               FlipAnimations(PlayerAnimations, RightFlip);
                                PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceRight);
                            }
-                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations, flip);
+                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
 
                            // TODO(nick): 
                            // 1) change to velocity? real vector math!
@@ -318,14 +294,14 @@ main(int argc, char *argv[])
                         case SDLK_LEFT:
                         {
                            PlayerEntity->CurrentState = (EntityState)(Idle);
-                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations, (EntityFaceDirection)PlayerEntity->CurrentFaceDirection);
+                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
                         } break;
                         
                         case SDLK_d:
                         case SDLK_RIGHT:
                         {
                            PlayerEntity->CurrentState = (EntityState)(Idle);
-                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations, (EntityFaceDirection)PlayerEntity->CurrentFaceDirection);
+                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
                         } break;
                 
                         case SDLK_SPACE: 

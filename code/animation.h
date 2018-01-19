@@ -11,6 +11,12 @@ enum AnimationType
 	ClimbingAnimation  = 3,
 };
 
+enum AnimationFlipDirection
+{
+    LeftFlip    = 0,
+    RightFlip   = 1,
+};
+
 struct Animation
 {
 	int FrameRateMS;
@@ -70,7 +76,7 @@ BuildEnemyAnimations()
 }
 
 AssetTexture *
-SelectPlayerAnimationFrame(Entity *CurrentPlayer, Animation *CurrentPlayerAnimations[10], bool flip)
+SelectPlayerAnimationFrame(Entity *CurrentPlayer, Animation *CurrentPlayerAnimations[10])
 {
 	AssetTexture *Result = NULL;
 	Animation *CurrentAnimation = NULL;
@@ -111,19 +117,27 @@ SelectPlayerAnimationFrame(Entity *CurrentPlayer, Animation *CurrentPlayerAnimat
 		Result = CurrentAnimation->AnimationStrip[CurrentAnimation->CurrentFrame];
 	}
 
-	// NOTE(nick): handling texture direction flipping
-    // TODO(nick):
-    // 1) all of the frames in the animation strip need to be "flipped" or "unflipped"
-    // 2) figure out a better way of handling this?
-    if (flip) 
-    {
-        Result->Flip = SDL_FLIP_HORIZONTAL;
-    }
-    else
-    {
-        Result->Flip = SDL_FLIP_NONE;
-    }
-
 	return Result;
 }
 
+// TODO(nick): move a const values out to a const.h file?
+void 
+FlipAnimations(Animation *CurrentAnimations[10], AnimationFlipDirection flipDirection)
+{
+    SDL_RendererFlip flip;
+    if (flipDirection == LeftFlip)
+    {
+        flip = SDL_FLIP_HORIZONTAL;
+    }
+    else
+    {
+        flip = SDL_FLIP_NONE;
+    }
+    for (int i = 0; i < 10 && CurrentAnimations[i] != NULL; ++i)
+    {
+        for (int j = 0; j < CurrentAnimations[i]->FrameLength; ++j)
+        {
+            CurrentAnimations[i]->AnimationStrip[j]->Flip = flip;
+        }
+    }
+}
