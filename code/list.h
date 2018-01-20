@@ -65,4 +65,3 @@ TileList_Add(Tile_List *CurrentList, TileList_Node *NewTileNode)
 		CurrentList->IsEmpty = false;
 	}
 }
-
