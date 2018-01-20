@@ -50,6 +50,7 @@ global_variable SDL_RWops *ReadWriteOperations;
 global_variable const int Tile_Height = 16;
 global_variable const int Tile_Width = 12;
 global_variable bool LoadNextLevel = false;
+// TODO(nick): check hashset.h, not sure what this is 256?
 global_variable HashSet_AssetTexture GlobalLevelTextures[256];
 global_variable Level* GlobalLevelArray[4];
 global_variable Level* GlobalCurrentLoadedLevel;

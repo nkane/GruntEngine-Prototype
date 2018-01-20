@@ -81,7 +81,6 @@ SelectPlayerAnimationFrame(Entity *CurrentPlayer, Animation *CurrentPlayerAnimat
 	AssetTexture *Result = NULL;
 	Animation *CurrentAnimation = NULL;
 	// NOTE(nick): select current animation strip based on player state
-	// TODO(nick): finish up the rest of the animations
     if (CurrentPlayer->CurrentState & (Idle))
 	{
 		CurrentAnimation = CurrentPlayerAnimations[IdleAnimation];
