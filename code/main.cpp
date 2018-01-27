@@ -30,7 +30,7 @@
 #define internal 	    static
 #define global_variable static
 
-// Entity Game Constants
+// Game Screen and Frame rate
 // <=====================================================================>
 global_variable const int Screen_Width = 640;
 global_variable const int Screen_Height = 480;
@@ -38,7 +38,7 @@ global_variable const int Sdl_Image_Flags = IMG_INIT_PNG;
 global_variable const float Frame_Rate_Lock = (1000.0f / 60.0f);
 // /=====================================================================/
 
-// Entity Game Window and State
+// Game Window and State
 // <=====================================================================>
 global_variable WindowState *GlobalWindowState; 
 global_variable GameState *GlobalGameState;
@@ -48,7 +48,6 @@ global_variable SDL_RWops *ReadWriteOperations;
 
 //// Level Globals
 // <=====================================================================>
-//
 global_variable const int Tile_Height = 16;
 global_variable const int Tile_Width = 12;
 global_variable bool LoadNextLevel = false;
@@ -60,6 +59,10 @@ global_variable Level* GlobalCurrentLoadedLevel;
 
 // Entity Globals
 // <=====================================================================>
+// constants
+global_variable float GlobalPlayerMaxAcceleration = 2.5f;
+
+// entity collections
 global_variable HashSet_AssetTexture GlobalEntityTextureSet[128];
 global_variable Entity *GlobalEntityArray[50];
 global_variable Queue_GameEntity *GlobalEntityRenderQueue;
@@ -203,24 +206,34 @@ main(int argc, char *argv[])
                         case SDLK_w: 
                         case SDLK_UP: 
                         {
+                            // TODO(nick): add gravity after basic vector movement is implemented
+                            /*
                             PlayerEntity->PositionV2i.Y -= 2;
 				            PlayerEntity->CollisionBox.y -= 2;
+                            */
                             if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
                             {
+                                /*
                                 PlayerEntity->PositionV2i.Y += 2;
                                 PlayerEntity->CollisionBox.y += 2;
+                                */
                             }
                         } break;
                         
                         case SDLK_s:
                         case SDLK_DOWN:
                         {
+                            // TODO(nick): add gravity after basic vector movement is implemented
+                            /*
                             PlayerEntity->PositionV2i.Y += 2;
                             PlayerEntity->CollisionBox.y += 2;
+                            */
                             if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
                             {
+                                /*
                                 PlayerEntity->PositionV2i.Y -= 2;
                                 PlayerEntity->CollisionBox.y -= 2;
+                                */
                             }
                         } break;
                         
@@ -237,12 +250,23 @@ main(int argc, char *argv[])
 
                            // TODO(nick):
                            // 1) change to velocity? real vector math!
-                           PlayerEntity->PositionV2i.X -= 2;
-                           PlayerEntity->CollisionBox.x -= 2;
-                           if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+                           // 2) check collision code can probably live in the update player function!
+                           // 3) re-think entity collision box updates - probably could just be center
+                           //    position of the entity?
+                           // IMPORTANT(nick):
+                           // 1) make sure that on release that a velocity decay rate is set?
+
+                           float defaultVelocity = 0.2f;
+                           if (PlayerEntity->VelocityV2f.X < GlobalPlayerMaxAcceleration)
                            {
-                               PlayerEntity->PositionV2i.X += 2;
-                               PlayerEntity->CollisionBox.x += 2;
+                               PlayerEntity->VelocityV2f.X += defaultVelocity;
+                           }
+                           if (!CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+                           {
+                               Vector2i tempVector = { (int)PlayerEntity->VelocityV2f.X, (int)PlayerEntity->VelocityV2f.Y };
+                               PlayerEntity->PositionV2i = Vector2iSubtract(PlayerEntity->PositionV2i, tempVector);
+                               PlayerEntity->CollisionBox.x -= (int)tempVector.X;
+                               PlayerEntity->CollisionBox.x -= (int)tempVector.Y;
                            }
                        } break;
                                    
@@ -657,6 +681,7 @@ InitializeGame()
                     }
                 }
                 
+                // TODO(nick): create player and enemy default setup functions!
                 // NOTE(nick): set default texture on game init
                 PlayerEntity->Id = GlobalEntityArrayIndex;
                 PlayerEntity->CurrentState = (EntityState)(Idle);
@@ -664,6 +689,11 @@ InitializeGame()
                 PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle");
                 PlayerEntity->PositionV2i = DefaultVector2iCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
                 PlayerEntity->PositionV2i.X -= 100;
+                PlayerEntity->VelocityV2f =
+                {
+                    0.0f,
+                    0.0f,
+                };
                 
                 int collisionBoxWidth = 0;
                 int collisionBoxHeight = 0;
