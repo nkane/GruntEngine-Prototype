@@ -8,6 +8,8 @@
 #include <SDL_ttf.h>
 
 #include "gameplatform.h"
+#include "vector2i.h"
+#include "vector2f.h"
 #include "assets.h"
 #include "text.h"
 #include "hashset.h"
@@ -201,11 +203,11 @@ main(int argc, char *argv[])
                         case SDLK_w: 
                         case SDLK_UP: 
                         {
-                            PlayerEntity->PositionV2.Y -= 2;
+                            PlayerEntity->PositionV2i.Y -= 2;
 				            PlayerEntity->CollisionBox.y -= 2;
                             if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
                             {
-                                PlayerEntity->PositionV2.Y += 2;
+                                PlayerEntity->PositionV2i.Y += 2;
                                 PlayerEntity->CollisionBox.y += 2;
                             }
                         } break;
@@ -213,11 +215,11 @@ main(int argc, char *argv[])
                         case SDLK_s:
                         case SDLK_DOWN:
                         {
-                            PlayerEntity->PositionV2.Y += 2;
+                            PlayerEntity->PositionV2i.Y += 2;
                             PlayerEntity->CollisionBox.y += 2;
                             if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
                             {
-                                PlayerEntity->PositionV2.Y -= 2;
+                                PlayerEntity->PositionV2i.Y -= 2;
                                 PlayerEntity->CollisionBox.y -= 2;
                             }
                         } break;
@@ -235,11 +237,11 @@ main(int argc, char *argv[])
 
                            // TODO(nick):
                            // 1) change to velocity? real vector math!
-                           PlayerEntity->PositionV2.X -= 2;
+                           PlayerEntity->PositionV2i.X -= 2;
                            PlayerEntity->CollisionBox.x -= 2;
                            if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
                            {
-                               PlayerEntity->PositionV2.X += 2;
+                               PlayerEntity->PositionV2i.X += 2;
                                PlayerEntity->CollisionBox.x += 2;
                            }
                        } break;
@@ -257,11 +259,11 @@ main(int argc, char *argv[])
 
                            // TODO(nick): 
                            // 1) change to velocity? real vector math!
-                           PlayerEntity->PositionV2.X += 2;
+                           PlayerEntity->PositionV2i.X += 2;
                            PlayerEntity->CollisionBox.x += 2;
                            if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
                            {
-                               PlayerEntity->PositionV2.X -= 2;
+                               PlayerEntity->PositionV2i.X -= 2;
                                PlayerEntity->CollisionBox.x -= 2;
                            }
                         } break;
@@ -412,7 +414,7 @@ main(int argc, char *argv[])
                     NULL,
                 };
                 
-                GretelEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+                GretelEntity->PositionV2i = DefaultVector2iCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
                 Entity_Node GretelEntityNode = 
                 {
                     GretelEntity,
@@ -660,8 +662,8 @@ InitializeGame()
                 PlayerEntity->CurrentState = (EntityState)(Idle);
                 PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceRight);
                 PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle");
-                PlayerEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
-                PlayerEntity->PositionV2.X -= 100;
+                PlayerEntity->PositionV2i = DefaultVector2iCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+                PlayerEntity->PositionV2i.X -= 100;
                 
                 int collisionBoxWidth = 0;
                 int collisionBoxHeight = 0;
@@ -670,8 +672,8 @@ InitializeGame()
                 collisionBoxHeight = ((PlayerEntity->CurrentTexture->Height / 4) * 2);
                 PlayerEntity->CollisionBox = 
                 {
-                    PlayerEntity->PositionV2.X + (PlayerEntity->CurrentTexture->Width / 4),
-                    PlayerEntity->PositionV2.Y + (PlayerEntity->CurrentTexture->Height / 4),
+                    PlayerEntity->PositionV2i.X + (PlayerEntity->CurrentTexture->Width / 4),
+                    PlayerEntity->PositionV2i.Y + (PlayerEntity->CurrentTexture->Height / 4),
                     collisionBoxWidth,
                     collisionBoxHeight,
                 };
@@ -717,14 +719,14 @@ InitializeGame()
                 GretelEntity->Id = GlobalEntityArrayIndex;
                 GretelEntity->CurrentState = (EntityState)(Idle);
                 GretelEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Gretel-Idle");
-                GretelEntity->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+                GretelEntity->PositionV2i = DefaultVector2iCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
                 
                 collisionBoxWidth = ((GretelEntity->CurrentTexture->Width / 4) * 2);
                 collisionBoxHeight = ((GretelEntity->CurrentTexture->Height / 4) * 2);
                 GretelEntity->CollisionBox = 
                 {
-                    GretelEntity->PositionV2.X + (GretelEntity->CurrentTexture->Width / 4),
-                    GretelEntity->PositionV2.Y + (GretelEntity->CurrentTexture->Height / 4),
+                    GretelEntity->PositionV2i.X + (GretelEntity->CurrentTexture->Width / 4),
+                    GretelEntity->PositionV2i.Y + (GretelEntity->CurrentTexture->Height / 4),
                     collisionBoxWidth,
                     collisionBoxHeight,
                 };
@@ -786,10 +788,9 @@ InitializeGame()
                                                                 "GRONKEY",
                                                                 &Blue);
                 // TODO(nick): center of screen and then offset
-                //TitleScreenGretelKong_1->PositionV2 = DefaultVector2Position();
-                TitleScreenGretelKong_1->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
-                TitleScreenGretelKong_1->PositionV2.Y -= 175;
-                TitleScreenGretelKong_1->PositionV2.X -= (TitleScreenGretelKong_1->Texture->Width / 2);
+                TitleScreenGretelKong_1->PositionV2i = DefaultVector2iCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+                TitleScreenGretelKong_1->PositionV2i.Y -= 175;
+                TitleScreenGretelKong_1->PositionV2i.X -= (TitleScreenGretelKong_1->Texture->Width / 2);
                 
                 TitleScreenGretelKong_2->Texture = LoadAssetTTF(GlobalGameState,
                                                                 ArcadeFont_Large,
@@ -800,8 +801,8 @@ InitializeGame()
                 // TODO(nick): center part 2 based on positioning of part 1
                 // TODO(nick): figure out a better way of handling the text positioning
                 // NOTE(nick): 5 is an offset to allow texture to sit a bit closer
-                TitleScreenGretelKong_2->PositionV2.X = TitleScreenGretelKong_1->PositionV2.X + (TitleScreenGretelKong_1->Texture->Width / 4);
-                TitleScreenGretelKong_2->PositionV2.Y = (TitleScreenGretelKong_1->PositionV2.Y + (TitleScreenGretelKong_1->Texture->Height / 2) + 15);
+                TitleScreenGretelKong_2->PositionV2i.X = TitleScreenGretelKong_1->PositionV2i.X + (TitleScreenGretelKong_1->Texture->Width / 4);
+                TitleScreenGretelKong_2->PositionV2i.Y = (TitleScreenGretelKong_1->PositionV2i.Y + (TitleScreenGretelKong_1->Texture->Height / 2) + 15);
                 
                 HUDHighScore = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                        sizeof(Text));
@@ -813,7 +814,7 @@ InitializeGame()
                                                      GlobalWindowState->GameRenderer,
                                                      "HIGH  SCORE",
                                                      &Red);
-                HUDHighScore->PositionV2 = DefaultVector2CenterScreen((GlobalWindowState->Width - HUDHighScore->Texture->Width), 0);
+                HUDHighScore->PositionV2i = DefaultVector2iCenterScreen((GlobalWindowState->Width - HUDHighScore->Texture->Width), 0);
                 // TODO(nick): keep a current highscore value and write out as a string
                 HUDHighScoreValue->Texture = LoadAssetTTF(GlobalGameState,
                                                           ArcadeFont_Medium,
@@ -821,8 +822,8 @@ InitializeGame()
                                                           GlobalWindowState->GameRenderer,
                                                           "000000",
                                                           &White);
-                HUDHighScoreValue->PositionV2.X = (HUDHighScore->PositionV2.X + (HUDHighScore->Texture->Width / 4));
-                HUDHighScoreValue->PositionV2.Y = (HUDHighScore->PositionV2.Y + (HUDHighScore->Texture->Height / 2) + 5);
+                HUDHighScoreValue->PositionV2i.X = (HUDHighScore->PositionV2i.X + (HUDHighScore->Texture->Width / 4));
+                HUDHighScoreValue->PositionV2i.Y = (HUDHighScore->PositionV2i.Y + (HUDHighScore->Texture->Height / 2) + 5);
                 
                 HUDLivesCount = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                         sizeof(Text));
@@ -835,15 +836,15 @@ InitializeGame()
                                                       GlobalWindowState->GameRenderer,
                                                       "0 UP",
                                                       &Red);
-                HUDLivesCount->PositionV2 = DefaultVector2Position();
+                HUDLivesCount->PositionV2i = DefaultVector2iPosition();
                 HUDCurrentScore->Texture = LoadAssetTTF(GlobalGameState,
                                                         ArcadeFont_Medium,
                                                         GlobalWindowState->GameSurface,
                                                         GlobalWindowState->GameRenderer,
                                                         "000000",
                                                         &White);
-                HUDCurrentScore->PositionV2 = DefaultVector2Position();
-                HUDCurrentScore->PositionV2.Y += HUDLivesCount->Texture->Height;
+                HUDCurrentScore->PositionV2i = DefaultVector2iPosition();
+                HUDCurrentScore->PositionV2i.Y += HUDLivesCount->Texture->Height;
                 
                 HUDCurrentLevel = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                           sizeof(Text));
@@ -853,8 +854,8 @@ InitializeGame()
                                                         GlobalWindowState->GameRenderer,
                                                         "L 00",
                                                         &Blue);
-                HUDCurrentLevel->PositionV2 = DefaultVector2CenterScreen(GlobalWindowState->Width, 0);
-                HUDCurrentLevel->PositionV2.X += 100;
+                HUDCurrentLevel->PositionV2i = DefaultVector2iCenterScreen(GlobalWindowState->Width, 0);
+                HUDCurrentLevel->PositionV2i.X += 100;
                 
                 // NOTE(nick): debug info text
                 // TODO(nicK): have this toggle on a key press or something similar
@@ -863,27 +864,27 @@ InitializeGame()
                 
                 DEBUG_PlayerPositionInfo = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                                    sizeof(Text));
-                sprintf(DEBUG_StringBuffer, "Player Position x %d y %d ", PlayerEntity->PositionV2.X, PlayerEntity->PositionV2.Y);
+                sprintf(DEBUG_StringBuffer, "Player Position x %d y %d ", PlayerEntity->PositionV2i.X, PlayerEntity->PositionV2i.Y);
                 DEBUG_PlayerPositionInfo->Texture = LoadAssetTTF(GlobalGameState,
                                                                  PokeFont_Small,
                                                                  GlobalWindowState->GameSurface,
                                                                  GlobalWindowState->GameRenderer,
                                                                  DEBUG_StringBuffer,
                                                                  &White);
-                DEBUG_PlayerPositionInfo->PositionV2.X = 400;
-                DEBUG_PlayerPositionInfo->PositionV2.Y = 400;
+                DEBUG_PlayerPositionInfo->PositionV2i.X = 400;
+                DEBUG_PlayerPositionInfo->PositionV2i.Y = 400;
                 
                 DEBUG_EnemyPositionInfo = (Text*)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                                  sizeof(Text));
-                sprintf(DEBUG_StringBuffer, "Enemy Position x %d y: %d", GretelEntity->PositionV2.X, GretelEntity->PositionV2.Y);
+                sprintf(DEBUG_StringBuffer, "Enemy Position x %d y: %d", GretelEntity->PositionV2i.X, GretelEntity->PositionV2i.Y);
                 DEBUG_EnemyPositionInfo->Texture = LoadAssetTTF(GlobalGameState,
                                                                 PokeFont_Small,
                                                                 GlobalWindowState->GameSurface,
                                                                 GlobalWindowState->GameRenderer,
                                                                 DEBUG_StringBuffer,
                                                                 &White);
-                DEBUG_EnemyPositionInfo->PositionV2.X = 400;
-                DEBUG_EnemyPositionInfo->PositionV2.Y = 425;
+                DEBUG_EnemyPositionInfo->PositionV2i.X = 400;
+                DEBUG_EnemyPositionInfo->PositionV2i.Y = 425;
                 
                 // NOTE(nick): allocate enough space for the game queue data
                 // as well as 50 queue slots
@@ -1147,7 +1148,7 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
                         // T
                         
                         // NOTE(nick): rowIndex zero maps to top left corner
-                        CurrentTile->PositionV2 = 
+                        CurrentTile->PositionV2i = 
                         {
                             CurrentTile->CurrentTexture->Width * columnIndex,
                             CurrentTile->CurrentTexture->Height * rowIndex,
@@ -1354,8 +1355,8 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
             Tile *CurrentTile = CurrentTileNode->Value;
             SDL_Rect CurrentRenderBox =
             {
-                CurrentTile->PositionV2.X,
-                CurrentTile->PositionV2.Y,
+                CurrentTile->PositionV2i.X,
+                CurrentTile->PositionV2i.Y,
                 CurrentTile->CurrentTexture->Width,
                 CurrentTile->CurrentTexture->Height,
             };
@@ -1398,8 +1399,8 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
         // 1) if collision is detected, do not move position
         SDL_Rect CurrentRenderBox = 
         {
-            CurrentEntity->PositionV2.X,
-            CurrentEntity->PositionV2.Y,
+            CurrentEntity->PositionV2i.X,
+            CurrentEntity->PositionV2i.Y,
             CurrentEntity->CurrentTexture->Width,
             CurrentEntity->CurrentTexture->Height,
         };
@@ -1440,8 +1441,8 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
     {
         SDL_Rect TextRenderBox = 
         {
-            CurrentText->PositionV2.X,
-            CurrentText->PositionV2.Y,
+            CurrentText->PositionV2i.X,
+            CurrentText->PositionV2i.Y,
             CurrentText->Texture->Width,
             CurrentText->Texture->Height,
         };

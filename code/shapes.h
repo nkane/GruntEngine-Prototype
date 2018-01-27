@@ -3,9 +3,11 @@
  *	Created By: Nick Kane
  */
 
+// TODO(nick): rect struct doesn't need to be like this
+// just needs x, y, length, and width
 struct Rectangle
 {
-	Vector2 TopLine[2];
-	Vector2 BottomLine[2];
+	Vector2i TopLine[2];
+	Vector2i BottomLine[2];
 };
 

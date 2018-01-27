@@ -28,7 +28,8 @@ struct Entity
     unsigned int CurrentState;
     unsigned int CurrentFaceDirection;
     unsigned int CurrentFrame;
-    Vector2 PositionV2;
+    Vector2i PositionV2i;
+    Vector2f VelocityV2f;
     SDL_Rect CollisionBox;
 };
 
@@ -38,7 +39,7 @@ struct Tile
     bool IsStatic;
     bool IsCollidable;
     AssetTexture *CurrentTexture;
-    Vector2 PositionV2;
+    Vector2i PositionV2i;
     SDL_Rect CollisionBox;
 };
 
