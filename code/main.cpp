@@ -175,8 +175,8 @@ main(int argc, char *argv[])
         GlobalGameState->CurrentMS = SDL_GetTicks();
         while (SDL_PollEvent(&CurrentEvent))
         {
-            float defaultVelocityStepSize = 0.2f;
-            float defaultVelocityDecaySize = 0.2f;
+            float defaultSpeed = 8.0f;
+            float defaultDecayRate = 0.95f;
             Vector2f accelerationVector = { 0.0f, 0.0f };
             // TODO(nick):
             // 1) pull this out to state handling, input handling, and frame selection function
@@ -213,13 +213,13 @@ main(int argc, char *argv[])
                             //  1) don't forget to update the collision box!
                             //      - new position vector needs to be created and checked against.
                             //  2) add gravity after basic vector movement is implemented
-                            accelerationVector.Y -= defaultVelocityStepSize;
+                            accelerationVector.Y -= defaultSpeed;
                         } break;
                         
                         case SDLK_s:
                         case SDLK_DOWN:
                         {
-                            accelerationVector.Y += defaultVelocityStepSize;
+                            accelerationVector.Y += defaultSpeed;
                         } break;
                         
                         case SDLK_a:
@@ -239,7 +239,7 @@ main(int argc, char *argv[])
                                PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceLeft);
                            }
                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
-                           accelerationVector.X -= defaultVelocityStepSize;
+                           accelerationVector.X -= defaultSpeed;
                        } break;
                                    
                        case SDLK_d:
@@ -252,7 +252,7 @@ main(int argc, char *argv[])
                                PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceRight);
                            }
                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
-                           accelerationVector.X += defaultVelocityStepSize;
+                           accelerationVector.X += defaultSpeed;
                         } break;
                         
                         case SDLK_SPACE: 
@@ -307,11 +307,8 @@ main(int argc, char *argv[])
                 
                 default:
                 {
-                    // TODO(nick): make sure that the entity velocity movement d
-                    /*
-                    PlayerEntity->VelocityV2f.X *= defaultVelocityDecaySize;
-                    PlayerEntity->VelocityV2f.Y *= defaultVelocityDecaySize;
-                    */
+                    PlayerEntity->VelocityV2f.X *= defaultDecayRate;
+                    PlayerEntity->VelocityV2f.Y *= defaultDecayRate;
                 } break;
             }
 
@@ -324,7 +321,8 @@ main(int argc, char *argv[])
                 Vector2fScale(&PlayerEntity->VelocityV2f, GlobalPlayerMaxAcceleration / magnitude);
             }
             Vector2i tempVector = { (int)PlayerEntity->VelocityV2f.X, (int)PlayerEntity->VelocityV2f.Y };
-            Vector2i testCollisionBoxPosition = Vector2iAdd(PlayerEntity->PositionV2i, tempVector);
+            Vector2i tempCollisionBox = { (int)PlayerEntity->CollisionBox.x, (int)PlayerEntity->CollisionBox.y };
+            Vector2i testCollisionBoxPosition = Vector2iAdd(tempCollisionBox, tempVector);
             PlayerEntity->CollisionBox.x = testCollisionBoxPosition.X;
             PlayerEntity->CollisionBox.y = testCollisionBoxPosition.Y;
             // TODO(nick):
@@ -491,7 +489,7 @@ main(int argc, char *argv[])
             // TODO(nick): remove variable - debug only or keep in game state
             unsigned int delay = (Frame_Rate_Lock - GlobalGameState->DeltaMS);
             SDL_Delay(delay);
-            //printf("Delay: %d\n", delay);
+            printf("Delay: %d\r", delay);
         }
     }
     
