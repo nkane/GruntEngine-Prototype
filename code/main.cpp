@@ -173,9 +173,11 @@ main(int argc, char *argv[])
     {
         // query for time
         GlobalGameState->CurrentMS = SDL_GetTicks();
-        
         while (SDL_PollEvent(&CurrentEvent))
         {
+            float defaultVelocityStepSize = 0.2f;
+            float defaultVelocityDecaySize = 0.2f;
+            Vector2f accelerationVector = { 0.0f, 0.0f };
             // TODO(nick):
             // 1) pull this out to state handling, input handling, and frame selection function
             // 2) player input for movement shouldn't happen on title screen
@@ -183,6 +185,7 @@ main(int argc, char *argv[])
             // 4) have handle collision check here
             switch (CurrentEvent.type)
             {
+                // TODO(nick): variables might be able to be pulled out
                 case SDL_QUIT:
                 {
                     GameRunning = false;
@@ -206,48 +209,22 @@ main(int argc, char *argv[])
                         case SDLK_w: 
                         case SDLK_UP: 
                         {
-                            // TODO(nick): add gravity after basic vector movement is implemented
-                            /*
-                            PlayerEntity->PositionV2i.Y -= 2;
-				            PlayerEntity->CollisionBox.y -= 2;
-                            */
-                            if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
-                            {
-                                /*
-                                PlayerEntity->PositionV2i.Y += 2;
-                                PlayerEntity->CollisionBox.y += 2;
-                                */
-                            }
+                            // TODO(nick): 
+                            //  1) don't forget to update the collision box!
+                            //      - new position vector needs to be created and checked against.
+                            //  2) add gravity after basic vector movement is implemented
+                            accelerationVector.Y -= defaultVelocityStepSize;
                         } break;
                         
                         case SDLK_s:
                         case SDLK_DOWN:
                         {
-                            // TODO(nick): add gravity after basic vector movement is implemented
-                            /*
-                            PlayerEntity->PositionV2i.Y += 2;
-                            PlayerEntity->CollisionBox.y += 2;
-                            */
-                            if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
-                            {
-                                /*
-                                PlayerEntity->PositionV2i.Y -= 2;
-                                PlayerEntity->CollisionBox.y -= 2;
-                                */
-                            }
+                            accelerationVector.Y += defaultVelocityStepSize;
                         } break;
                         
                         case SDLK_a:
                         case SDLK_LEFT:
 			            {
-                           PlayerEntity->CurrentState = (EntityState)(Walking);
-                           if (PlayerEntity->CurrentFaceDirection & (FaceRight))
-                           {
-                               FlipAnimations(PlayerAnimations, LeftFlip);
-                               PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceLeft);
-                           }
-                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
-
                            // TODO(nick):
                            // 1) change to velocity? real vector math!
                            // 2) check collision code can probably live in the update player function!
@@ -255,19 +232,14 @@ main(int argc, char *argv[])
                            //    position of the entity?
                            // IMPORTANT(nick):
                            // 1) make sure that on release that a velocity decay rate is set?
-
-                           float defaultVelocity = 0.2f;
-                           if (PlayerEntity->VelocityV2f.X < GlobalPlayerMaxAcceleration)
+                           PlayerEntity->CurrentState = (EntityState)(Walking);
+                           if (PlayerEntity->CurrentFaceDirection & (FaceRight))
                            {
-                               PlayerEntity->VelocityV2f.X += defaultVelocity;
+                               FlipAnimations(PlayerAnimations, LeftFlip);
+                               PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceLeft);
                            }
-                           if (!CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
-                           {
-                               Vector2i tempVector = { (int)PlayerEntity->VelocityV2f.X, (int)PlayerEntity->VelocityV2f.Y };
-                               PlayerEntity->PositionV2i = Vector2iSubtract(PlayerEntity->PositionV2i, tempVector);
-                               PlayerEntity->CollisionBox.x -= (int)tempVector.X;
-                               PlayerEntity->CollisionBox.x -= (int)tempVector.Y;
-                           }
+                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                           accelerationVector.X -= defaultVelocityStepSize;
                        } break;
                                    
                        case SDLK_d:
@@ -280,16 +252,7 @@ main(int argc, char *argv[])
                                PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceRight);
                            }
                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
-
-                           // TODO(nick): 
-                           // 1) change to velocity? real vector math!
-                           PlayerEntity->PositionV2i.X += 2;
-                           PlayerEntity->CollisionBox.x += 2;
-                           if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
-                           {
-                               PlayerEntity->PositionV2i.X -= 2;
-                               PlayerEntity->CollisionBox.x -= 2;
-                           }
+                           accelerationVector.X += defaultVelocityStepSize;
                         } break;
                         
                         case SDLK_SPACE: 
@@ -344,9 +307,38 @@ main(int argc, char *argv[])
                 
                 default:
                 {
-                    // TODO(nick): not valid code path here ... 
-                    // figure out what to do .. 
+                    // TODO(nick): make sure that the entity velocity movement d
+                    /*
+                    PlayerEntity->VelocityV2f.X *= defaultVelocityDecaySize;
+                    PlayerEntity->VelocityV2f.Y *= defaultVelocityDecaySize;
+                    */
                 } break;
+            }
+
+            // TODO(nick): work out some of the math on string to get a better understanding!
+            SDL_Rect previousPlayerCollsionBox = PlayerEntity->CollisionBox;
+            PlayerEntity->VelocityV2f = Vector2fAdd(PlayerEntity->VelocityV2f, accelerationVector);
+            float magnitude = Vector2fLength(PlayerEntity->VelocityV2f);
+            if (magnitude > GlobalPlayerMaxAcceleration)
+            {
+                Vector2fScale(&PlayerEntity->VelocityV2f, GlobalPlayerMaxAcceleration / magnitude);
+            }
+            Vector2i tempVector = { (int)PlayerEntity->VelocityV2f.X, (int)PlayerEntity->VelocityV2f.Y };
+            Vector2i testCollisionBoxPosition = Vector2iAdd(PlayerEntity->PositionV2i, tempVector);
+            PlayerEntity->CollisionBox.x = testCollisionBoxPosition.X;
+            PlayerEntity->CollisionBox.y = testCollisionBoxPosition.Y;
+            // TODO(nick):
+            // 1) this is kind of a updateplayerposition function?
+            // 2) need a better way to check collision that isn't based on entities in the world?
+            if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+            {
+                // collided do not update position and reset collision box
+                PlayerEntity->CollisionBox.x = previousPlayerCollsionBox.x;
+                PlayerEntity->CollisionBox.y = previousPlayerCollsionBox.y;
+            }
+            else
+            {
+                PlayerEntity->PositionV2i = Vector2iAdd(PlayerEntity->PositionV2i, tempVector);
             }
 
             // clear the screen

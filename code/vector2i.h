@@ -100,3 +100,9 @@ DefaultVector2iCenterScreen(int screenWidth, int screenHeight)
 	};
 }
 
+inline void
+Vector2iScale(Vector2i *v2, float scale)
+{
+    v2->X *= scale;
+    v2->Y *= scale;
+}

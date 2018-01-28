@@ -89,3 +89,10 @@ Vector2fDivide(Vector2f v2, float scalar)
     };
     return result;
 }
+
+inline void
+Vector2fScale(Vector2f *v2, float scale)
+{
+    v2->X *= scale;
+    v2->Y *= scale;
+}
