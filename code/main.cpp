@@ -44,6 +44,7 @@ global_variable WindowState *GlobalWindowState;
 global_variable GameState *GlobalGameState;
 global_variable bool GameRunning = true;
 global_variable SDL_RWops *ReadWriteOperations;
+global_variable Vector2f GlobalIsKeyReleased;
 // /=====================================================================/
 
 //// Level Globals
@@ -176,7 +177,7 @@ main(int argc, char *argv[])
         while (SDL_PollEvent(&CurrentEvent))
         {
             float defaultSpeed = 8.0f;
-            float defaultDecayRate = 0.95f;
+            float defaultDecayRate = 0.50f;
             Vector2f accelerationVector = { 0.0f, 0.0f };
             // TODO(nick):
             // 1) pull this out to state handling, input handling, and frame selection function
@@ -214,12 +215,14 @@ main(int argc, char *argv[])
                             //      - new position vector needs to be created and checked against.
                             //  2) add gravity after basic vector movement is implemented
                             accelerationVector.Y -= defaultSpeed;
+                            GlobalIsKeyReleased.Y = 1.0f;
                         } break;
                         
                         case SDLK_s:
                         case SDLK_DOWN:
                         {
                             accelerationVector.Y += defaultSpeed;
+                            GlobalIsKeyReleased.Y = 1.0f;
                         } break;
                         
                         case SDLK_a:
@@ -232,36 +235,35 @@ main(int argc, char *argv[])
                            //    position of the entity?
                            // IMPORTANT(nick):
                            // 1) make sure that on release that a velocity decay rate is set?
-                           PlayerEntity->CurrentState = (EntityState)(Walking);
-                           if (PlayerEntity->CurrentFaceDirection & (FaceRight))
-                           {
-                               FlipAnimations(PlayerAnimations, LeftFlip);
-                               PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceLeft);
-                           }
-                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
-                           accelerationVector.X -= defaultSpeed;
-                       } break;
-                                   
-                       case SDLK_d:
-                       case SDLK_RIGHT:
-                       {
-                           PlayerEntity->CurrentState = (EntityState)(Walking);
-                           if (PlayerEntity->CurrentFaceDirection & (FaceLeft))
-                           {
-                               FlipAnimations(PlayerAnimations, RightFlip);
-                               PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceRight);
-                           }
-                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
-                           accelerationVector.X += defaultSpeed;
+
+                            PlayerEntity->CurrentState = (EntityState)(Walking);
+                            if (PlayerEntity->CurrentFaceDirection & (FaceRight))
+                            {
+                                FlipAnimations(PlayerAnimations, LeftFlip);
+                                PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceLeft);
+                            }
+                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                            accelerationVector.X -= defaultSpeed;
+                            GlobalIsKeyReleased.X = 1.0f;
+                        } break;
+
+                        case SDLK_d:
+                        case SDLK_RIGHT:
+                        {
+                            PlayerEntity->CurrentState = (EntityState)(Walking);
+                            if (PlayerEntity->CurrentFaceDirection & (FaceLeft))
+                            {
+                                FlipAnimations(PlayerAnimations, RightFlip);
+                                PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceRight);
+                            }
+                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                            accelerationVector.X += defaultSpeed;
+                            GlobalIsKeyReleased.X = 1.0f;
                         } break;
                         
                         case SDLK_SPACE: 
                         {
-                        } break;
-                        
-                        default: 
-                        {
-                            // TODO(nick): not valid key pressed here - just ignore?
+                            // TODO(nick): add a jump!
                         } break;
                     }
                 } break;
@@ -273,11 +275,13 @@ main(int argc, char *argv[])
                         case SDLK_w:
                         case SDLK_UP: 
                         {
+                           GlobalIsKeyReleased.Y = defaultDecayRate;
                         } break;
                         
                         case SDLK_s:
                         case SDLK_DOWN:
                         {
+                           GlobalIsKeyReleased.Y = defaultDecayRate;
                         } break;
                         
                         case SDLK_a:
@@ -285,6 +289,7 @@ main(int argc, char *argv[])
                         {
                            PlayerEntity->CurrentState = (EntityState)(Idle);
                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                           GlobalIsKeyReleased.X = defaultDecayRate;
                         } break;
                         
                         case SDLK_d:
@@ -292,25 +297,19 @@ main(int argc, char *argv[])
                         {
                            PlayerEntity->CurrentState = (EntityState)(Idle);
                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                           GlobalIsKeyReleased.X = defaultDecayRate;
                         } break;
                 
                         case SDLK_SPACE: 
                         {
-                        } break;
-                        
-                        default: 
-                        {
-                            // TODO(nick): not valid key pressed here - just ignore?
+                            // TODO(nick): add a jump!
                         } break;
                     }
                 } break;
-                
-                default:
-                {
-                    PlayerEntity->VelocityV2f.X *= defaultDecayRate;
-                    PlayerEntity->VelocityV2f.Y *= defaultDecayRate;
-                } break;
             }
+
+            PlayerEntity->VelocityV2f.X *= GlobalIsKeyReleased.X;
+            PlayerEntity->VelocityV2f.Y *= GlobalIsKeyReleased.Y;
 
             // TODO(nick): work out some of the math on string to get a better understanding!
             SDL_Rect previousPlayerCollsionBox = PlayerEntity->CollisionBox;
@@ -1415,8 +1414,6 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
     SDL_Texture *tempEntityCollisionTexture;
     while (CurrentEntity = Queue_Dequeue_GameEntity(EntityQueue))
     {
-        // TODO(nick):
-        // 1) if collision is detected, do not move position
         SDL_Rect CurrentRenderBox = 
         {
             CurrentEntity->PositionV2i.X,
