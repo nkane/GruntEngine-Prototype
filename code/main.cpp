@@ -488,7 +488,7 @@ main(int argc, char *argv[])
             // TODO(nick): remove variable - debug only or keep in game state
             unsigned int delay = (Frame_Rate_Lock - GlobalGameState->DeltaMS);
             SDL_Delay(delay);
-            printf("Delay: %d\r", delay);
+            //printf("Delay: %d\r", delay);
         }
     }
     
@@ -1221,22 +1221,6 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
     Entity *checkEntity = EntityArray[checkIndex];
     Entity *currentEntity = EntityArray[i]; 
     
-    Rectangle CheckEntityCollisionBox = {};
-    Rectangle CurrentEntityCollisionBox = {};
-    
-    // NOTE(nick):
-    // duplication of line calculations here
-    // figure out a better way to handle rectangle collision
-    CheckEntityCollisionBox.BottomLine[0].X = checkEntity->CollisionBox.x;
-    CheckEntityCollisionBox.BottomLine[0].Y = checkEntity->CollisionBox.y;
-    CheckEntityCollisionBox.BottomLine[1].X = checkEntity->CollisionBox.x + checkEntity->CollisionBox.w;
-    CheckEntityCollisionBox.BottomLine[1].Y = checkEntity->CollisionBox.y;
-    
-    CheckEntityCollisionBox.TopLine[0].X = checkEntity->CollisionBox.x;
-    CheckEntityCollisionBox.TopLine[0].Y = checkEntity->CollisionBox.y + checkEntity->CollisionBox.h;
-    CheckEntityCollisionBox.TopLine[1].X = checkEntity->CollisionBox.x + checkEntity->CollisionBox.w;
-    CheckEntityCollisionBox.TopLine[1].Y = checkEntity->CollisionBox.y + checkEntity->CollisionBox.h;
-    
     // NOTE(nicK):
     // check all collision between entities first
     while (currentEntity != NULL)
@@ -1245,33 +1229,28 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
         {
             if (currentEntity)
             {
-                CurrentEntityCollisionBox.BottomLine[0].X = currentEntity->CollisionBox.x;
-                CurrentEntityCollisionBox.BottomLine[0].Y = currentEntity->CollisionBox.y;
-                CurrentEntityCollisionBox.BottomLine[1].X = currentEntity->CollisionBox.x + currentEntity->CollisionBox.w;
-                CurrentEntityCollisionBox.BottomLine[1].Y = currentEntity->CollisionBox.y;
-                
-                CurrentEntityCollisionBox.TopLine[0].X = currentEntity->CollisionBox.x;
-                CurrentEntityCollisionBox.TopLine[0].Y = currentEntity->CollisionBox.y + currentEntity->CollisionBox.h;
-                CurrentEntityCollisionBox.TopLine[1].X = currentEntity->CollisionBox.x + currentEntity->CollisionBox.w;
-                CurrentEntityCollisionBox.TopLine[1].Y = currentEntity->CollisionBox.y + currentEntity->CollisionBox.h;
-                
+                // NOTE(nick):
+                //  - make sure that the CheckEntity y collision box is top line
+                //    is greater than or equal to the CurrentEntity bottom line y collision box
+                //  - make sure that the CheckEntity y collision box bottom line is less than
+                //    or equal to the CurrentEntity top line y collision box
+                //    + lower coordinates in screen space - since y is inverted, it is added
                 // check horizontal collision
-                if ((CheckEntityCollisionBox.BottomLine[0].Y <= CurrentEntityCollisionBox.TopLine[0].Y) &&
-                    (CheckEntityCollisionBox.TopLine[0].Y >= CurrentEntityCollisionBox.BottomLine[0].Y))
+                int checkEntityUpperY = checkEntity->CollisionBox.y;
+                int checkEntityLowerY = checkEntity->CollisionBox.y + checkEntity->CollisionBox.h;
+                int currentEntityUpperY = currentEntity->CollisionBox.y;
+                int currentEntityLowerY = currentEntity->CollisionBox.y + checkEntity->CollisionBox.h;
+                if ((checkEntityLowerY >= currentEntityUpperY) && (checkEntityUpperY <= currentEntityLowerY))
                 {
+                    int checkEntityLeftX = checkEntity->CollisionBox.x;
+                    int checkEntityRightX = checkEntity->CollisionBox.x + checkEntity->CollisionBox.w;
+                    int currentEntityLeftX = currentEntity->CollisionBox.x;
+                    int currentEntityRightX = currentEntity->CollisionBox.x + currentEntity->CollisionBox.w;
                     // check right side collision from CheckEntity perspective
-                    if (CheckEntityCollisionBox.BottomLine[1].X >= CurrentEntityCollisionBox.BottomLine[0].X &&
-                        CheckEntityCollisionBox.BottomLine[0].X <= CurrentEntityCollisionBox.BottomLine[1].X)
+                    if ((checkEntityRightX >= currentEntityLeftX) &&
+                        (checkEntityLeftX <= currentEntityRightX))
                     {
                         return true;
-                    }
-                    // check left side collision from CheckEntity perspective
-                    else if (CheckEntityCollisionBox.BottomLine[0].X > CurrentEntityCollisionBox.BottomLine[1].X)
-                    {
-                        if (CheckEntityCollisionBox.BottomLine[0].X <= CurrentEntityCollisionBox.BottomLine[1].X)
-                        {
-                            return true;
-                        }
                     }
                 }
             }
@@ -1279,14 +1258,16 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
         ++i;
         currentEntity = EntityArray[i];
     }
-    
-    
+
+    // TODO(nick): fix the rectangle struct and all the entity to entity collisions first!
     // IMPORTANT(nick):
     // certain tiles are not collidable, but they instead allow a specific function (i.e., ladders for "climbing")
     // NOTE(nick):
     // check all collision between entity and level tiles
+#if 0
     TileList_Node *CurrentNode = NULL;
-    Tile *CurrentTile = NULL; Rectangle CurrentTileCollisionBox = {};
+    Tile *CurrentTile = NULL;
+    Rectangle CurrentTileCollisionBox = {};
     if (CurrentLevel)
     {
         CurrentNode = CurrentLevel->TileList.Head;
@@ -1331,7 +1312,9 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
             CurrentTile = CurrentNode->Value;
         }
     }
+#endif
     
+    printf("no y collision!\r");
     return false;
 }
 
