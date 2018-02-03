@@ -30,6 +30,16 @@ DefaultVector2fPosition()
 	};
 }
 
+inline Vector2f
+DefaultVector2fCenterScreen(int screenWidth, int screenHeight)
+{
+	return Vector2f
+	{
+		((float)screenWidth / 2.0f),
+		((float)screenHeight / 2.0f),
+	};
+}
+
 inline float
 Vector2fLengthSquared(Vector2f v2)
 {

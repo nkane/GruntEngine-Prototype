@@ -8,6 +8,6 @@ struct AssetTexture
 	double Rotation;
 	SDL_RendererFlip Flip;
 	SDL_Texture *Texture;
-	int Width;
-	int Height;
+	int PixelWidth;
+	int PixelHeight;
 };

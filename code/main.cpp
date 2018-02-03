@@ -44,7 +44,6 @@ global_variable WindowState *GlobalWindowState;
 global_variable GameState *GlobalGameState;
 global_variable bool GameRunning = true;
 global_variable SDL_RWops *ReadWriteOperations;
-global_variable Vector2f GlobalIsKeyReleased;
 // /=====================================================================/
 
 //// Level Globals
@@ -60,9 +59,6 @@ global_variable Level* GlobalCurrentLoadedLevel;
 
 // Entity Globals
 // <=====================================================================>
-// constants
-global_variable float GlobalPlayerMaxAcceleration = 2.5f;
-
 // entity collections
 global_variable HashSet_AssetTexture GlobalEntityTextureSet[128];
 global_variable Entity *GlobalEntityArray[50];
@@ -176,24 +172,15 @@ main(int argc, char *argv[])
         GlobalGameState->CurrentMS = SDL_GetTicks();
         while (SDL_PollEvent(&CurrentEvent))
         {
-            float defaultSpeed = 8.0f;
-            float defaultDecayRate = 0.50f;
+            float defaultSpeed = 0.5f;
             Vector2f accelerationVector = { 0.0f, 0.0f };
-            // TODO(nick):
-            // 1) pull this out to state handling, input handling, and frame selection function
-            // 2) player input for movement shouldn't happen on title screen
-            // 3) better handle input function
-            // 4) have handle collision check here
             switch (CurrentEvent.type)
             {
-                // TODO(nick): variables might be able to be pulled out
                 case SDL_QUIT:
                 {
                     GameRunning = false;
                 } break;
                 
-                // TODO(nick): figure out a better way to handle up / release
-                // key presses
                 case SDL_KEYDOWN:
                 {
                     switch (CurrentEvent.key.keysym.sym)
@@ -210,32 +197,18 @@ main(int argc, char *argv[])
                         case SDLK_w: 
                         case SDLK_UP: 
                         {
-                            // TODO(nick): 
-                            //  1) don't forget to update the collision box!
-                            //      - new position vector needs to be created and checked against.
-                            //  2) add gravity after basic vector movement is implemented
                             accelerationVector.Y -= defaultSpeed;
-                            GlobalIsKeyReleased.Y = 1.0f;
                         } break;
                         
                         case SDLK_s:
                         case SDLK_DOWN:
                         {
                             accelerationVector.Y += defaultSpeed;
-                            GlobalIsKeyReleased.Y = 1.0f;
                         } break;
                         
                         case SDLK_a:
                         case SDLK_LEFT:
 			            {
-                           // TODO(nick):
-                           // 1) change to velocity? real vector math!
-                           // 2) check collision code can probably live in the update player function!
-                           // 3) re-think entity collision box updates - probably could just be center
-                           //    position of the entity?
-                           // IMPORTANT(nick):
-                           // 1) make sure that on release that a velocity decay rate is set?
-
                             PlayerEntity->CurrentState = (EntityState)(Walking);
                             if (PlayerEntity->CurrentFaceDirection & (FaceRight))
                             {
@@ -244,7 +217,6 @@ main(int argc, char *argv[])
                             }
                             PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
                             accelerationVector.X -= defaultSpeed;
-                            GlobalIsKeyReleased.X = 1.0f;
                         } break;
 
                         case SDLK_d:
@@ -258,7 +230,6 @@ main(int argc, char *argv[])
                             }
                             PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
                             accelerationVector.X += defaultSpeed;
-                            GlobalIsKeyReleased.X = 1.0f;
                         } break;
                         
                         case SDLK_SPACE: 
@@ -275,13 +246,11 @@ main(int argc, char *argv[])
                         case SDLK_w:
                         case SDLK_UP: 
                         {
-                           GlobalIsKeyReleased.Y = defaultDecayRate;
                         } break;
                         
                         case SDLK_s:
                         case SDLK_DOWN:
                         {
-                           GlobalIsKeyReleased.Y = defaultDecayRate;
                         } break;
                         
                         case SDLK_a:
@@ -289,7 +258,6 @@ main(int argc, char *argv[])
                         {
                            PlayerEntity->CurrentState = (EntityState)(Idle);
                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
-                           GlobalIsKeyReleased.X = defaultDecayRate;
                         } break;
                         
                         case SDLK_d:
@@ -297,7 +265,6 @@ main(int argc, char *argv[])
                         {
                            PlayerEntity->CurrentState = (EntityState)(Idle);
                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
-                           GlobalIsKeyReleased.X = defaultDecayRate;
                         } break;
                 
                         case SDLK_SPACE: 
@@ -308,35 +275,8 @@ main(int argc, char *argv[])
                 } break;
             }
 
-            PlayerEntity->VelocityV2f.X *= GlobalIsKeyReleased.X;
-            PlayerEntity->VelocityV2f.Y *= GlobalIsKeyReleased.Y;
-
-            // TODO(nick): work out some of the math on string to get a better understanding!
-            SDL_Rect previousPlayerCollsionBox = PlayerEntity->CollisionBox;
-            PlayerEntity->VelocityV2f = Vector2fAdd(PlayerEntity->VelocityV2f, accelerationVector);
-            float magnitude = Vector2fLength(PlayerEntity->VelocityV2f);
-            if (magnitude > GlobalPlayerMaxAcceleration)
-            {
-                Vector2fScale(&PlayerEntity->VelocityV2f, GlobalPlayerMaxAcceleration / magnitude);
-            }
-            Vector2i tempVector = { (int)PlayerEntity->VelocityV2f.X, (int)PlayerEntity->VelocityV2f.Y };
-            Vector2i tempCollisionBox = { (int)PlayerEntity->CollisionBox.x, (int)PlayerEntity->CollisionBox.y };
-            Vector2i testCollisionBoxPosition = Vector2iAdd(tempCollisionBox, tempVector);
-            PlayerEntity->CollisionBox.x = testCollisionBoxPosition.X;
-            PlayerEntity->CollisionBox.y = testCollisionBoxPosition.Y;
-            // TODO(nick):
-            // 1) this is kind of a updateplayerposition function?
-            // 2) need a better way to check collision that isn't based on entities in the world?
-            if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
-            {
-                // collided do not update position and reset collision box
-                PlayerEntity->CollisionBox.x = previousPlayerCollsionBox.x;
-                PlayerEntity->CollisionBox.y = previousPlayerCollsionBox.y;
-            }
-            else
-            {
-                PlayerEntity->PositionV2i = Vector2iAdd(PlayerEntity->PositionV2i, tempVector);
-            }
+            // TODO(nick): figure out what should be passed for delta param
+            UpdatePlayerPosition(PlayerEntity, accelerationVector, 1.0f);
 
             // clear the screen
             SDL_RenderClear(GlobalWindowState->GameRenderer);
@@ -427,7 +367,7 @@ main(int argc, char *argv[])
                     NULL,
                 };
                 
-                GretelEntity->PositionV2i = DefaultVector2iCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+                GretelEntity->PositionV2f = DefaultVector2fCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
                 Entity_Node GretelEntityNode = 
                 {
                     GretelEntity,
@@ -653,18 +593,34 @@ InitializeGame()
                     { "Grunt-Dead-5" 		, "./assets/Grunt/Grunt-Dead-5.png" },
                 };
                 
+                float defaultMeterHeight = 1.75f;
+                float defaultMeterWidth = 1.75f;
+                float metersPerPixel =  0.036f;
                 for (int i = 0, j = 0; i < 32; ++i)
                 {
                     if (playerTextureList[i][j])
                     {
                         ReadWriteOperations = SDL_RWFromFile(playerTextureList[i][j + 1], "rb");
-                        HashSet_Insert_AssetTexture(GlobalEntityTextureSet, playerTextureList[i][j],
-                                                    LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+                        AssetTexture *currentTexture = LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer);
+
+                        float currentMeterHeight = ((float)currentTexture->PixelHeight * metersPerPixel);
+                        if (currentMeterHeight < defaultMeterHeight)
+                        {
+                            float increasePixelDelta = (defaultMeterHeight - currentMeterHeight) / metersPerPixel;
+                            currentTexture->PixelHeight += increasePixelDelta;
+                        }
+
+                        float currentMeterWidth = ((float)currentTexture->PixelWidth * metersPerPixel);
+                        if (currentMeterHeight < defaultMeterHeight)
+                        {
+                            float increasePixelDelta = (defaultMeterWidth - currentMeterWidth) / metersPerPixel;
+                            currentTexture->PixelWidth += increasePixelDelta;
+                        }
+
+                        HashSet_Insert_AssetTexture(GlobalEntityTextureSet, playerTextureList[i][j], currentTexture);
                     }
                     else
                     {
-                        // TODO(nick):
-                        // 1) after initial loading of all textures - build sprite animations for each entity
                         BuildPlayerAnimations(PlayerEntity, GlobalEntityTextureSet, PlayerAnimations, GlobalGameState->Memory->PermanentStorage);
                         break;
                     }
@@ -676,8 +632,8 @@ InitializeGame()
                 PlayerEntity->CurrentState = (EntityState)(Idle);
                 PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceRight);
                 PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle");
-                PlayerEntity->PositionV2i = DefaultVector2iCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
-                PlayerEntity->PositionV2i.X -= 100;
+                PlayerEntity->PositionV2f = DefaultVector2fCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+                PlayerEntity->PositionV2f.X -= 100.0f;
                 PlayerEntity->VelocityV2f =
                 {
                     0.0f,
@@ -686,13 +642,13 @@ InitializeGame()
                 
                 int collisionBoxWidth = 0;
                 int collisionBoxHeight = 0;
-                
-                collisionBoxWidth = ((PlayerEntity->CurrentTexture->Width / 4) * 2);
-                collisionBoxHeight = ((PlayerEntity->CurrentTexture->Height / 4) * 2);
+                collisionBoxWidth = ((PlayerEntity->CurrentTexture->PixelWidth / 4) * 2);
+                collisionBoxHeight = PlayerEntity->CurrentTexture->PixelHeight;
+
                 PlayerEntity->CollisionBox = 
                 {
-                    PlayerEntity->PositionV2i.X + (PlayerEntity->CurrentTexture->Width / 4),
-                    PlayerEntity->PositionV2i.Y + (PlayerEntity->CurrentTexture->Height / 4),
+                    (int)(PlayerEntity->PositionV2f.X + (PlayerEntity->CurrentTexture->PixelWidth / 4)),
+                    (int)(PlayerEntity->PositionV2f.Y + (PlayerEntity->CurrentTexture->PixelHeight / 4)),
                     collisionBoxWidth,
                     collisionBoxHeight,
                 };
@@ -738,14 +694,14 @@ InitializeGame()
                 GretelEntity->Id = GlobalEntityArrayIndex;
                 GretelEntity->CurrentState = (EntityState)(Idle);
                 GretelEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Gretel-Idle");
-                GretelEntity->PositionV2i = DefaultVector2iCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
+                GretelEntity->PositionV2f = DefaultVector2fCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
                 
-                collisionBoxWidth = ((GretelEntity->CurrentTexture->Width / 4) * 2);
-                collisionBoxHeight = ((GretelEntity->CurrentTexture->Height / 4) * 2);
+                collisionBoxWidth = ((GretelEntity->CurrentTexture->PixelWidth / 4) * 2);
+                collisionBoxHeight = ((GretelEntity->CurrentTexture->PixelHeight / 4) * 2);
                 GretelEntity->CollisionBox = 
                 {
-                    GretelEntity->PositionV2i.X + (GretelEntity->CurrentTexture->Width / 4),
-                    GretelEntity->PositionV2i.Y + (GretelEntity->CurrentTexture->Height / 4),
+                    (int)(GretelEntity->PositionV2f.X + (GretelEntity->CurrentTexture->PixelWidth / 4)),
+                    (int)(GretelEntity->PositionV2f.Y + (GretelEntity->CurrentTexture->PixelHeight / 4)),
                     collisionBoxWidth,
                     collisionBoxHeight,
                 };
@@ -809,7 +765,7 @@ InitializeGame()
                 // TODO(nick): center of screen and then offset
                 TitleScreenGretelKong_1->PositionV2i = DefaultVector2iCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
                 TitleScreenGretelKong_1->PositionV2i.Y -= 175;
-                TitleScreenGretelKong_1->PositionV2i.X -= (TitleScreenGretelKong_1->Texture->Width / 2);
+                TitleScreenGretelKong_1->PositionV2i.X -= (TitleScreenGretelKong_1->Texture->PixelWidth / 2);
                 
                 TitleScreenGretelKong_2->Texture = LoadAssetTTF(GlobalGameState,
                                                                 ArcadeFont_Large,
@@ -820,8 +776,8 @@ InitializeGame()
                 // TODO(nick): center part 2 based on positioning of part 1
                 // TODO(nick): figure out a better way of handling the text positioning
                 // NOTE(nick): 5 is an offset to allow texture to sit a bit closer
-                TitleScreenGretelKong_2->PositionV2i.X = TitleScreenGretelKong_1->PositionV2i.X + (TitleScreenGretelKong_1->Texture->Width / 4);
-                TitleScreenGretelKong_2->PositionV2i.Y = (TitleScreenGretelKong_1->PositionV2i.Y + (TitleScreenGretelKong_1->Texture->Height / 2) + 15);
+                TitleScreenGretelKong_2->PositionV2i.X = TitleScreenGretelKong_1->PositionV2i.X + (TitleScreenGretelKong_1->Texture->PixelWidth / 4);
+                TitleScreenGretelKong_2->PositionV2i.Y = (TitleScreenGretelKong_1->PositionV2i.Y + (TitleScreenGretelKong_1->Texture->PixelHeight / 2) + 15);
                 
                 HUDHighScore = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                        sizeof(Text));
@@ -833,7 +789,7 @@ InitializeGame()
                                                      GlobalWindowState->GameRenderer,
                                                      "HIGH  SCORE",
                                                      &Red);
-                HUDHighScore->PositionV2i = DefaultVector2iCenterScreen((GlobalWindowState->Width - HUDHighScore->Texture->Width), 0);
+                HUDHighScore->PositionV2i = DefaultVector2iCenterScreen((GlobalWindowState->Width - HUDHighScore->Texture->PixelWidth), 0);
                 // TODO(nick): keep a current highscore value and write out as a string
                 HUDHighScoreValue->Texture = LoadAssetTTF(GlobalGameState,
                                                           ArcadeFont_Medium,
@@ -841,8 +797,8 @@ InitializeGame()
                                                           GlobalWindowState->GameRenderer,
                                                           "000000",
                                                           &White);
-                HUDHighScoreValue->PositionV2i.X = (HUDHighScore->PositionV2i.X + (HUDHighScore->Texture->Width / 4));
-                HUDHighScoreValue->PositionV2i.Y = (HUDHighScore->PositionV2i.Y + (HUDHighScore->Texture->Height / 2) + 5);
+                HUDHighScoreValue->PositionV2i.X = (HUDHighScore->PositionV2i.X + (HUDHighScore->Texture->PixelWidth / 4));
+                HUDHighScoreValue->PositionV2i.Y = (HUDHighScore->PositionV2i.Y + (HUDHighScore->Texture->PixelHeight / 2) + 5);
                 
                 HUDLivesCount = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                         sizeof(Text));
@@ -863,7 +819,7 @@ InitializeGame()
                                                         "000000",
                                                         &White);
                 HUDCurrentScore->PositionV2i = DefaultVector2iPosition();
-                HUDCurrentScore->PositionV2i.Y += HUDLivesCount->Texture->Height;
+                HUDCurrentScore->PositionV2i.Y += HUDLivesCount->Texture->PixelHeight;
                 
                 HUDCurrentLevel = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                           sizeof(Text));
@@ -883,7 +839,7 @@ InitializeGame()
                 
                 DEBUG_PlayerPositionInfo = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                                    sizeof(Text));
-                sprintf(DEBUG_StringBuffer, "Player Position x %d y %d ", PlayerEntity->PositionV2i.X, PlayerEntity->PositionV2i.Y);
+                sprintf(DEBUG_StringBuffer, "Player Position x %6.2f y %6.2f ", PlayerEntity->PositionV2f.X, PlayerEntity->PositionV2f.Y);
                 DEBUG_PlayerPositionInfo->Texture = LoadAssetTTF(GlobalGameState,
                                                                  PokeFont_Small,
                                                                  GlobalWindowState->GameSurface,
@@ -895,7 +851,7 @@ InitializeGame()
                 
                 DEBUG_EnemyPositionInfo = (Text*)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                                  sizeof(Text));
-                sprintf(DEBUG_StringBuffer, "Enemy Position x %d y: %d", GretelEntity->PositionV2i.X, GretelEntity->PositionV2i.Y);
+                sprintf(DEBUG_StringBuffer, "Enemy Position x %6.2f y: %6.2f", GretelEntity->PositionV2f.X, GretelEntity->PositionV2f.Y);
                 DEBUG_EnemyPositionInfo->Texture = LoadAssetTTF(GlobalGameState,
                                                                 PokeFont_Small,
                                                                 GlobalWindowState->GameSurface,
@@ -1021,8 +977,8 @@ LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *
         // need to figure out how to determine scaling for assets
         Result = (AssetTexture *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage, sizeof(AssetTexture));
         
-        Result->Width = Raw->w;
-        Result->Height = Raw->h;
+        Result->PixelWidth = Raw->w;
+        Result->PixelHeight = Raw->h;
         Result->Rotation = 0.0f;
         Result->Flip = SDL_FLIP_NONE; 
         Result->Texture = Texture;
@@ -1062,8 +1018,8 @@ LoadAssetTTF(GameState *CurrentGameState, TTF_Font *Font, SDL_Surface *GameSurfa
         
         Result = (AssetTexture *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage, sizeof(AssetTexture));
         
-        Result->Width = Raw->w;
-        Result->Height = Raw->h;
+        Result->PixelWidth = Raw->w;
+        Result->PixelHeight = Raw->h;
         Result->Rotation = 0.0f;
         Result->Flip = SDL_FLIP_NONE;
         Result->Texture = Texture;
@@ -1169,16 +1125,16 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
                         // NOTE(nick): rowIndex zero maps to top left corner
                         CurrentTile->PositionV2i = 
                         {
-                            CurrentTile->CurrentTexture->Width * columnIndex,
-                            CurrentTile->CurrentTexture->Height * rowIndex,
+                            CurrentTile->CurrentTexture->PixelWidth * columnIndex,
+                            CurrentTile->CurrentTexture->PixelHeight * rowIndex,
                         };
                         // TODO(nick): figure out positioning / collision
                         CurrentTile->CollisionBox = 
                         {
-                            CurrentTile->CurrentTexture->Width * columnIndex,
-                            CurrentTile->CurrentTexture->Height * rowIndex,
-                            CurrentTile->CurrentTexture->Width,
-                            CurrentTile->CurrentTexture->Height,
+                            CurrentTile->CurrentTexture->PixelWidth * columnIndex,
+                            CurrentTile->CurrentTexture->PixelHeight * rowIndex,
+                            CurrentTile->CurrentTexture->PixelWidth,
+                            CurrentTile->CurrentTexture->PixelHeight,
                         };
                         TileList_Node *CurrentTileNode = (TileList_Node *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage,
                                                                                           sizeof(TileList_Node));
@@ -1338,8 +1294,8 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
             {
                 CurrentTile->PositionV2i.X,
                 CurrentTile->PositionV2i.Y,
-                CurrentTile->CurrentTexture->Width,
-                CurrentTile->CurrentTexture->Height,
+                CurrentTile->CurrentTexture->PixelWidth,
+                CurrentTile->CurrentTexture->PixelHeight,
             };
             SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
                              CurrentTile->CurrentTexture->Texture,
@@ -1378,10 +1334,10 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
     {
         SDL_Rect CurrentRenderBox = 
         {
-            CurrentEntity->PositionV2i.X,
-            CurrentEntity->PositionV2i.Y,
-            CurrentEntity->CurrentTexture->Width,
-            CurrentEntity->CurrentTexture->Height,
+            (int)CurrentEntity->PositionV2f.X,
+            (int)CurrentEntity->PositionV2f.Y,
+            CurrentEntity->CurrentTexture->PixelWidth,
+            CurrentEntity->CurrentTexture->PixelHeight,
         };
         SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
                          CurrentEntity->CurrentTexture->Texture,
@@ -1422,8 +1378,8 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
         {
             CurrentText->PositionV2i.X,
             CurrentText->PositionV2i.Y,
-            CurrentText->Texture->Width,
-            CurrentText->Texture->Height,
+            CurrentText->Texture->PixelWidth,
+            CurrentText->Texture->PixelHeight,
         };
         
         SDL_RenderCopyEx(CurrentWindowState->GameRenderer,

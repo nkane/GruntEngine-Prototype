@@ -3,6 +3,8 @@
  *	    Created By: Nick Kane
  */
 
+#define PLAYER_MAX_ACCELERATION 2.5f
+
 // TODO(nick): bit mask may not be needed, think about it some more ...
 enum EntityState
 {
@@ -28,7 +30,7 @@ struct Entity
     unsigned int CurrentState;
     unsigned int CurrentFaceDirection;
     unsigned int CurrentFrame;
-    Vector2i PositionV2i;
+    Vector2f PositionV2f;
     Vector2f VelocityV2f;
     SDL_Rect CollisionBox;
 };
@@ -103,4 +105,45 @@ IsCollidable(char *code)
         } break;
     }
     return result;
+}
+
+void
+UpdatePlayerPosition(Entity *player, Vector2f acceleration, float delta)
+{
+    SDL_Rect previousPlayerCollsionBox = player->CollisionBox;
+    player->VelocityV2f = Vector2fAdd(player->VelocityV2f, acceleration);
+
+    float magnitude = Vector2fLength(player->VelocityV2f);
+    if (magnitude > PLAYER_MAX_ACCELERATION)
+    {
+        Vector2fScale(&player->VelocityV2f, PLAYER_MAX_ACCELERATION / magnitude);
+    }
+
+    Vector2f tempCollisionBoxPosition =
+    {
+        (float)player->CollisionBox.x,
+        (float)player->CollisionBox.y,
+    };
+
+    Vector2f testCollisionBoxPosition = Vector2fAdd(tempCollisionBoxPosition, player->VelocityV2f);
+    player->CollisionBox.x = testCollisionBoxPosition.X;
+    player->CollisionBox.y = testCollisionBoxPosition.Y;
+
+    // TODO(nick): remove this! for testing only
+    player->PositionV2f = Vector2fAdd(player->PositionV2f, player->VelocityV2f);
+
+    // TODO(nick):
+    // 1) uncomment code!
+    /*
+    if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+    {
+        // collided do not update position and reset collision box
+        PlayerEntity->CollisionBox.x = previousPlayerCollsionBox.x;
+        PlayerEntity->CollisionBox.y = previousPlayerCollsionBox.y;
+    }
+    else
+    {
+        PlayerEntity->PositionV2f = Vector2fAdd(PlayerEntity->PositionV2f, tempVector);
+    }
+    */
 }
