@@ -1221,8 +1221,12 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
     Entity *checkEntity = EntityArray[checkIndex];
     Entity *currentEntity = EntityArray[i]; 
     
-    // NOTE(nicK):
+    // NOTE(nick):
     // check all collision between entities first
+    int checkEntityUpperY = checkEntity->CollisionBox.y;
+    int checkEntityLowerY = checkEntity->CollisionBox.y + checkEntity->CollisionBox.h;
+    int checkEntityLeftX = checkEntity->CollisionBox.x;
+    int checkEntityRightX = checkEntity->CollisionBox.x + checkEntity->CollisionBox.w;
     while (currentEntity != NULL)
     {
         if (i != checkIndex)
@@ -1236,19 +1240,14 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
                 //    or equal to the CurrentEntity top line y collision box
                 //    + lower coordinates in screen space - since y is inverted, it is added
                 // check horizontal collision
-                int checkEntityUpperY = checkEntity->CollisionBox.y;
-                int checkEntityLowerY = checkEntity->CollisionBox.y + checkEntity->CollisionBox.h;
                 int currentEntityUpperY = currentEntity->CollisionBox.y;
                 int currentEntityLowerY = currentEntity->CollisionBox.y + checkEntity->CollisionBox.h;
                 if ((checkEntityLowerY >= currentEntityUpperY) && (checkEntityUpperY <= currentEntityLowerY))
                 {
-                    int checkEntityLeftX = checkEntity->CollisionBox.x;
-                    int checkEntityRightX = checkEntity->CollisionBox.x + checkEntity->CollisionBox.w;
                     int currentEntityLeftX = currentEntity->CollisionBox.x;
                     int currentEntityRightX = currentEntity->CollisionBox.x + currentEntity->CollisionBox.w;
                     // check right side collision from CheckEntity perspective
-                    if ((checkEntityRightX >= currentEntityLeftX) &&
-                        (checkEntityLeftX <= currentEntityRightX))
+                    if ((checkEntityRightX >= currentEntityLeftX) && (checkEntityLeftX <= currentEntityRightX))
                     {
                         return true;
                     }
@@ -1264,10 +1263,8 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
     // certain tiles are not collidable, but they instead allow a specific function (i.e., ladders for "climbing")
     // NOTE(nick):
     // check all collision between entity and level tiles
-#if 0
     TileList_Node *CurrentNode = NULL;
     Tile *CurrentTile = NULL;
-    Rectangle CurrentTileCollisionBox = {};
     if (CurrentLevel)
     {
         CurrentNode = CurrentLevel->TileList.Head;
@@ -1277,33 +1274,17 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
     {
         if (CurrentTile->IsCollidable)
         {
-            CurrentTileCollisionBox.BottomLine[0].X = CurrentTile->CollisionBox.x;
-            CurrentTileCollisionBox.BottomLine[0].Y = CurrentTile->CollisionBox.y;
-            CurrentTileCollisionBox.BottomLine[1].X = CurrentTile->CollisionBox.x + CurrentTile->CollisionBox.w;
-            CurrentTileCollisionBox.BottomLine[1].Y = CurrentTile->CollisionBox.y;
-            
-            CurrentTileCollisionBox.TopLine[0].X = CurrentTile->CollisionBox.x;
-            CurrentTileCollisionBox.TopLine[0].Y = CurrentTile->CollisionBox.y + CurrentTile->CollisionBox.h;
-            CurrentTileCollisionBox.TopLine[1].X = CurrentTile->CollisionBox.x + CurrentTile->CollisionBox.w;
-            CurrentTileCollisionBox.TopLine[1].Y = CurrentTile->CollisionBox.y + CurrentTile->CollisionBox.h;
-            
+            int currentTileUpperY = CurrentTile->CollisionBox.y;
+            int currentTileLowerY = CurrentTile->CollisionBox.y + CurrentTile->CollisionBox.h;
             // check horizontal collision
-            if ((CheckEntityCollisionBox.BottomLine[0].Y <= CurrentTileCollisionBox.TopLine[0].Y) &&
-                (CheckEntityCollisionBox.TopLine[0].Y >= CurrentTileCollisionBox.BottomLine[0].Y))
+            if ((checkEntityLowerY >= currentTileUpperY) && (checkEntityUpperY <= currentTileLowerY))
             {
+                int currentTileLeftX = CurrentTile->CollisionBox.x;
+                int currentTileRightX = CurrentTile->CollisionBox.x + CurrentTile->CollisionBox.w;
                 // check right side collision from CheckEntity perspective
-                if (CheckEntityCollisionBox.BottomLine[1].X >= CurrentTileCollisionBox.BottomLine[0].X &&
-                    CheckEntityCollisionBox.BottomLine[0].X <= CurrentTileCollisionBox.BottomLine[1].X)
+                if ((checkEntityRightX >= currentTileLeftX) && (checkEntityLeftX <= currentTileRightX))
                 {
                     return true;
-                }
-                // check left side collision from CheckEntity perspective
-                else if (CheckEntityCollisionBox.BottomLine[0].X > CurrentTileCollisionBox.BottomLine[1].X)
-                {
-                    if (CheckEntityCollisionBox.BottomLine[0].X <= CurrentTileCollisionBox.BottomLine[1].X)
-                    {
-                        return true;
-                    }
                 }
             }
         }
@@ -1312,9 +1293,7 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
             CurrentTile = CurrentNode->Value;
         }
     }
-#endif
     
-    printf("no y collision!\r");
     return false;
 }
 
