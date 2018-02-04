@@ -67,7 +67,6 @@ global_variable Queue_GameEntity *GlobalEntityRenderQueue;
 global_variable Entity *PlayerEntity;
 global_variable Animation *PlayerAnimations[10];
 // enemies
-global_variable Entity *GretelEntity;
 global_variable int GlobalEntityArrayIndex = 0;
 // /=====================================================================/
 
@@ -168,12 +167,14 @@ main(int argc, char *argv[])
     // game initialized successfully
     while (GameRunning)
     {
+        float defaultSpeed = 0.5f;
+        Vector2f accelerationVector = { 0.0f, 0.0f };
+        local_persist float decayRate = 1.0f;
         // query for time
         GlobalGameState->CurrentMS = SDL_GetTicks();
+        // handle key events
         while (SDL_PollEvent(&CurrentEvent))
         {
-            float defaultSpeed = 0.5f;
-            Vector2f accelerationVector = { 0.0f, 0.0f };
             switch (CurrentEvent.type)
             {
                 case SDL_QUIT:
@@ -197,13 +198,13 @@ main(int argc, char *argv[])
                         case SDLK_w: 
                         case SDLK_UP: 
                         {
-                            accelerationVector.Y -= defaultSpeed;
+                            //accelerationVector.Y -= defaultSpeed;
                         } break;
                         
                         case SDLK_s:
                         case SDLK_DOWN:
                         {
-                            accelerationVector.Y += defaultSpeed;
+                            //accelerationVector.Y += defaultSpeed;
                         } break;
                         
                         case SDLK_a:
@@ -216,6 +217,7 @@ main(int argc, char *argv[])
                                 PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceLeft);
                             }
                             PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                            decayRate = 1.0f;
                             accelerationVector.X -= defaultSpeed;
                         } break;
 
@@ -229,6 +231,7 @@ main(int argc, char *argv[])
                                 PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceRight);
                             }
                             PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                            decayRate = 1.0f;
                             accelerationVector.X += defaultSpeed;
                         } break;
                         
@@ -258,6 +261,7 @@ main(int argc, char *argv[])
                         {
                            PlayerEntity->CurrentState = (EntityState)(Idle);
                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                           decayRate = 0.98f;
                         } break;
                         
                         case SDLK_d:
@@ -265,6 +269,7 @@ main(int argc, char *argv[])
                         {
                            PlayerEntity->CurrentState = (EntityState)(Idle);
                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                           decayRate = 0.98f;
                         } break;
                 
                         case SDLK_SPACE: 
@@ -274,146 +279,135 @@ main(int argc, char *argv[])
                     }
                 } break;
             }
+        }
 
-            // TODO(nick): figure out what should be passed for delta param
-            UpdatePlayerPosition(PlayerEntity, accelerationVector, 1.0f);
+        Vector2f previousPlayerPosition = PlayerEntity->PositionV2f;
+        Vector2f previousPlayerCollisionPosition = PlayerEntity->CollisionPositionV2f;
+        UpdatePlayerPosition(PlayerEntity, accelerationVector, decayRate);
+        if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+        {
+            PlayerEntity->CollisionPositionV2f = previousPlayerCollisionPosition;
+            PlayerEntity->PositionV2f = previousPlayerPosition;
+        }
 
-            // clear the screen
-            SDL_RenderClear(GlobalWindowState->GameRenderer);
+        // clear the screen
+        SDL_RenderClear(GlobalWindowState->GameRenderer);
+        
+        // NOTE(nick): top HUD is always displayed
+        // always enqueue HUD text values
+        {
+            Text_Node HUDHighScoreNode
+            {
+                HUDHighScore,
+                NULL,
+            };
             
-            // NOTE(nick): top HUD is always displayed
-            // always enqueue HUD text values
+            Text_Node HUDHighScoreValueNode
             {
-                Text_Node HUDHighScoreNode
-                {
-                    HUDHighScore,
-                    NULL,
-                };
-                
-                Text_Node HUDHighScoreValueNode
-                {
-                    HUDHighScoreValue,
-                    NULL,
-                };
-                
-                Text_Node HUDLivesCountNode
-                {
-                    HUDLivesCount,
-                    NULL,
-                };
-                
-                Text_Node HUDCurrentScoreNode
-                {
-                    HUDCurrentScore,
-                    NULL,
-                };
-                
-                Text_Node HUDCurrentLevelNode
-                {
-                    HUDCurrentLevel,
-                    NULL,
-                };
-                
-                Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDHighScoreNode);
-                Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDHighScoreValueNode);
-                Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDLivesCountNode);
-                Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDCurrentScoreNode);
-                Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDCurrentLevelNode);
-                
-                // TODO(nick): set a debug mode flag check here
-                Text_Node DEBUGInfo_PlayerPositionNode
-                {
-                    DEBUG_PlayerPositionInfo,
-                    NULL,
-                    
-                };
-                
-                Text_Node DEBUGInfo_EnemyPositionNode
-                {
-                    DEBUG_EnemyPositionInfo,
-                    NULL,
-                };
-                
-                Queue_Enqueue_GameText(GlobalTextRenderQueue, DEBUGInfo_PlayerPositionNode);
-                Queue_Enqueue_GameText(GlobalTextRenderQueue, DEBUGInfo_EnemyPositionNode);
-            }
+                HUDHighScoreValue,
+                NULL,
+            };
             
-            if (GlobalGameState->IsPlaying)
+            Text_Node HUDLivesCountNode
             {
-                // TODO(nick) IMPORTANT(nick):
-                // 1) finish initial loading up ...
-                // 2) create an array that will have levels loaded
-                // 3) check array first before attempting to load level
-                if (LoadNextLevel)
-                {
-                    if (GlobalLevelArray[0] == NULL)
-                    {
-                        GlobalLevelArray[0] = LoadLevel(GlobalGameState, ReadWriteOperations, "./data/level_one.gdat");
-                        GlobalCurrentLoadedLevel = GlobalLevelArray[0];
-                    }
-                    LoadNextLevel = false;
-                    // TODO(nick):
-                    // 1) switch current level to next level
-                }
-                
-                // TODO(nick):
-                // 1) make nodes only for needed stuff (for queue - entity and text)
-                // 2) add some logical step that takes place per level
-                //    and builds an array of entity nodes?
-                //    for now static ones work
-                Entity_Node PlayerEntityNode = 
-                {
-                    PlayerEntity,
-                    NULL,
-                };
-                
-                GretelEntity->PositionV2f = DefaultVector2fCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
-                Entity_Node GretelEntityNode = 
-                {
-                    GretelEntity,
-                    NULL,
-                };
-                
-                // NOTE(nick): add entities to render queue
-                Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
-                Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GretelEntityNode);
-                
-                GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue, GlobalCurrentLoadedLevel);
-            }
-            else
+                HUDLivesCount,
+                NULL,
+            };
+            
+            Text_Node HUDCurrentScoreNode
             {
-                // NOTE(nick): player is at title screen
-                // TODO(nick):
-                // 1) only draw title screen
-                // 2) only handle UI commands
-                SDL_RenderClear(GlobalWindowState->GameRenderer);
+                HUDCurrentScore,
+                NULL,
+            };
+            
+            Text_Node HUDCurrentLevelNode
+            {
+                HUDCurrentLevel,
+                NULL,
+            };
+            
+            Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDHighScoreNode);
+            Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDHighScoreValueNode);
+            Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDLivesCountNode);
+            Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDCurrentScoreNode);
+            Queue_Enqueue_GameText(GlobalTextRenderQueue, HUDCurrentLevelNode);
+            
+            // TODO(nick): set a debug mode flag check here
+            Text_Node DEBUGInfo_PlayerPositionNode
+            {
+                DEBUG_PlayerPositionInfo,
+                NULL,
                 
-                Entity_Node GretelEntityNode = 
-                {
-                    GretelEntity,
-                    NULL,
-                };
-                
-                Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, GretelEntityNode);
-                
-                Text_Node GretelKong_P1 = 
-                {
-                    TitleScreenGretelKong_1,
-                    NULL,
-                };
-                
-                Text_Node GretelKong_P2 =
-                {
-                    TitleScreenGretelKong_2,
-                    NULL,
-                };
-                
-                Queue_Enqueue_GameText(GlobalTextRenderQueue, GretelKong_P1);
-                Queue_Enqueue_GameText(GlobalTextRenderQueue, GretelKong_P2);
-                GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue, GlobalCurrentLoadedLevel);
-            }
+            };
+            
+            Text_Node DEBUGInfo_EnemyPositionNode
+            {
+                DEBUG_EnemyPositionInfo,
+                NULL,
+            };
+            
+            Queue_Enqueue_GameText(GlobalTextRenderQueue, DEBUGInfo_PlayerPositionNode);
         }
         
+        if (GlobalGameState->IsPlaying)
+        {
+            // TODO(nick) IMPORTANT(nick):
+            // 1) finish initial loading up ...
+            // 2) create an array that will have levels loaded
+            // 3) check array first before attempting to load level
+            if (LoadNextLevel)
+            {
+                if (GlobalLevelArray[0] == NULL)
+                {
+                    GlobalLevelArray[0] = LoadLevel(GlobalGameState, ReadWriteOperations, "./data/test_level.gdat");
+                    GlobalCurrentLoadedLevel = GlobalLevelArray[0];
+                }
+                LoadNextLevel = false;
+                // TODO(nick):
+                // 1) switch current level to next level
+            }
+            
+            // TODO(nick):
+            // 1) make nodes only for needed stuff (for queue - entity and text)
+            // 2) add some logical step that takes place per level
+            //    and builds an array of entity nodes?
+            //    for now static ones work
+            Entity_Node PlayerEntityNode = 
+            {
+                PlayerEntity,
+                NULL,
+            };
+            
+            // NOTE(nick): add entities to render queue
+            Queue_Enqueue_GameEntity(GlobalEntityRenderQueue, PlayerEntityNode);
+            
+            GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue, GlobalCurrentLoadedLevel);
+        }
+        else
+        {
+            // NOTE(nick): player is at title screen
+            // TODO(nick):
+            // 1) only draw title screen
+            // 2) only handle UI commands
+            
+            SDL_RenderClear(GlobalWindowState->GameRenderer);
+            
+            Text_Node GretelKong_P1 = 
+            {
+                TitleScreenGretelKong_1,
+                NULL,
+            };
+            
+            Text_Node GretelKong_P2 =
+            {
+                TitleScreenGretelKong_2,
+                NULL,
+            };
+            
+            Queue_Enqueue_GameText(GlobalTextRenderQueue, GretelKong_P1);
+            Queue_Enqueue_GameText(GlobalTextRenderQueue, GretelKong_P2);
+            GameUpdateAndRender(GlobalWindowState, GlobalGameState, GlobalEntityRenderQueue, GlobalTextRenderQueue, GlobalCurrentLoadedLevel);
+        }
         // update screen
         SDL_RenderPresent(GlobalWindowState->GameRenderer);
         
@@ -428,16 +422,14 @@ main(int argc, char *argv[])
             // TODO(nick): remove variable - debug only or keep in game state
             unsigned int delay = (Frame_Rate_Lock - GlobalGameState->DeltaMS);
             SDL_Delay(delay);
-            //printf("Delay: %d\r", delay);
         }
     }
-    
+        
     // IMPORTANT(nick): clean up definitely needs to be handled ASAP!
     // destory textures
     {	
         SDL_DestroyTexture(HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Texture);
         SDL_DestroyTexture(HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Texture);
-        SDL_DestroyTexture(HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Gretel-Idle")->Texture);
     }
     
     // release fonts
@@ -640,73 +632,15 @@ InitializeGame()
                     0.0f,
                 };
                 
-                int collisionBoxWidth = 0;
-                int collisionBoxHeight = 0;
-                collisionBoxWidth = ((PlayerEntity->CurrentTexture->PixelWidth / 4) * 2);
-                collisionBoxHeight = PlayerEntity->CurrentTexture->PixelHeight;
+                PlayerEntity->CollisionDimensionV2f.Width = ((PlayerEntity->CurrentTexture->PixelWidth / 4) * 2);
+                PlayerEntity->CollisionDimensionV2f.Height = PlayerEntity->CurrentTexture->PixelHeight;
+                PlayerEntity->CollisionPositionV2f = 
+                {
+                    (PlayerEntity->PositionV2f.X + (PlayerEntity->CurrentTexture->PixelWidth / 4)),
+                    (PlayerEntity->PositionV2f.Y + (PlayerEntity->CurrentTexture->PixelHeight / 4)),
+                };
 
-                PlayerEntity->CollisionBox = 
-                {
-                    (int)(PlayerEntity->PositionV2f.X + (PlayerEntity->CurrentTexture->PixelWidth / 4)),
-                    (int)(PlayerEntity->PositionV2f.Y + (PlayerEntity->CurrentTexture->PixelHeight / 4)),
-                    collisionBoxWidth,
-                    collisionBoxHeight,
-                };
-                
                 GlobalEntityArray[GlobalEntityArrayIndex] = PlayerEntity;
-                ++GlobalEntityArrayIndex;
-                
-                // NOTE(nick): gretel initialization
-                GretelEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-                                                         sizeof(Entity));
-                char *gretelTextureList[32][2] = 
-                {
-                    { "Gretel-Idle",            "./assets/Gretel/Gretel-Idle.png" },
-                    { "Gretel-Angry-1",         "./assets/Gretel/Gretel-Angry-1.png" },
-                    { "Gretel-Angry-2",         "./assets/Gretel/Gretel-Angry-2.png" },
-                    { "Gretel-Jump-1",          "./assets/Gretel/Gretel-Jump-1.png" },
-                    { "Gretel-Jump-2",          "./assets/Gretel/Gretel-Jump-2.png" },
-                    { "Gretel-Shock-1",         "./assets/Gretel/Gretel-Shock-1.png" },
-                    { "Gretel-Shock-2",         "./assets/Gretel/Gretel-Shock-2.png" },
-                    { "Gretel-Hold-Green-Beer", "./assets/Gretel/Gretel-Hold-Green-Beer.png" },
-                    { "Gretel-Hold-Red-Beer",   "./assets/Gretel/Gretel-Hold-Red-Beer.png" },
-                    { "Gretel-Beer-Toss-Empty", "./assets/Gretel/Gretel-Beer-Toss-Empty.png" },
-                    { "Gretel-Beer-Toss-Green", "./assets/Gretel/Gretel-Beer-Toss-Green.png" },
-                    { "Gretel-Beer-Toss-Red",   "./assets/Gretel/Gretel-Beer-Toss-Red.png" },
-                    { "Gretel-Climb-1",         "./assets/Gretel/Gretel-Climb-1.png" },
-                    { "Gretel-Climb-2",         "./assets/Gretel/Gretel-Climb-2.png" },
-                    { "Gretel-Defeat-1",        "./assets/Gretel/Gretel-Defeat-1.png" },
-                    { "Gretel-Defeat-2",        "./assets/Gretel/Gretel-Defeat-2.png" },
-                    { "Gretel-Fall",            "./assets/Gretel/Gretel-Fall.png" },
-                    { "Gretel-Growl",           "./assets/Gretel/Gretel-Growl.png" },
-                };
-                
-                for (int i = 0, j = 0; i < 32; ++i)
-                {
-                    if (gretelTextureList[i][j])
-                    {
-                        ReadWriteOperations = SDL_RWFromFile(gretelTextureList[i][j + 1], "rb");
-                        HashSet_Insert_AssetTexture(GlobalEntityTextureSet, gretelTextureList[i][j],
-                                                    LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
-                    }
-                }
-                
-                GretelEntity->Id = GlobalEntityArrayIndex;
-                GretelEntity->CurrentState = (EntityState)(Idle);
-                GretelEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Gretel-Idle");
-                GretelEntity->PositionV2f = DefaultVector2fCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
-                
-                collisionBoxWidth = ((GretelEntity->CurrentTexture->PixelWidth / 4) * 2);
-                collisionBoxHeight = ((GretelEntity->CurrentTexture->PixelHeight / 4) * 2);
-                GretelEntity->CollisionBox = 
-                {
-                    (int)(GretelEntity->PositionV2f.X + (GretelEntity->CurrentTexture->PixelWidth / 4)),
-                    (int)(GretelEntity->PositionV2f.Y + (GretelEntity->CurrentTexture->PixelHeight / 4)),
-                    collisionBoxWidth,
-                    collisionBoxHeight,
-                };
-                
-                GlobalEntityArray[GlobalEntityArrayIndex] = GretelEntity;
                 ++GlobalEntityArrayIndex;
                 
                 // NOTE(nick): game font initialization
@@ -835,7 +769,7 @@ InitializeGame()
                 // NOTE(nick): debug info text
                 // TODO(nicK): have this toggle on a key press or something similar
                 DEBUG_StringBuffer = (char *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-                                                             (sizeof(char) * 50));
+                                                             (sizeof(char) * 150));
                 
                 DEBUG_PlayerPositionInfo = (Text *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                                    sizeof(Text));
@@ -849,20 +783,8 @@ InitializeGame()
                 DEBUG_PlayerPositionInfo->PositionV2i.X = 400;
                 DEBUG_PlayerPositionInfo->PositionV2i.Y = 400;
                 
-                DEBUG_EnemyPositionInfo = (Text*)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
-                                                                 sizeof(Text));
-                sprintf(DEBUG_StringBuffer, "Enemy Position x %6.2f y: %6.2f", GretelEntity->PositionV2f.X, GretelEntity->PositionV2f.Y);
-                DEBUG_EnemyPositionInfo->Texture = LoadAssetTTF(GlobalGameState,
-                                                                PokeFont_Small,
-                                                                GlobalWindowState->GameSurface,
-                                                                GlobalWindowState->GameRenderer,
-                                                                DEBUG_StringBuffer,
-                                                                &White);
-                DEBUG_EnemyPositionInfo->PositionV2i.X = 400;
-                DEBUG_EnemyPositionInfo->PositionV2i.Y = 425;
-                
-                // NOTE(nick): allocate enough space for the game queue data
-                // as well as 50 queue slots
+                // NOTE(nick):
+                // allocate enough space for the game queue data as well as 50 queue slots
                 GlobalEntityRenderQueue = (Queue_GameEntity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                                               (sizeof(Queue_GameEntity) + (sizeof(Entity_Node) * 50)));
                 GlobalEntityRenderQueue->Size = 0;
@@ -1179,10 +1101,10 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
     
     // NOTE(nick):
     // check all collision between entities first
-    int checkEntityUpperY = checkEntity->CollisionBox.y;
-    int checkEntityLowerY = checkEntity->CollisionBox.y + checkEntity->CollisionBox.h;
-    int checkEntityLeftX = checkEntity->CollisionBox.x;
-    int checkEntityRightX = checkEntity->CollisionBox.x + checkEntity->CollisionBox.w;
+    int checkEntityUpperY = checkEntity->CollisionPositionV2f.Y;
+    int checkEntityLowerY = checkEntity->CollisionPositionV2f.Y + checkEntity->CollisionDimensionV2f.Height;
+    int checkEntityLeftX = checkEntity->CollisionPositionV2f.X;
+    int checkEntityRightX = checkEntity->CollisionPositionV2f.X + checkEntity->CollisionDimensionV2f.Width;
     while (currentEntity != NULL)
     {
         if (i != checkIndex)
@@ -1196,12 +1118,12 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
                 //    or equal to the CurrentEntity top line y collision box
                 //    + lower coordinates in screen space - since y is inverted, it is added
                 // check horizontal collision
-                int currentEntityUpperY = currentEntity->CollisionBox.y;
-                int currentEntityLowerY = currentEntity->CollisionBox.y + checkEntity->CollisionBox.h;
+                int currentEntityUpperY = currentEntity->CollisionPositionV2f.Y;
+                int currentEntityLowerY = currentEntity->CollisionPositionV2f.Y + checkEntity->CollisionDimensionV2f.Height;
                 if ((checkEntityLowerY >= currentEntityUpperY) && (checkEntityUpperY <= currentEntityLowerY))
                 {
-                    int currentEntityLeftX = currentEntity->CollisionBox.x;
-                    int currentEntityRightX = currentEntity->CollisionBox.x + currentEntity->CollisionBox.w;
+                    int currentEntityLeftX = currentEntity->CollisionPositionV2f.X;
+                    int currentEntityRightX = currentEntity->CollisionPositionV2f.X + currentEntity->CollisionPositionV2f.Width;
                     // check right side collision from CheckEntity perspective
                     if ((checkEntityRightX >= currentEntityLeftX) && (checkEntityLeftX <= currentEntityRightX))
                     {
@@ -1256,24 +1178,11 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
 void 
 GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue, Level *CurrentLoadedLevel)
 {
-    // render texture(s) to screen
-    // TODO(nick):
-    // 1) 1st NULL value is clip box 
-    //    - srcrect 
-    // 2) 2nd NULL value is center point
-    //    - center, used for point to determine rotation
-    
     // NOTE(nick): debug info
     {
-        sprintf(DEBUG_StringBuffer, "Player Collision x %d y %d ", PlayerEntity->CollisionBox.x, PlayerEntity->CollisionBox.y);
+        sprintf(DEBUG_StringBuffer, "Player Collision x %6.2f y %6.2f ", PlayerEntity->CollisionPositionV2f.X, PlayerEntity->CollisionPositionV2f.Y);
         UpdateAssetTTF(CurrentWindowState->GameRenderer,
                        DEBUG_PlayerPositionInfo,
-                       PokeFont_Small,
-                       DEBUG_StringBuffer,
-                       NULL);
-        sprintf(DEBUG_StringBuffer, "Enemy Collision x %d y: %d", GretelEntity->CollisionBox.x, GretelEntity->CollisionBox.y);
-        UpdateAssetTTF(CurrentWindowState->GameRenderer,
-                       DEBUG_EnemyPositionInfo,
                        PokeFont_Small,
                        DEBUG_StringBuffer,
                        NULL);
@@ -1351,17 +1260,24 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
         {
             // TODO(nick):
             // 1) clean the debugging stuff up a bit to just create one texture instead of creating one per frame and destroying it
-            tempEntityCollisionSurface = SDL_CreateRGBSurface(0, CurrentEntity->CollisionBox.w, CurrentEntity->CollisionBox.h, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+            tempEntityCollisionSurface = SDL_CreateRGBSurface(0, CurrentEntity->CollisionDimensionV2f.Width, CurrentEntity->CollisionDimensionV2f.Height, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
             if (tempEntityCollisionSurface == NULL)
             {
                 SDL_Log("SDL_CreateRGBSurface() failed: %s", SDL_GetError());
             }
+            SDL_Rect tempEntityCollisionRect = 
+            {
+                (int)CurrentEntity->CollisionPositionV2f.X,
+                (int)CurrentEntity->CollisionPositionV2f.Y,
+                (int)CurrentEntity->CollisionDimensionV2f.Width,
+                (int)CurrentEntity->CollisionDimensionV2f.Height,
+            };
             SDL_FillRect(tempEntityCollisionSurface, NULL, SDL_MapRGBA(tempEntityCollisionSurface->format, 255, 0, 0, 64));
             tempEntityCollisionTexture = SDL_CreateTextureFromSurface(CurrentWindowState->GameRenderer, tempEntityCollisionSurface);
             SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
                              tempEntityCollisionTexture,
                              NULL,
-                             &CurrentEntity->CollisionBox,
+                             &tempEntityCollisionRect,
                              0,
                              NULL,
                              SDL_FLIP_NONE); 
