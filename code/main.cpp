@@ -169,6 +169,8 @@ main(int argc, char *argv[])
     {
         float defaultSpeed = 0.5f;
         Vector2f accelerationVector = { 0.0f, 0.0f };
+        // TODO(nick): figure out a better value for gravity
+        local_persist Vector2f gravityVector = { 0.0f, 0.1f };
         local_persist float decayRate = 1.0f;
         // query for time
         GlobalGameState->CurrentMS = SDL_GetTicks();
@@ -238,6 +240,7 @@ main(int argc, char *argv[])
                         case SDLK_SPACE: 
                         {
                             // TODO(nick): add a jump!
+                            accelerationVector.Y -= 8.0f;
                         } break;
                     }
                 } break;
@@ -281,13 +284,21 @@ main(int argc, char *argv[])
             }
         }
 
-        Vector2f previousPlayerPosition = PlayerEntity->PositionV2f;
-        Vector2f previousPlayerCollisionPosition = PlayerEntity->CollisionPositionV2f;
-        UpdatePlayerPosition(PlayerEntity, accelerationVector, decayRate);
-        if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+        if (GlobalGameState->IsPlaying)
         {
-            PlayerEntity->CollisionPositionV2f = previousPlayerCollisionPosition;
-            PlayerEntity->PositionV2f = previousPlayerPosition;
+            // TODO(nick): add some delta for frame updates?
+            Vector2f previousPlayerPosition = PlayerEntity->PositionV2f;
+            Vector2f previousPlayerCollisionPosition = PlayerEntity->CollisionPositionV2f;
+            accelerationVector = Vector2fAdd(accelerationVector, gravityVector);
+            UpdatePlayerPosition(PlayerEntity, accelerationVector, decayRate);
+            // TODO(nick):
+            // 1) we a better way of collision checking!
+            // 2) on collision we should zero out the players acceleration!
+            if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
+            {
+                PlayerEntity->CollisionPositionV2f = previousPlayerCollisionPosition;
+                PlayerEntity->PositionV2f = previousPlayerPosition;
+            }
         }
 
         // clear the screen
@@ -1136,7 +1147,7 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
         currentEntity = EntityArray[i];
     }
 
-    // TODO(nick): fix the rectangle struct and all the entity to entity collisions first!
+    // TODO(nick): change this to a new routine
     // IMPORTANT(nick):
     // certain tiles are not collidable, but they instead allow a specific function (i.e., ladders for "climbing")
     // NOTE(nick):
