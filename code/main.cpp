@@ -146,8 +146,8 @@ UpdateAssetTTF(SDL_Renderer *GameRenderer, Text *CurrentTextAsset, char *text, S
 Level *
 LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName);
 
-bool
-CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex);
+void
+HandleCollision(Entity *EntityArray[50], Level *CurrentLevel, Vector2f previousEntityPosition, Vector2f previousEntityCollisionPosition, int checkIndex);
 
 void 
 GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState, Queue_GameEntity *EntityQueue, Queue_GameText *TextQueue, Level *CurrentLoadedLevel);
@@ -294,11 +294,16 @@ main(int argc, char *argv[])
             // TODO(nick):
             // 1) we a better way of collision checking!
             // 2) on collision we should zero out the players acceleration!
+            HandleCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, previousPlayerPosition, previousPlayerCollisionPosition, PlayerEntity->Id);
+
+            // TODO(nick): remove this after handlecollision is working!
+            /*
             if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
             {
                 PlayerEntity->CollisionPositionV2f = previousPlayerCollisionPosition;
                 PlayerEntity->PositionV2f = previousPlayerPosition;
             }
+            */
         }
 
         // clear the screen
@@ -1052,22 +1057,17 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
                         // TODO(nick): actualAssetName should determine whether or not a tile is collidable
                         CurrentTile->IsCollidable = IsCollidable(assetBuffer);
                         CurrentTile->CurrentTexture = HashSet_Select_AssetTexture(GlobalLevelTextures, assetBuffer);
-                        
-                        // T
-                        
                         // NOTE(nick): rowIndex zero maps to top left corner
-                        CurrentTile->PositionV2i = 
+                        CurrentTile->PositionV2f = 
                         {
-                            CurrentTile->CurrentTexture->PixelWidth * columnIndex,
-                            CurrentTile->CurrentTexture->PixelHeight * rowIndex,
+                            (float)CurrentTile->CurrentTexture->PixelWidth * columnIndex,
+                            (float)CurrentTile->CurrentTexture->PixelHeight * rowIndex,
                         };
-                        // TODO(nick): figure out positioning / collision
-                        CurrentTile->CollisionBox = 
+                        CurrentTile->CollisionPositionV2f = CurrentTile->PositionV2f;
+                        CurrentTile->CollisionDimensionV2f = 
                         {
-                            CurrentTile->CurrentTexture->PixelWidth * columnIndex,
-                            CurrentTile->CurrentTexture->PixelHeight * rowIndex,
-                            CurrentTile->CurrentTexture->PixelWidth,
-                            CurrentTile->CurrentTexture->PixelHeight,
+                            (float)CurrentTile->CurrentTexture->PixelWidth,
+                            (float)CurrentTile->CurrentTexture->PixelHeight,
                         };
                         TileList_Node *CurrentTileNode = (TileList_Node *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage,
                                                                                           sizeof(TileList_Node));
@@ -1103,8 +1103,8 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
     return LoadedLevel;
 }
 
-bool
-CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
+void
+HandleCollision(Entity *EntityArray[50], Level *CurrentLevel, Vector2f previousEntityPosition, Vector2f previousEntityCollisionPosition, int checkIndex)
 {
     int i = 0;
     Entity *checkEntity = EntityArray[checkIndex];
@@ -1135,10 +1135,9 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
                 {
                     int currentEntityLeftX = currentEntity->CollisionPositionV2f.X;
                     int currentEntityRightX = currentEntity->CollisionPositionV2f.X + currentEntity->CollisionPositionV2f.Width;
-                    // check right side collision from CheckEntity perspective
                     if ((checkEntityRightX >= currentEntityLeftX) && (checkEntityLeftX <= currentEntityRightX))
                     {
-                        return true;
+                        // NOTE(nick): collision along the x-axis will need to zero out entity x velocity
                     }
                 }
             }
@@ -1163,17 +1162,23 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
     {
         if (CurrentTile->IsCollidable)
         {
-            int currentTileUpperY = CurrentTile->CollisionBox.y;
-            int currentTileLowerY = CurrentTile->CollisionBox.y + CurrentTile->CollisionBox.h;
-            // check horizontal collision
+            CurrentTile->DrawCollideRegion = false;
+            int currentTileUpperY = CurrentTile->CollisionPositionV2f.Y;
+            int currentTileLowerY = CurrentTile->CollisionPositionV2f.Y + CurrentTile->CollisionDimensionV2f.Height;
+            // NOTE(nick):
+            // - checkEntityLowerY is the entity's y lower base value
+            // - currentTileUpperY is the tile's y  
             if ((checkEntityLowerY >= currentTileUpperY) && (checkEntityUpperY <= currentTileLowerY))
             {
-                int currentTileLeftX = CurrentTile->CollisionBox.x;
-                int currentTileRightX = CurrentTile->CollisionBox.x + CurrentTile->CollisionBox.w;
-                // check right side collision from CheckEntity perspective
+                // collision with y axis
+                int currentTileLeftX = CurrentTile->CollisionPositionV2f.X;
+                int currentTileRightX = CurrentTile->CollisionPositionV2f.X + CurrentTile->CollisionDimensionV2f.Width;
                 if ((checkEntityRightX >= currentTileLeftX) && (checkEntityLeftX <= currentTileRightX))
                 {
-                    return true;
+                    checkEntity->VelocityV2f.Y = 0.0f;
+                    checkEntity->PositionV2f.Y = previousEntityPosition.Y;
+                    checkEntity->CollisionPositionV2f.Y = previousEntityCollisionPosition.Y;
+                    CurrentTile->DrawCollideRegion = true;
                 }
             }
         }
@@ -1182,8 +1187,6 @@ CheckCollision(Entity *EntityArray[50], Level *CurrentLevel, int checkIndex)
             CurrentTile = CurrentNode->Value;
         }
     }
-    
-    return false;
 }
 
 void 
@@ -1212,8 +1215,8 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
             Tile *CurrentTile = CurrentTileNode->Value;
             SDL_Rect CurrentRenderBox =
             {
-                CurrentTile->PositionV2i.X,
-                CurrentTile->PositionV2i.Y,
+                (int)CurrentTile->PositionV2f.X,
+                (int)CurrentTile->PositionV2f.Y,
                 CurrentTile->CurrentTexture->PixelWidth,
                 CurrentTile->CurrentTexture->PixelHeight,
             };
@@ -1227,22 +1230,32 @@ GameUpdateAndRender(WindowState *CurrentWindowState, GameState *CurrentGameState
             CurrentTileNode = CurrentTileNode->Next;
             // NOTE(nick): debug collision box render
             {
-                tempTileCollisionSurface = SDL_CreateRGBSurface(0, CurrentTile->CollisionBox.w, CurrentTile->CollisionBox.h, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
-                if (tempTileCollisionSurface == NULL)
+                if (CurrentTile->DrawCollideRegion) 
                 {
-                    SDL_Log("SDL_CreateRGBSurface() failed: %s", SDL_GetError());
+                    tempTileCollisionSurface = SDL_CreateRGBSurface(0, CurrentTile->CollisionDimensionV2f.Width, CurrentTile->CollisionDimensionV2f.Height, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+                    SDL_Rect tempTileCollisionRect = 
+                    {
+                        (int)CurrentTile->CollisionPositionV2f.X,
+                        (int)CurrentTile->CollisionPositionV2f.Y,
+                        (int)CurrentTile->CollisionDimensionV2f.Width,
+                        (int)CurrentTile->CollisionDimensionV2f.Height,
+                    };
+                    if (tempTileCollisionSurface == NULL)
+                    {
+                        SDL_Log("SDL_CreateRGBSurface() failed: %s", SDL_GetError());
+                    }
+                    SDL_FillRect(tempTileCollisionSurface, NULL, SDL_MapRGBA(tempTileCollisionSurface->format, 0, 255, 0, 75));
+                    tempTileCollisionTexture = SDL_CreateTextureFromSurface(CurrentWindowState->GameRenderer, tempTileCollisionSurface);
+                    SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
+                                     tempTileCollisionTexture,
+                                     NULL,
+                                     &tempTileCollisionRect,
+                                     0,
+                                     NULL,
+                                     SDL_FLIP_NONE);
+                    SDL_FreeSurface(tempTileCollisionSurface);
+                    SDL_DestroyTexture(tempTileCollisionTexture);
                 }
-                SDL_FillRect(tempTileCollisionSurface, NULL, SDL_MapRGBA(tempTileCollisionSurface->format, 0, 255, 0, 64));
-                tempTileCollisionTexture = SDL_CreateTextureFromSurface(CurrentWindowState->GameRenderer, tempTileCollisionSurface);
-                SDL_RenderCopyEx(CurrentWindowState->GameRenderer,
-                                 tempTileCollisionTexture,
-                                 NULL,
-                                 &CurrentTile->CollisionBox,
-                                 0,
-                                 NULL,
-                                 SDL_FLIP_NONE);
-                SDL_FreeSurface(tempTileCollisionSurface);
-                SDL_DestroyTexture(tempTileCollisionTexture);
             }
         }
     }

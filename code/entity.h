@@ -42,8 +42,11 @@ struct Tile
     bool IsStatic;
     bool IsCollidable;
     AssetTexture *CurrentTexture;
-    Vector2i PositionV2i;
-    SDL_Rect CollisionBox;
+    Vector2f PositionV2f;
+    Vector2f CollisionPositionV2f;
+    Vector2f CollisionDimensionV2f;
+    // TODO(nick): just for debugging - remove this at a later time!
+    bool DrawCollideRegion;
 };
 
 void
