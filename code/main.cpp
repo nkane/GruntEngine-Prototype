@@ -295,15 +295,6 @@ main(int argc, char *argv[])
             // 1) we a better way of collision checking!
             // 2) on collision we should zero out the players acceleration!
             HandleCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, previousPlayerPosition, previousPlayerCollisionPosition, PlayerEntity->Id);
-
-            // TODO(nick): remove this after handlecollision is working!
-            /*
-            if (CheckCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, PlayerEntity->Id))
-            {
-                PlayerEntity->CollisionPositionV2f = previousPlayerCollisionPosition;
-                PlayerEntity->PositionV2f = previousPlayerPosition;
-            }
-            */
         }
 
         // clear the screen
@@ -610,7 +601,8 @@ InitializeGame()
                     {
                         ReadWriteOperations = SDL_RWFromFile(playerTextureList[i][j + 1], "rb");
                         AssetTexture *currentTexture = LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer);
-
+                        // TODO(nick):
+                        // 1) need to figure out how to scale and position tiles first!
                         float currentMeterHeight = ((float)currentTexture->PixelHeight * metersPerPixel);
                         if (currentMeterHeight < defaultMeterHeight)
                         {
@@ -624,7 +616,6 @@ InitializeGame()
                             float increasePixelDelta = (defaultMeterWidth - currentMeterWidth) / metersPerPixel;
                             currentTexture->PixelWidth += increasePixelDelta;
                         }
-
                         HashSet_Insert_AssetTexture(GlobalEntityTextureSet, playerTextureList[i][j], currentTexture);
                     }
                     else
@@ -1048,7 +1039,8 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
                             StringConcatenate(assetPath, actualAssetName);
                             StringConcatenate(assetPath, ".png");
                             RWOperations = SDL_RWFromFile(assetPath, "rb");
-                            HashSet_Insert_AssetTexture(GlobalLevelTextures, assetBuffer, LoadAssetPNG(CurrentGameState, RWOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer));
+                            AssetTexture tileAsset = LoadAssetPNG(CurrentGameState, RWOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer);
+                            HashSet_Insert_AssetTexture(GlobalLevelTextures, assetBuffer, tileAsset);
                         }
                         Tile *CurrentTile = (Tile *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage,
                                                                     sizeof(Tile));
@@ -1109,36 +1101,41 @@ HandleCollision(Entity *EntityArray[50], Level *CurrentLevel, Vector2f previousE
     int i = 0;
     Entity *checkEntity = EntityArray[checkIndex];
     Entity *currentEntity = EntityArray[i]; 
-    
-    // NOTE(nick):
-    // check all collision between entities first
-    int checkEntityUpperY = checkEntity->CollisionPositionV2f.Y;
-    int checkEntityLowerY = checkEntity->CollisionPositionV2f.Y + checkEntity->CollisionDimensionV2f.Height;
-    int checkEntityLeftX = checkEntity->CollisionPositionV2f.X;
-    int checkEntityRightX = checkEntity->CollisionPositionV2f.X + checkEntity->CollisionDimensionV2f.Width;
+    Rectangle checkEntityRect = 
+    {
+        (int)checkEntity->CollisionPositionV2f.X,
+        (int)checkEntity->CollisionPositionV2f.Y,
+        (int)checkEntity->CollisionDimensionV2f.Width,
+        (int)checkEntity->CollisionDimensionV2f.Height,
+    };
+
     while (currentEntity != NULL)
     {
         if (i != checkIndex)
         {
             if (currentEntity)
             {
-                // NOTE(nick):
-                //  - make sure that the CheckEntity y collision box is top line
-                //    is greater than or equal to the CurrentEntity bottom line y collision box
-                //  - make sure that the CheckEntity y collision box bottom line is less than
-                //    or equal to the CurrentEntity top line y collision box
-                //    + lower coordinates in screen space - since y is inverted, it is added
-                // check horizontal collision
-                int currentEntityUpperY = currentEntity->CollisionPositionV2f.Y;
-                int currentEntityLowerY = currentEntity->CollisionPositionV2f.Y + checkEntity->CollisionDimensionV2f.Height;
-                if ((checkEntityLowerY >= currentEntityUpperY) && (checkEntityUpperY <= currentEntityLowerY))
+                Rectangle currentEntityRect = 
                 {
-                    int currentEntityLeftX = currentEntity->CollisionPositionV2f.X;
-                    int currentEntityRightX = currentEntity->CollisionPositionV2f.X + currentEntity->CollisionPositionV2f.Width;
-                    if ((checkEntityRightX >= currentEntityLeftX) && (checkEntityLeftX <= currentEntityRightX))
+                    (int)currentEntity->CollisionPositionV2f.X,
+                    (int)currentEntity->CollisionPositionV2f.Y,
+                    (int)currentEntity->CollisionDimensionV2f.Width,
+                    (int)currentEntity->CollisionDimensionV2f.Height,
+                };
+
+                switch (CheckRectangleOverlap(checkEntityRect, currentEntityRect))
+                {
+                    case TopCollision:
+                    case BottomCollision:
                     {
-                        // NOTE(nick): collision along the x-axis will need to zero out entity x velocity
-                    }
+                        // TODO(nick):
+                    } break;
+
+                    case RightCollision:
+                    case LeftCollision:
+                    {
+                        // TODO(nick):
+                    } break;
                 }
             }
         }
@@ -1152,39 +1149,49 @@ HandleCollision(Entity *EntityArray[50], Level *CurrentLevel, Vector2f previousE
     // NOTE(nick):
     // check all collision between entity and level tiles
     TileList_Node *CurrentNode = NULL;
-    Tile *CurrentTile = NULL;
+    Tile *currentTile = NULL;
     if (CurrentLevel)
     {
         CurrentNode = CurrentLevel->TileList.Head;
-        CurrentTile = CurrentNode->Value;
+        currentTile = CurrentNode->Value;
     }
     while (CurrentNode != NULL) 
     {
-        if (CurrentTile->IsCollidable)
+        if (currentTile->IsCollidable)
         {
-            CurrentTile->DrawCollideRegion = false;
-            int currentTileUpperY = CurrentTile->CollisionPositionV2f.Y;
-            int currentTileLowerY = CurrentTile->CollisionPositionV2f.Y + CurrentTile->CollisionDimensionV2f.Height;
-            // NOTE(nick):
-            // - checkEntityLowerY is the entity's y lower base value
-            // - currentTileUpperY is the tile's y  
-            if ((checkEntityLowerY >= currentTileUpperY) && (checkEntityUpperY <= currentTileLowerY))
+            currentTile->DrawCollideRegion = false;
+            Rectangle currentTileRect = 
             {
-                // collision with y axis
-                int currentTileLeftX = CurrentTile->CollisionPositionV2f.X;
-                int currentTileRightX = CurrentTile->CollisionPositionV2f.X + CurrentTile->CollisionDimensionV2f.Width;
-                if ((checkEntityRightX >= currentTileLeftX) && (checkEntityLeftX <= currentTileRightX))
+                (int)currentTile->CollisionPositionV2f.X,
+                (int)currentTile->CollisionPositionV2f.Y,
+                (int)currentTile->CollisionDimensionV2f.Width,
+                (int)currentTile->CollisionDimensionV2f.Height,
+            };
+
+            switch (CheckRectangleOverlap(checkEntityRect, currentTileRect))
+            {
+                case TopCollision:
+                case BottomCollision:
                 {
-                    checkEntity->VelocityV2f.Y = 0.0f;
                     checkEntity->PositionV2f.Y = previousEntityPosition.Y;
                     checkEntity->CollisionPositionV2f.Y = previousEntityCollisionPosition.Y;
-                    CurrentTile->DrawCollideRegion = true;
-                }
+                    checkEntity->VelocityV2f.Y = 0.0f;
+                    currentTile->DrawCollideRegion = true;
+                } break;
+
+                case RightCollision:
+                case LeftCollision:
+                {
+                    checkEntity->PositionV2f.X = previousEntityPosition.X;
+                    checkEntity->CollisionPositionV2f.X = previousEntityCollisionPosition.X;
+                    checkEntity->VelocityV2f.X = 0.0f;
+                    currentTile->DrawCollideRegion = true;
+                } break;
             }
         }
         if ((CurrentNode = CurrentNode->Next) != NULL)
         {
-            CurrentTile = CurrentNode->Value;
+            currentTile = CurrentNode->Value;
         }
     }
 }
