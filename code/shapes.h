@@ -20,6 +20,7 @@ enum CollisionSide
     LeftCollision       = 0x04,
 };
 
+// Make minkowski sum
 CollisionSide
 CheckRectangleOverlap(Rectangle rectA, Rectangle rectB)
 {
@@ -36,20 +37,24 @@ CheckRectangleOverlap(Rectangle rectA, Rectangle rectB)
     int rectBRightX = rectB.X + rectB.Width;
     int rectBTopY = rectB.Y;
     int rectBBottomY = rectB.Y + rectB.Height;
+
     if (rectALeftX <= rectBRightX &&
         rectARightX >= rectBLeftX &&
         rectATopY <= rectBBottomY &&
         rectABottomY >= rectBTopY
        )
     {
-        // TODO(nick): make a mid point / distance function
-        float rectACenterX = (rectALeftX + rectARightX / 2.0f);
-        float rectBCenterX = (rectBLeftX + rectBRightX / 2.0f);
-        float horizontalDistance = fabs(pow(rectACenterX, 2) + pow(rectBCenterX, 2));
 
+        // TODO(nick): make a mid point / distance function
+        float rectACenterX = ((rectALeftX + rectARightX) / 2.0f);
         float rectACenterY = ((rectATopY + rectABottomY) / 2.0f);
+
+        float rectBCenterX = ((rectBLeftX + rectBRightX) / 2.0f);
         float rectBCenterY = ((rectBTopY + rectBBottomY) / 2.0f);
-        float verticalDistance = fabs(pow(rectACenterY, 2) + pow(rectBCenterY, 2));
+
+        float horizontalDistance = fabs((rectACenterX * rectACenterX) - (rectBCenterX * rectBCenterX));
+        float verticalDistance = fabs((rectACenterY * rectACenterY) - (rectBCenterY * rectBCenterY));
+
         if (horizontalDistance > verticalDistance)
         {
             if (rectACenterX < rectBCenterX)
@@ -61,7 +66,7 @@ CheckRectangleOverlap(Rectangle rectA, Rectangle rectB)
                 result = LeftCollision;
             }
         }
-        else if (verticalDistance > horizontalDistance)
+        else if (horizontalDistance < verticalDistance)
         {
             if (rectACenterY < rectBCenterY)
             {
@@ -73,5 +78,6 @@ CheckRectangleOverlap(Rectangle rectA, Rectangle rectB)
             }
         }
     }
+
     return result;
 }

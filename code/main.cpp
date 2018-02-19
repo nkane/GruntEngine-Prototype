@@ -167,7 +167,7 @@ main(int argc, char *argv[])
     // game initialized successfully
     while (GameRunning)
     {
-        float defaultSpeed = 0.5f;
+        float defaultSpeed = 0.35f;
         Vector2f accelerationVector = { 0.0f, 0.0f };
         // TODO(nick): figure out a better value for gravity
         local_persist Vector2f gravityVector = { 0.0f, 0.1f };
@@ -240,7 +240,7 @@ main(int argc, char *argv[])
                         case SDLK_SPACE: 
                         {
                             // TODO(nick): add a jump!
-                            accelerationVector.Y -= 8.0f;
+                            accelerationVector.Y -= 3.0f;
                         } break;
                     }
                 } break;
@@ -1039,7 +1039,7 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
                             StringConcatenate(assetPath, actualAssetName);
                             StringConcatenate(assetPath, ".png");
                             RWOperations = SDL_RWFromFile(assetPath, "rb");
-                            AssetTexture tileAsset = LoadAssetPNG(CurrentGameState, RWOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer);
+                            AssetTexture *tileAsset = LoadAssetPNG(CurrentGameState, RWOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer);
                             HashSet_Insert_AssetTexture(GlobalLevelTextures, assetBuffer, tileAsset);
                         }
                         Tile *CurrentTile = (Tile *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage,
@@ -1155,6 +1155,7 @@ HandleCollision(Entity *EntityArray[50], Level *CurrentLevel, Vector2f previousE
         CurrentNode = CurrentLevel->TileList.Head;
         currentTile = CurrentNode->Value;
     }
+
     while (CurrentNode != NULL) 
     {
         if (currentTile->IsCollidable)
