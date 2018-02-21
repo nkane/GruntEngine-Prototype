@@ -3,6 +3,8 @@
  *	    Created By: Nick Kane
  */
 
+#define PLAYER_MAX_ACCELERATION 8.0f
+
 // TODO(nick): bit mask may not be needed, think about it some more ...
 enum EntityState
 {
@@ -28,8 +30,10 @@ struct Entity
     unsigned int CurrentState;
     unsigned int CurrentFaceDirection;
     unsigned int CurrentFrame;
-    Vector2 PositionV2;
-    SDL_Rect CollisionBox;
+    Vector2f PositionV2f;
+    Vector2f VelocityV2f;
+    Vector2f CollisionPositionV2f;
+    Vector2f CollisionDimensionV2f;
 };
 
 struct Tile
@@ -38,8 +42,11 @@ struct Tile
     bool IsStatic;
     bool IsCollidable;
     AssetTexture *CurrentTexture;
-    Vector2 PositionV2;
-    SDL_Rect CollisionBox;
+    Vector2f PositionV2f;
+    Vector2f CollisionPositionV2f;
+    Vector2f CollisionDimensionV2f;
+    // TODO(nick): just for debugging - remove this at a later time!
+    bool DrawCollideRegion;
 };
 
 void
@@ -102,4 +109,18 @@ IsCollidable(char *code)
         } break;
     }
     return result;
+}
+
+void
+UpdatePlayerPosition(Entity *player, Vector2f acceleration, float decayRate)
+{
+    player->VelocityV2f.X *= decayRate;
+    player->VelocityV2f = Vector2fAdd(player->VelocityV2f, acceleration);
+    float magnitude = Vector2fLength(player->VelocityV2f);
+    if (magnitude > PLAYER_MAX_ACCELERATION)
+    {
+        Vector2fScale(&player->VelocityV2f, PLAYER_MAX_ACCELERATION / magnitude);
+    }
+    player->CollisionPositionV2f = Vector2fAdd(player->CollisionPositionV2f, player->VelocityV2f);
+    player->PositionV2f = Vector2fAdd(player->PositionV2f, player->VelocityV2f);
 }
