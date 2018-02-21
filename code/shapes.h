@@ -46,14 +46,14 @@ CheckRectangleOverlap(Rectangle rectA, Rectangle rectB)
     {
 
         // TODO(nick): make a mid point / distance function
-        float rectACenterX = ((rectALeftX + rectARightX) / 2.0f);
-        float rectACenterY = ((rectATopY + rectABottomY) / 2.0f);
+        float rectACenterX = MidPointf(rectALeftX, rectARightX);
+        float rectACenterY = MidPointf(rectATopY, rectABottomY);
 
-        float rectBCenterX = ((rectBLeftX + rectBRightX) / 2.0f);
-        float rectBCenterY = ((rectBTopY + rectBBottomY) / 2.0f);
+        float rectBCenterX = MidPointf(rectBLeftX, rectBRightX);
+        float rectBCenterY = MidPointf(rectBTopY, rectBBottomY);
 
-        float horizontalDistance = fabs((rectACenterX * rectACenterX) - (rectBCenterX * rectBCenterX));
-        float verticalDistance = fabs((rectACenterY * rectACenterY) - (rectBCenterY * rectBCenterY));
+        float horizontalDistance = PositionSquareDistance(rectACenterX, rectBCenterX);
+        float verticalDistance = PositionSquareDistance(rectACenterY, rectBCenterY);
 
         if (horizontalDistance > verticalDistance)
         {

@@ -10,6 +10,7 @@
 #include "gameplatform.h"
 #include "vector2i.h"
 #include "vector2f.h"
+#include "gruntmath.h"
 #include "assets.h"
 #include "text.h"
 #include "hashset.h"
@@ -200,13 +201,13 @@ main(int argc, char *argv[])
                         case SDLK_w: 
                         case SDLK_UP: 
                         {
-                            //accelerationVector.Y -= defaultSpeed;
+
                         } break;
                         
                         case SDLK_s:
                         case SDLK_DOWN:
                         {
-                            //accelerationVector.Y += defaultSpeed;
+
                         } break;
                         
                         case SDLK_a:
@@ -291,9 +292,6 @@ main(int argc, char *argv[])
             Vector2f previousPlayerCollisionPosition = PlayerEntity->CollisionPositionV2f;
             accelerationVector = Vector2fAdd(accelerationVector, gravityVector);
             UpdatePlayerPosition(PlayerEntity, accelerationVector, decayRate);
-            // TODO(nick):
-            // 1) we a better way of collision checking!
-            // 2) on collision we should zero out the players acceleration!
             HandleCollision(GlobalEntityArray, GlobalCurrentLoadedLevel, previousPlayerPosition, previousPlayerCollisionPosition, PlayerEntity->Id);
         }
 
@@ -396,7 +394,6 @@ main(int argc, char *argv[])
             // TODO(nick):
             // 1) only draw title screen
             // 2) only handle UI commands
-            
             SDL_RenderClear(GlobalWindowState->GameRenderer);
             
             Text_Node GretelKong_P1 = 
