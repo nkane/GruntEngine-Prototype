@@ -8,13 +8,13 @@
 #include <SDL_ttf.h>
 
 #include "gameplatform.h"
+#include "strings.h"
 #include "vector2i.h"
 #include "vector2f.h"
 #include "gruntmath.h"
 #include "assets.h"
 #include "text.h"
 #include "hashset.h"
-#include "strings.h"
 #include "entity.h"
 #include "list.h"
 #include "queue.h"
@@ -52,8 +52,7 @@ global_variable SDL_RWops *ReadWriteOperations;
 global_variable const int Tile_Height = 16;
 global_variable const int Tile_Width = 12;
 global_variable bool LoadNextLevel = false;
-// TODO(nick): check hashset.h, not sure what this is 256?
-global_variable HashSet_AssetTexture GlobalLevelTextures[256];
+global_variable HashSet_AssetTexture GlobalLevelTextures[HASHSET_LIMIT];
 global_variable Level* GlobalLevelArray[4];
 global_variable Level* GlobalCurrentLoadedLevel;
 // /=====================================================================/
@@ -61,7 +60,7 @@ global_variable Level* GlobalCurrentLoadedLevel;
 // Entity Globals
 // <=====================================================================>
 // entity collections
-global_variable HashSet_AssetTexture GlobalEntityTextureSet[128];
+global_variable HashSet_AssetTexture GlobalEntityTextureSet[HASHSET_LIMIT];
 global_variable Entity *GlobalEntityArray[50];
 global_variable Queue_GameEntity *GlobalEntityRenderQueue;
 // player
@@ -552,14 +551,14 @@ InitializeGame()
                 //    something like texture info?
                 GlobalGameState = InitializeGameState();
                 Assert(GlobalGameState);
-                
-                // TODO(nick): 
-                // 1) complete hash insert funciton
+
+                HashSet_Zero_AssetTexture(GlobalEntityTextureSet);
+                HashSet_Zero_AssetTexture(GlobalLevelTextures);
+
                 unsigned int HashKey = 0;
-                // NOTE(nick): player intitialization
                 PlayerEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                          sizeof(Entity));
-                
+
                 // TODO(nick) - IMPORTANT!
                 // 1) Time to change the hash code to actually handle collision, and change the type to pointers instead of structs!
                 // TODO(nick):
@@ -569,24 +568,24 @@ InitializeGame()
                 //    and having a list of key (texture name) - value (global game texture hashset index or id)
                 char *playerTextureList[32][2] =
                 {
-                    { "Grunt-Idle" 		, "./assets/Grunt/Grunt-Idle.png" },
-                    { "Grunt-SS-0"  		, "./assets/Grunt/Grunt-SS.png" },
-                    { "Grunt-SS-Empty-Hand"	, "./assets/Grunt/Grunt-SS-Empty-Hand.png" },
-                    { "Grunt-Walk-1" 		, "./assets/Grunt/Grunt-Walk-1.png" },
-                    { "Grunt-Walk-2" 		, "./assets/Grunt/Grunt-Walk-2.png" },
-                    { "Grunt-SS-Walk-1" 	, "./assets/Grunt/Grunt-SS-Walk-1.png" },
-                    { "Grunt-SS-Walk-2" 	, "./assets/Grunt/Grunt-SS-Walk-2.png" },
-                    { "Grunt-SS-Walk-3" 	, "./assets/Grunt/Grunt-SS-Walk-3.png" },
-                    { "Grunt-Jump-1" 		, "./assets/Grunt/Grunt-Jump-1.png" },
-                    { "Grunt-Jump-2" 		, "./assets/Grunt/Grunt-Jump-2.png" },
-                    { "Grunt-Climb-1" 		, "./assets/Grunt/Grunt-Climb-1.png" },
-                    { "Grunt-Climb-2" 		, "./assets/Grunt/Grunt-Climb-2.png" },
-                    { "Grunt-Climb-3" 		, "./assets/Grunt/Grunt-Climb-3.png" }, 
-                    { "Grunt-Dead-1" 		, "./assets/Grunt/Grunt-Dead-1.png" },
-                    { "Grunt-Dead-2" 		, "./assets/Grunt/Grunt-Dead-2.png" },
-                    { "Grunt-Dead-3" 		, "./assets/Grunt/Grunt-Dead-3.png" },
-                    { "Grunt-Dead-4" 		, "./assets/Grunt/Grunt-Dead-4.png" },
-                    { "Grunt-Dead-5" 		, "./assets/Grunt/Grunt-Dead-5.png" },
+                    { "Grunt-Idle\0" 		    , "./assets/Grunt/Grunt-Idle.png" },
+                    { "Grunt-SS-0\0"  		    , "./assets/Grunt/Grunt-SS.png" },
+                    { "Grunt-SS-Empty-Hand\0"	, "./assets/Grunt/Grunt-SS-Empty-Hand.png" },
+                    { "Grunt-Walk-1\0" 		    , "./assets/Grunt/Grunt-Walk-1.png" },
+                    { "Grunt-Walk-2\0" 		    , "./assets/Grunt/Grunt-Walk-2.png" },
+                    { "Grunt-SS-Walk-1\0" 	    , "./assets/Grunt/Grunt-SS-Walk-1.png" },
+                    { "Grunt-SS-Walk-2\0" 	    , "./assets/Grunt/Grunt-SS-Walk-2.png" },
+                    { "Grunt-SS-Walk-3\0" 	    , "./assets/Grunt/Grunt-SS-Walk-3.png" },
+                    { "Grunt-Jump-1\0" 		    , "./assets/Grunt/Grunt-Jump-1.png" },
+                    { "Grunt-Jump-2\0" 		    , "./assets/Grunt/Grunt-Jump-2.png" },
+                    { "Grunt-Climb-1\0" 		, "./assets/Grunt/Grunt-Climb-1.png" },
+                    { "Grunt-Climb-2\0" 		, "./assets/Grunt/Grunt-Climb-2.png" },
+                    { "Grunt-Climb-3\0" 		, "./assets/Grunt/Grunt-Climb-3.png" }, 
+                    { "Grunt-Dead-1\0" 		    , "./assets/Grunt/Grunt-Dead-1.png" },
+                    { "Grunt-Dead-2\0" 		    , "./assets/Grunt/Grunt-Dead-2.png" },
+                    { "Grunt-Dead-3\0" 		    , "./assets/Grunt/Grunt-Dead-3.png" },
+                    { "Grunt-Dead-4\0" 	    	, "./assets/Grunt/Grunt-Dead-4.png" },
+                    { "Grunt-Dead-5\0" 		    , "./assets/Grunt/Grunt-Dead-5.png" },
                 };
                 
                 float defaultMeterHeight = 1.75f;
