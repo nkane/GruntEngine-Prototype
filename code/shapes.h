@@ -3,7 +3,7 @@
  *	Created By: Nick Kane
  */
 
-struct Rectangle
+struct GruntRectangle
 {
     int X;
     int Y;
@@ -22,7 +22,7 @@ enum CollisionSide
 
 // Make minkowski sum
 CollisionSide
-CheckRectangleOverlap(Rectangle rectA, Rectangle rectB)
+CheckRectangleOverlap(GruntRectangle rectA, GruntRectangle rectB)
 {
     CollisionSide result = NoCollision;
 

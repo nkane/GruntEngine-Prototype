@@ -8,6 +8,7 @@
 #include <SDL_ttf.h>
 
 #include "gameplatform.h"
+#include "gruntwin32.h"
 #include "gamememory.h"
 #include "gamestate.h"
 #include "strings.h"
@@ -27,10 +28,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
-#define local_persist   static
-#define internal 	    static
-#define global_variable static
 
 // Game Screen and Frame rate
 // <=====================================================================>
@@ -1106,7 +1103,7 @@ HandleCollision(Entity *EntityArray[50], Level *CurrentLevel, Vector2f previousE
     int i = 0;
     Entity *checkEntity = EntityArray[checkIndex];
     Entity *currentEntity = EntityArray[i]; 
-    Rectangle checkEntityRect = 
+    GruntRectangle checkEntityRect = 
     {
         (int)checkEntity->CollisionPositionV2f.X,
         (int)checkEntity->CollisionPositionV2f.Y,
@@ -1120,7 +1117,7 @@ HandleCollision(Entity *EntityArray[50], Level *CurrentLevel, Vector2f previousE
         {
             if (currentEntity)
             {
-                Rectangle currentEntityRect = 
+                GruntRectangle currentEntityRect = 
                 {
                     (int)currentEntity->CollisionPositionV2f.X,
                     (int)currentEntity->CollisionPositionV2f.Y,
@@ -1166,7 +1163,7 @@ HandleCollision(Entity *EntityArray[50], Level *CurrentLevel, Vector2f previousE
         if (currentTile->IsCollidable)
         {
             currentTile->DrawCollideRegion = false;
-            Rectangle currentTileRect = 
+            GruntRectangle currentTileRect = 
             {
                 (int)currentTile->CollisionPositionV2f.X,
                 (int)currentTile->CollisionPositionV2f.Y,

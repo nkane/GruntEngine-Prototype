@@ -28,3 +28,23 @@ typedef double real64;
 #define array_len(array) (sizeof(array)/sizeof(array[0]))
 #define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
 #define NotImplemented Assert(!"NotImplemented")
+
+#define local_persist   static
+#define internal 	    static
+#define global_variable static
+
+enum platform_file_type
+{
+    PlatformFileType_AssetFile     = 0x00,
+    PlatformFileType_SavedGameFile = 0x01,
+    PlatformFileType_Count         = 0x02,
+};
+
+struct platform_file_group
+{
+    uint32 FileCount;
+    void *Platform;
+};
+
+#define PLATFORM_GET_ALL_FILE_OF_TYPE_BEGIN(name) platform_file_group name(platform_file_type Type)
+typedef PLATFORM_GET_ALL_FILE_OF_TYPE_BEGIN(platform_get_all_files_of_type_begin);
