@@ -8,6 +8,8 @@
 #include <SDL_ttf.h>
 
 #include "gameplatform.h"
+#include "gamememory.h"
+#include "gamestate.h"
 #include "strings.h"
 #include "vector2i.h"
 #include "vector2f.h"
@@ -18,7 +20,6 @@
 #include "entity.h"
 #include "list.h"
 #include "queue.h"
-#include "gamestate.h"
 #include "windowstate.h"
 #include "shapes.h"
 #include "level.h"
@@ -428,11 +429,22 @@ main(int argc, char *argv[])
         }
     }
         
-    // IMPORTANT(nick): clean up definitely needs to be handled ASAP!
+    // TODO(nick):
+    // - warp this stuff up in a cleanup function!
+
     // destory textures
     {	
-        SDL_DestroyTexture(HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle")->Texture);
-        SDL_DestroyTexture(HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Walk-1")->Texture);
+        for (int i = 0; i < HASHSET_LIMIT; ++i)
+        {
+            if (GlobalEntityTextureSet[i].Value != NULL)
+            {
+                HashSet_Delete_AssetTexture(GlobalEntityTextureSet, GlobalEntityTextureSet[i].Key);
+            }
+            if (GlobalLevelTextures[i].Value != NULL)
+            {
+               HashSet_Delete_AssetTexture(GlobalLevelTextures, GlobalLevelTextures[i].Key);
+            }
+        }
     }
     
     // release fonts
@@ -881,7 +893,6 @@ LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *
     AssetTexture *Result = NULL;
     SDL_Texture *Texture = NULL;
     SDL_Surface *Raw = IMG_LoadPNG_RW(RWOperations);
-    
     if (!Raw)
     {
         // TODO(nick): proper logging / clean exit
@@ -901,13 +912,11 @@ LoadAssetPNG(GameState *CurrentGameState, SDL_RWops *RWOperations, SDL_Surface *
         // 1) average heigh for asset should be 1.6 meters
         // need to figure out how to determine scaling for assets
         Result = (AssetTexture *)PushMemoryChunk(CurrentGameState->Memory->PermanentStorage, sizeof(AssetTexture));
-        
         Result->PixelWidth = Raw->w;
         Result->PixelHeight = Raw->h;
         Result->Rotation = 0.0f;
         Result->Flip = SDL_FLIP_NONE; 
         Result->Texture = Texture;
-        
         SDL_FreeSurface(Raw);
     }
     

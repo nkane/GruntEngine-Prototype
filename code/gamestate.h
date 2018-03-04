@@ -3,8 +3,6 @@
  *	Created By: Nick Kane
  */
 
-#include "gamememory.h"
-
 struct GameState
 {
 	unsigned int StartMS;

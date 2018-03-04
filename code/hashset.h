@@ -61,8 +61,31 @@ HashSet_Select_AssetTexture(HashSet_AssetTexture *CurrentHashSet, char *stringKe
     return SelectedTexture;
 }
 
-void
-HashSet_Delete_AssetTexture()
+uint8
+HashSet_Select_AssetTextureIndex(HashSet_AssetTexture *CurrentHashSet, char *stringKey)
 {
-    // TODO(nick):
+    uint8 currentKey = SimpleHash(stringKey);
+    while (StringCompare(CurrentHashSet[currentKey].Key, stringKey) != 0)
+    {
+        ++currentKey;
+    }
+    Assert(currentKey < HASHSET_LIMIT);
+    return currentKey;
+}
+
+void
+HashSet_Delete_AssetTexture(HashSet_AssetTexture *CurrentHashSet, char *stringKey)
+{
+    uint8 currentKey = HashSet_Select_AssetTextureIndex(CurrentHashSet, stringKey);
+    AssetTexture *SelectedTexture = CurrentHashSet[currentKey].Value;
+    if (SelectedTexture != NULL && SelectedTexture->Texture != NULL)
+    {
+        // NOTE(nick): clear out the key and value in the hashset slot
+        StringClear(CurrentHashSet[currentKey].Key, StringSize(CurrentHashSet[currentKey].Key));
+        CurrentHashSet[currentKey].Value = NULL;
+        // NOTE(nick): destroy the gpu texture
+        SDL_DestroyTexture(SelectedTexture->Texture);
+        // NOTE(nick): flag the memory block as freed
+        FlagMemoryChunkAsFreed((void *)SelectedTexture, sizeof(AssetTexture));
+    }
 }
