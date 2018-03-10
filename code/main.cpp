@@ -29,6 +29,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// Game Platform
+// <=====================================================================>
+global_variable PlatformAPI GlobalPlatform;
+// <=====================================================================>
+
 // Game Screen and Frame rate
 // <=====================================================================>
 global_variable const int Screen_Width = 640;
@@ -110,6 +115,9 @@ global_variable Text *CurrentLevel;
 global_variable Queue_GameText *GlobalTextRenderQueue;
 // /=====================================================================/
 
+internal void
+InitializePlatform(PlatformAPI *platformAPI);
+
 internal SDL_Window *
 InitializeGameWindow();
 
@@ -161,6 +169,8 @@ main(int argc, char *argv[])
         // TODO(nick): logging / other stuff
         return -1;
     }
+
+    InitializePlatform(&GlobalPlatform);
 
     // game initialized successfully
     while (GameRunning)
@@ -476,6 +486,13 @@ main(int argc, char *argv[])
     return 0;
 }
 
+internal void
+InitializePlatform(PlatformAPI *platformAPI)
+{
+    platformAPI->GetAllFileOfTypeBegin = Win32GetAllFilesOfTypeBegin;
+    platformAPI->GetAllFileOfTypeEnd   = Win32GetAllFilesOfTypeEnd;
+}
+
 inline SDL_Window *
 InitializeGameWindow()
 {
@@ -568,13 +585,20 @@ InitializeGame()
                 PlayerEntity = (Entity *)PushMemoryChunk(GlobalGameState->Memory->PermanentStorage,
                                                          sizeof(Entity));
 
-                // TODO(nick) - IMPORTANT!
-                // 1) Time to change the hash code to actually handle collision, and change the type to pointers instead of structs!
-                // TODO(nick):
-                // 1) need a better way to load assets
-                // 2) possibly have some type of file encoding that relates the entity to the loaded image?
-                // 3) consider just having a global hashset that stores all game textures instead
-                //    and having a list of key (texture name) - value (global game texture hashset index or id)
+
+                {
+                    // TODO(nick) - IMPORTANT!
+                    // 1) load in files by a directory have a folder structure for
+                    //    - entities
+                    //    - level
+                    //        + tiles
+                    //        + props
+                    //    - items
+                    // 2) this should replace the code below
+                    // 3) after we get the loading fixed, we should work on proper scaling
+                    //    and writing out input to a replay file?
+                }
+
                 char *playerTextureList[32][2] =
                 {
                     { "Grunt-Idle\0" 		    , "./assets/Grunt/Grunt-Idle.png" },
