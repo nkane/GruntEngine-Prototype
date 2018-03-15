@@ -50,7 +50,7 @@ struct platform_file_group
     void *Platform;
 };
 
-#define PLATFORM_GET_ALL_FOLDERS_IN_DIRECTORY_BEGIN(name) void name(char *directoryPath, char *textureList[10][2])
+#define PLATFORM_GET_ALL_FOLDERS_IN_DIRECTORY_BEGIN(name) void name(char *directoryPath, char *textureList[64][2])
 typedef PLATFORM_GET_ALL_FOLDERS_IN_DIRECTORY_BEGIN(platform_get_all_folders_in_directory_begin);
 
 #define PLATFORM_GET_ALL_FOLDERS_IN_DIRECTORY_END(name) void name(char **directoryContent)

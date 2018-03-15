@@ -226,7 +226,7 @@ main(int argc, char *argv[])
                                 FlipAnimations(PlayerAnimations, LeftFlip);
                                 PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceLeft);
                             }
-                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                            //PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
                             decayRate = 1.0f;
                             accelerationVector.X -= defaultSpeed;
                         } break;
@@ -240,7 +240,7 @@ main(int argc, char *argv[])
                                 FlipAnimations(PlayerAnimations, RightFlip);
                                 PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceRight);
                             }
-                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                            //PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
                             decayRate = 1.0f;
                             accelerationVector.X += defaultSpeed;
                         } break;
@@ -271,7 +271,7 @@ main(int argc, char *argv[])
                         case SDLK_LEFT:
                         {
                            PlayerEntity->CurrentState = (EntityState)(Idle);
-                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                           //PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
                            decayRate = 0.98f;
                         } break;
                         
@@ -279,7 +279,7 @@ main(int argc, char *argv[])
                         case SDLK_RIGHT:
                         {
                            PlayerEntity->CurrentState = (EntityState)(Idle);
-                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                           //PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
                            decayRate = 0.98f;
                         } break;
                 
@@ -588,52 +588,30 @@ InitializeGame()
                                                          sizeof(Entity));
 
 
-                {
-                    // TODO(nick) - IMPORTANT!
-                    // 1) load in files by a directory have a folder structure for
-                    //    - entities
-                    //    - level
-                    //        + tiles
-                    //        + props
-                    //    - items
-                    // 2) this should replace the code below
-                    // 3) after we get the loading fixed, we should work on proper scaling
-                    //    and writing out input to a replay file?
-                    char *textureList[10][2] = { 0 };
-                    GlobalPlatformAPI.GetAllFoldersInDirectoryBegin("./assets/Reagan-Smash/textures", textureList);
-                    //GlobalPlatformAPI.GetAllFoldersInDirectoryEnd(directoryContent);
-                }
+                // TODO(nick) - IMPORTANT!
+                // 1) load in files by a directory have a folder structure for
+                //    - entities
+                //    - level
+                //        + tiles
+                //        + props
+                //    - items
+                // 2) this should replace the code below
+                // 3) after we get the loading fixed, we should work on proper scaling
+                //    and writing out input to a replay file?
+                char *textureList[64][2] = { 0 };
+                // TODO(nick): 
+                // 1) rename
+                // 2) release all memory allocated in here for now - need to write seperate exe to produce configuration file
+                GlobalPlatformAPI.GetAllFoldersInDirectoryBegin("./assets/Reagan-Smash/entity", textureList);
 
-                char *playerTextureList[32][2] =
-                {
-                    { "Grunt-Idle\0" 		    , "./assets/Grunt/Grunt-Idle.png" },
-                    { "Grunt-SS-0\0"  		    , "./assets/Grunt/Grunt-SS.png" },
-                    { "Grunt-SS-Empty-Hand\0"	, "./assets/Grunt/Grunt-SS-Empty-Hand.png" },
-                    { "Grunt-Walk-1\0" 		    , "./assets/Grunt/Grunt-Walk-1.png" },
-                    { "Grunt-Walk-2\0" 		    , "./assets/Grunt/Grunt-Walk-2.png" },
-                    { "Grunt-SS-Walk-1\0" 	    , "./assets/Grunt/Grunt-SS-Walk-1.png" },
-                    { "Grunt-SS-Walk-2\0" 	    , "./assets/Grunt/Grunt-SS-Walk-2.png" },
-                    { "Grunt-SS-Walk-3\0" 	    , "./assets/Grunt/Grunt-SS-Walk-3.png" },
-                    { "Grunt-Jump-1\0" 		    , "./assets/Grunt/Grunt-Jump-1.png" },
-                    { "Grunt-Jump-2\0" 		    , "./assets/Grunt/Grunt-Jump-2.png" },
-                    { "Grunt-Climb-1\0" 		, "./assets/Grunt/Grunt-Climb-1.png" },
-                    { "Grunt-Climb-2\0" 		, "./assets/Grunt/Grunt-Climb-2.png" },
-                    { "Grunt-Climb-3\0" 		, "./assets/Grunt/Grunt-Climb-3.png" }, 
-                    { "Grunt-Dead-1\0" 		    , "./assets/Grunt/Grunt-Dead-1.png" },
-                    { "Grunt-Dead-2\0" 		    , "./assets/Grunt/Grunt-Dead-2.png" },
-                    { "Grunt-Dead-3\0" 		    , "./assets/Grunt/Grunt-Dead-3.png" },
-                    { "Grunt-Dead-4\0" 	    	, "./assets/Grunt/Grunt-Dead-4.png" },
-                    { "Grunt-Dead-5\0" 		    , "./assets/Grunt/Grunt-Dead-5.png" },
-                };
-                
-                float defaultMeterHeight = 1.75f;
-                float defaultMeterWidth = 1.75f;
+                float defaultMeterHeight = 1.2f;
+                float defaultMeterWidth = 0.8f;
                 float metersPerPixel =  0.036f;
-                for (int i = 0, j = 0; i < 32; ++i)
+                for (int i = 0, j = 0; i < 64; ++i)
                 {
-                    if (playerTextureList[i][j])
+                    if (textureList[i][j])
                     {
-                        ReadWriteOperations = SDL_RWFromFile(playerTextureList[i][j + 1], "rb");
+                        ReadWriteOperations = SDL_RWFromFile(textureList[i][j + 1], "rb");
                         AssetTexture *currentTexture = LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer);
                         // TODO(nick):
                         // 1) need to figure out how to scale and position tiles first!
@@ -650,11 +628,13 @@ InitializeGame()
                             float increasePixelDelta = (defaultMeterWidth - currentMeterWidth) / metersPerPixel;
                             currentTexture->PixelWidth += increasePixelDelta;
                         }
-                        HashSet_Insert_AssetTexture(GlobalEntityTextureSet, playerTextureList[i][j], currentTexture);
+                        HashSet_Insert_AssetTexture(GlobalEntityTextureSet, textureList[i][j], currentTexture);
                     }
                     else
                     {
-                        BuildPlayerAnimations(PlayerEntity, GlobalEntityTextureSet, PlayerAnimations, GlobalGameState->Memory->PermanentStorage);
+                        // TODO(nick):
+                        // 1) player animations need to be built again!
+                        //BuildPlayerAnimations(PlayerEntity, GlobalEntityTextureSet, PlayerAnimations, GlobalGameState->Memory->PermanentStorage);
                         break;
                     }
                 }
@@ -664,7 +644,7 @@ InitializeGame()
                 PlayerEntity->Id = GlobalEntityArrayIndex;
                 PlayerEntity->CurrentState = (EntityState)(Idle);
                 PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceRight);
-                PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Grunt-Idle");
+                PlayerEntity->CurrentTexture = HashSet_Select_AssetTexture(GlobalEntityTextureSet, "Reagan-Idle");
                 PlayerEntity->PositionV2f = DefaultVector2fCenterScreen(GlobalWindowState->Width, GlobalWindowState->Height);
                 PlayerEntity->PositionV2f.X -= 100.0f;
                 PlayerEntity->VelocityV2f =
@@ -1057,7 +1037,6 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
                     // 2) check if asset needs to be loade
                     if (*(assetBuffer + 0) != '0' || *(assetBuffer + 1) != '0')
                     {
-                        
                         DecodeAssetName(assetBuffer, actualAssetName, array_len(actualAssetName));
                         // TODO(nick): 
                         // 1) IMPORTANT(nick): hash collision finally happed
@@ -1066,7 +1045,7 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
                         {
                             // TODO(nick): create simple string compare
                             StringClear(assetPath, array_len(assetPath));
-                            StringConcatenate(assetPath, "./assets/level/");
+                            StringConcatenate(assetPath, "./assets/Reagan-Smash/level/");
                             StringConcatenate(assetPath, actualAssetName);
                             StringConcatenate(assetPath, ".png");
                             RWOperations = SDL_RWFromFile(assetPath, "rb");
@@ -1080,6 +1059,7 @@ LoadLevel(GameState *CurrentGameState, SDL_RWops *RWOperations, char *fileName)
                         // TODO(nick): actualAssetName should determine whether or not a tile is collidable
                         CurrentTile->IsCollidable = IsCollidable(assetBuffer);
                         CurrentTile->CurrentTexture = HashSet_Select_AssetTexture(GlobalLevelTextures, assetBuffer);
+                        Assert(CurrentTile->CurrentTexture != NULL)
                         // NOTE(nick): rowIndex zero maps to top left corner
                         CurrentTile->PositionV2f = 
                         {

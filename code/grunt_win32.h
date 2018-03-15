@@ -74,7 +74,6 @@ PLATFORM_GET_ALL_FOLDERS_IN_DIRECTORY_BEGIN(Win32GetAllFoldersInDirectoryBegin)
                     break;
                 }
             }
-            ++j;
         }
 
         if (!FindNextFileA(FindHandle, &FindData))

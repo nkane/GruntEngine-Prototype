@@ -67,7 +67,7 @@ DecodeAssetName(char *code, char *outBuffer, int max)
                 
                 case 'T':
                 {
-                    StringConcatenate(outBuffer, "Tile-");
+                    StringConcatenate(outBuffer, "bricks/redbrick-");
                 } break;
                 
                 default:
