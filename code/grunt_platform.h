@@ -36,6 +36,7 @@ typedef double real64;
 #define internal 	    static
 #define global_variable static
 
+// TODO(nick): create Asset file for textures / sounds?
 enum platform_file_type
 {
     PlatformFileType_AssetFile     = 0x00,
@@ -49,6 +50,9 @@ struct platform_file_group
     void *Platform;
 };
 
+#define PLATFORM_GET_ALL_FOLDERS_IN_DIRECTORY(name) char ** name(char *diretcoryPath)
+typedef PLATFORM_GET_ALL_FOLDERS_IN_DIRECTORY(platform_get_all_folders_in_directory);
+
 #define PLATFORM_GET_ALL_FILE_OF_TYPE_BEGIN(name) platform_file_group name(platform_file_type Type)
 typedef PLATFORM_GET_ALL_FILE_OF_TYPE_BEGIN(platform_get_all_files_of_type_begin);
 
@@ -57,6 +61,7 @@ typedef PLATFORM_GET_ALL_FILE_OF_TYPE_END(platform_get_all_files_of_type_end);
 
 struct PlatformAPI
 {
-    platform_get_all_files_of_type_begin *GetAllFileOfTypeBegin;
-    platform_get_all_files_of_type_end   *GetAllFileOfTypeEnd;
+    platform_get_all_folders_in_directory   *GetAllFoldersInDirectory;
+    platform_get_all_files_of_type_begin    *GetAllFileOfTypeBegin;
+    platform_get_all_files_of_type_end      *GetAllFileOfTypeEnd;
 };

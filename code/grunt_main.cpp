@@ -7,31 +7,31 @@
 #include <SDL_image.h>
 #include <SDL_ttf.h>
 
-#include "gameplatform.h"
-#include "gruntwin32.h"
-#include "gamememory.h"
-#include "gamestate.h"
-#include "strings.h"
-#include "vector2i.h"
-#include "vector2f.h"
-#include "gruntmath.h"
-#include "assets.h"
-#include "text.h"
-#include "hashset.h"
-#include "entity.h"
-#include "list.h"
-#include "queue.h"
-#include "windowstate.h"
-#include "shapes.h"
-#include "level.h"
-#include "animation.h"
+#include "grunt_platform.h"
+#include "grunt_win32.h"
+#include "grunt_memory.h"
+#include "grunt_gamestate.h"
+#include "grunt_strings.h"
+#include "grunt_vector2i.h"
+#include "grunt_vector2f.h"
+#include "grunt_math.h"
+#include "grunt_assets.h"
+#include "grunt_text.h"
+#include "grunt_hashset.h"
+#include "grunt_entity.h"
+#include "grunt_list.h"
+#include "grunt_queue.h"
+#include "grunt_windowstate.h"
+#include "grunt_shapes.h"
+#include "grunt_level.h"
+#include "grunt_animation.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 
 // Game Platform
 // <=====================================================================>
-global_variable PlatformAPI GlobalPlatform;
+global_variable PlatformAPI GlobalPlatformAPI;
 // <=====================================================================>
 
 // Game Screen and Frame rate
@@ -163,14 +163,14 @@ main(int argc, char *argv[])
 {
     // TODO(nick): add this maybe to gamestate / windowstate?
     SDL_Event CurrentEvent;
+
+    InitializePlatform(&GlobalPlatformAPI);
     
     if (!InitializeGame())
     {
         // TODO(nick): logging / other stuff
         return -1;
     }
-
-    InitializePlatform(&GlobalPlatform);
 
     // game initialized successfully
     while (GameRunning)
@@ -489,8 +489,9 @@ main(int argc, char *argv[])
 internal void
 InitializePlatform(PlatformAPI *platformAPI)
 {
-    platformAPI->GetAllFileOfTypeBegin = Win32GetAllFilesOfTypeBegin;
-    platformAPI->GetAllFileOfTypeEnd   = Win32GetAllFilesOfTypeEnd;
+    platformAPI->GetAllFoldersInDirectory = Win32GetAllFoldersInDirectory;
+    platformAPI->GetAllFileOfTypeBegin    = Win32GetAllFilesOfTypeBegin;
+    platformAPI->GetAllFileOfTypeEnd      = Win32GetAllFilesOfTypeEnd;
 }
 
 inline SDL_Window *
@@ -597,6 +598,10 @@ InitializeGame()
                     // 2) this should replace the code below
                     // 3) after we get the loading fixed, we should work on proper scaling
                     //    and writing out input to a replay file?
+                
+                    GlobalPlatformAPI.GetAllFoldersInDirectory("./asset/Regan-Smash/textures");
+                    platform_file_group currentFiles;
+                    currentFiles = GlobalPlatformAPI.GetAllFileOfTypeBegin(PlatformFileType_AssetFile);
                 }
 
                 char *playerTextureList[32][2] =

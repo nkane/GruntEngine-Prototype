@@ -5,11 +5,21 @@
 
 #include <windows.h>
 
+#define FOLDER_LIMIT        32
+#define FOLDER_NAME_LIMIT   64
+
 struct win32_platform_file_group
 {
     HANDLE FindHandle;
     WIN32_FIND_DATAW FindData;
 };
+
+internal
+PLATFORM_GET_ALL_FOLDERS_IN_DIRECTORY(Win32GetAllFoldersInDirectory)
+{
+    char **stringBuffer = (char **) VirtualAlloc(0, (FOLDER_LIMIT * FOLDER_NAME_LIMIT), (MEM_RESERVE | MEM_COMMIT), PAGE_READWRITE);
+    return stringBuffer;
+}
 
 internal
 PLATFORM_GET_ALL_FILE_OF_TYPE_BEGIN(Win32GetAllFilesOfTypeBegin)
