@@ -8,10 +8,10 @@
 #include <SDL_ttf.h>
 
 #include "grunt_platform.h"
+#include "grunt_strings.h"
 #include "grunt_win32.h"
 #include "grunt_memory.h"
 #include "grunt_gamestate.h"
-#include "grunt_strings.h"
 #include "grunt_vector2i.h"
 #include "grunt_vector2f.h"
 #include "grunt_math.h"
@@ -116,7 +116,7 @@ global_variable Queue_GameText *GlobalTextRenderQueue;
 // /=====================================================================/
 
 internal void
-InitializePlatform(PlatformAPI *platformAPI);
+InitializePlatformAPI(PlatformAPI *platformAPI);
 
 internal SDL_Window *
 InitializeGameWindow();
@@ -164,7 +164,7 @@ main(int argc, char *argv[])
     // TODO(nick): add this maybe to gamestate / windowstate?
     SDL_Event CurrentEvent;
 
-    InitializePlatform(&GlobalPlatformAPI);
+    InitializePlatformAPI(&GlobalPlatformAPI);
     
     if (!InitializeGame())
     {
@@ -487,11 +487,12 @@ main(int argc, char *argv[])
 }
 
 internal void
-InitializePlatform(PlatformAPI *platformAPI)
+InitializePlatformAPI(PlatformAPI *platformAPI)
 {
-    platformAPI->GetAllFoldersInDirectory = Win32GetAllFoldersInDirectory;
-    platformAPI->GetAllFileOfTypeBegin    = Win32GetAllFilesOfTypeBegin;
-    platformAPI->GetAllFileOfTypeEnd      = Win32GetAllFilesOfTypeEnd;
+    platformAPI->GetAllFoldersInDirectoryBegin = Win32GetAllFoldersInDirectoryBegin;
+    platformAPI->GetAllFoldersInDirectoryEnd   = Win32GetAllFoldersInDirectoryEnd;
+    platformAPI->GetAllFileOfTypeBegin         = Win32GetAllFilesOfTypeBegin;
+    platformAPI->GetAllFileOfTypeEnd           = Win32GetAllFilesOfTypeEnd;
 }
 
 inline SDL_Window *
@@ -598,10 +599,9 @@ InitializeGame()
                     // 2) this should replace the code below
                     // 3) after we get the loading fixed, we should work on proper scaling
                     //    and writing out input to a replay file?
-                
-                    GlobalPlatformAPI.GetAllFoldersInDirectory("./asset/Regan-Smash/textures");
-                    platform_file_group currentFiles;
-                    currentFiles = GlobalPlatformAPI.GetAllFileOfTypeBegin(PlatformFileType_AssetFile);
+                    char *textureList[10][2] = { 0 };
+                    GlobalPlatformAPI.GetAllFoldersInDirectoryBegin("./assets/Reagan-Smash/textures", textureList);
+                    //GlobalPlatformAPI.GetAllFoldersInDirectoryEnd(directoryContent);
                 }
 
                 char *playerTextureList[32][2] =

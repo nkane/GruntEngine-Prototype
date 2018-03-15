@@ -112,4 +112,12 @@ StringCompare(char *stringOne, char *stringTwo)
     return result;
 }
 
-
+void
+StringTrim(char *sourceString, char delimiter)
+{
+    while (*sourceString != delimiter)
+    {
+        sourceString++;
+    }
+    *sourceString = '\0';
+}
