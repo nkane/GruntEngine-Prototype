@@ -175,7 +175,7 @@ main(int argc, char *argv[])
     // game initialized successfully
     while (GameRunning)
     {
-        float defaultSpeed = 0.35f;
+        float defaultSpeed = 0.18f;
         Vector2f accelerationVector = { 0.0f, 0.0f };
         // TODO(nick): figure out a better value for gravity
         local_persist Vector2f gravityVector = { 0.0f, 0.1f };
@@ -226,7 +226,7 @@ main(int argc, char *argv[])
                                 FlipAnimations(PlayerAnimations, LeftFlip);
                                 PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceLeft);
                             }
-                            //PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
                             decayRate = 1.0f;
                             accelerationVector.X -= defaultSpeed;
                         } break;
@@ -240,15 +240,19 @@ main(int argc, char *argv[])
                                 FlipAnimations(PlayerAnimations, RightFlip);
                                 PlayerEntity->CurrentFaceDirection = (EntityFaceDirection)(FaceRight);
                             }
-                            //PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
                             decayRate = 1.0f;
                             accelerationVector.X += defaultSpeed;
                         } break;
                         
                         case SDLK_SPACE: 
                         {
-                            // TODO(nick): add a jump!
-                            accelerationVector.Y -= 3.0f;
+                            if (PlayerEntity->CurrentState & (EntityState)(Jumping) || PlayerEntity->VelocityV2f.Y <= 0.0f)
+                            {
+                                accelerationVector.Y -= 3.0f;
+                                PlayerEntity->CurrentState = (EntityState)(Jumping);
+                                PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                            }
                         } break;
                     }
                 } break;
@@ -271,7 +275,7 @@ main(int argc, char *argv[])
                         case SDLK_LEFT:
                         {
                            PlayerEntity->CurrentState = (EntityState)(Idle);
-                           //PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
                            decayRate = 0.98f;
                         } break;
                         
@@ -279,13 +283,16 @@ main(int argc, char *argv[])
                         case SDLK_RIGHT:
                         {
                            PlayerEntity->CurrentState = (EntityState)(Idle);
-                           //PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
+                           PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
                            decayRate = 0.98f;
                         } break;
                 
                         case SDLK_SPACE: 
                         {
                             // TODO(nick): add a jump!
+                            PlayerEntity->CurrentState = (EntityState)(Idle);
+                            
+                            PlayerEntity->CurrentTexture = SelectPlayerAnimationFrame(PlayerEntity, PlayerAnimations);
                         } break;
                     }
                 } break;
@@ -349,7 +356,6 @@ main(int argc, char *argv[])
             {
                 DEBUG_PlayerPositionInfo,
                 NULL,
-                
             };
             
             Text_Node DEBUGInfo_EnemyPositionNode
@@ -605,27 +611,26 @@ InitializeGame()
                 GlobalPlatformAPI.GetAllFoldersInDirectoryBegin("./assets/Reagan-Smash/entity", textureList);
 
                 float defaultMeterHeight = 1.2f;
-                float defaultMeterWidth = 0.8f;
-                float metersPerPixel =  0.036f;
+                float defaultMeterWidth = 1.2f;
+                float metersPerPixel =  0.04f;
                 for (int i = 0, j = 0; i < 64; ++i)
                 {
                     if (textureList[i][j])
                     {
                         ReadWriteOperations = SDL_RWFromFile(textureList[i][j + 1], "rb");
                         AssetTexture *currentTexture = LoadAssetPNG(GlobalGameState, ReadWriteOperations, GlobalWindowState->GameSurface, GlobalWindowState->GameRenderer);
-                        // TODO(nick):
-                        // 1) need to figure out how to scale and position tiles first!
+                        float textureAspectRatio = ((float)currentTexture->PixelWidth / (float)currentTexture->PixelHeight);
                         float currentMeterHeight = ((float)currentTexture->PixelHeight * metersPerPixel);
                         if (currentMeterHeight < defaultMeterHeight)
                         {
-                            float increasePixelDelta = (defaultMeterHeight - currentMeterHeight) / metersPerPixel;
+                            float increasePixelDelta = ((defaultMeterHeight - currentMeterHeight) / metersPerPixel);
                             currentTexture->PixelHeight += increasePixelDelta;
                         }
 
                         float currentMeterWidth = ((float)currentTexture->PixelWidth * metersPerPixel);
-                        if (currentMeterHeight < defaultMeterHeight)
+                        if (currentMeterWidth < defaultMeterWidth)
                         {
-                            float increasePixelDelta = (defaultMeterWidth - currentMeterWidth) / metersPerPixel;
+                            float increasePixelDelta = (((defaultMeterWidth - currentMeterWidth) * textureAspectRatio) / metersPerPixel);
                             currentTexture->PixelWidth += increasePixelDelta;
                         }
                         HashSet_Insert_AssetTexture(GlobalEntityTextureSet, textureList[i][j], currentTexture);
@@ -634,7 +639,7 @@ InitializeGame()
                     {
                         // TODO(nick):
                         // 1) player animations need to be built again!
-                        //BuildPlayerAnimations(PlayerEntity, GlobalEntityTextureSet, PlayerAnimations, GlobalGameState->Memory->PermanentStorage);
+                        BuildPlayerAnimations(PlayerEntity, GlobalEntityTextureSet, PlayerAnimations, GlobalGameState->Memory->PermanentStorage);
                         break;
                     }
                 }

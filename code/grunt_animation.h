@@ -41,32 +41,28 @@ BuildPlayerAnimations(Entity *CurrentEntity, HashSet_AssetTexture *TextureHashSe
 	CurrentAnimation->FrameRateMS = 500;
 	CurrentAnimation->PreviousTime = 0;
 	CurrentAnimation->CurrentFrame = 0;
-	CurrentAnimation->AnimationStrip[frameIndex] = HashSet_Select_AssetTexture(TextureHashSet, "Grunt-Idle");
+	CurrentAnimation->AnimationStrip[frameIndex] = HashSet_Select_AssetTexture(TextureHashSet, "reagan-idle");
 	OutAnimations[i++] = CurrentAnimation;
 
 	// walking animation
 	CurrentAnimation = (Animation *)PushMemoryChunk(Block, sizeof(Animation));
 	CurrentAnimation->FrameLength = 2;
-	CurrentAnimation->FrameRateMS = 500;
+	CurrentAnimation->FrameRateMS = 200;
 	CurrentAnimation->PreviousTime = 0;
 	CurrentAnimation->CurrentFrame = 0;
-	CurrentAnimation->AnimationStrip[frameIndex++] = HashSet_Select_AssetTexture(TextureHashSet, "Grunt-Walk-1");
-	CurrentAnimation->AnimationStrip[frameIndex++] = HashSet_Select_AssetTexture(TextureHashSet, "Grunt-Walk-2");
+	CurrentAnimation->AnimationStrip[frameIndex++] = HashSet_Select_AssetTexture(TextureHashSet, "reagan-idle");
+	CurrentAnimation->AnimationStrip[frameIndex++] = HashSet_Select_AssetTexture(TextureHashSet, "reagan-walk");
 	OutAnimations[i++] = CurrentAnimation;
 
-	// TODO(nick): jumping animation
+	// jumping animation
 	frameIndex = 0;
 	CurrentAnimation = (Animation *)PushMemoryChunk(Block, sizeof(Animation));
-	CurrentAnimation->FrameLength = 3;
-	CurrentAnimation->FrameRateMS = 500;
+	CurrentAnimation->FrameLength = 1;
+	CurrentAnimation->FrameRateMS = 100;
 	CurrentAnimation->PreviousTime = 0;
 	CurrentAnimation->CurrentFrame = 0;
-	CurrentAnimation->AnimationStrip[frameIndex++] = HashSet_Select_AssetTexture(TextureHashSet, "Grunt-Climb-1");
-	CurrentAnimation->AnimationStrip[frameIndex++] = HashSet_Select_AssetTexture(TextureHashSet, "Grunt-Climb-2");
-	CurrentAnimation->AnimationStrip[frameIndex++] = HashSet_Select_AssetTexture(TextureHashSet, "Grunt-Climb-3");
+	CurrentAnimation->AnimationStrip[frameIndex++] = HashSet_Select_AssetTexture(TextureHashSet, "reagan-jump");
 	OutAnimations[i++] = CurrentAnimation;
-
-	// TODO(nick): climbing animation
 }
 
 void
@@ -74,7 +70,6 @@ BuildEnemyAnimations()
 {
     // TODO(nick):
 }
-
 AssetTexture *
 SelectPlayerAnimationFrame(Entity *CurrentPlayer, Animation *CurrentPlayerAnimations[10])
 {
@@ -89,6 +84,10 @@ SelectPlayerAnimationFrame(Entity *CurrentPlayer, Animation *CurrentPlayerAnimat
 	{
 		CurrentAnimation = CurrentPlayerAnimations[WalkingAnimation];
 	}
+    else if (CurrentPlayer->CurrentState & (Jumping)) 
+    {
+		CurrentAnimation = CurrentPlayerAnimations[JumpingAnimation];
+    }
 
     unsigned int currentTick = SDL_GetTicks();
     int frameDelta = (currentTick - CurrentAnimation->PreviousTime);
